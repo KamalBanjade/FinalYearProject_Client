@@ -1,20 +1,34 @@
 import axios from 'axios';
-import { getToken, removeToken } from './tokenManager';
+import axiosRetry from 'axios-retry';
+
+const API_URL = process.env.NEXT_PUBLIC_API_URL || 'https://localhost:7004/api';
+const isProduction = process.env.NODE_ENV === 'production';
 
 const axiosInstance = axios.create({
-    baseURL: process.env.NEXT_PUBLIC_API_BASE_URL,
-    timeout: 30000,
+    baseURL: API_URL,
+    timeout: isProduction ? 10000 : 30000,
+    withCredentials: true, // Crucial for sending/receiving cookies
     headers: {
         'Content-Type': 'application/json',
     },
 });
 
-// Request interceptor to add JWT token
+// Configure Retries
+axiosRetry(axiosInstance, {
+    retries: 3,
+    retryDelay: axiosRetry.exponentialDelay,
+    retryCondition: (error) => {
+        // Only retry on network errors or 5xx server errors
+        return axiosRetry.isNetworkOrIdempotentRequestError(error) ||
+            (error.response?.status ? error.response.status >= 500 : false);
+    },
+});
+
+// Request interceptor for logging
 axiosInstance.interceptors.request.use(
     (config) => {
-        const token = getToken();
-        if (token) {
-            config.headers.Authorization = `Bearer ${token}`;
+        if (!isProduction) {
+            console.log(`[API Request] ${config.method?.toUpperCase()} ${config.url}`);
         }
         return config;
     },
@@ -25,15 +39,36 @@ axiosInstance.interceptors.request.use(
 
 // Response interceptor for error handling
 axiosInstance.interceptors.response.use(
-    (response) => response,
+    (response) => {
+        if (!isProduction) {
+            console.log(`[API Response] ${response.status} ${response.config.url}`);
+        }
+        return response;
+    },
     (error) => {
-        if (error.response?.status === 401) {
-            // Token expired or invalid
-            removeToken();
-            if (typeof window !== 'undefined') {
-                window.location.href = '/login';
+        const status = error.response?.status;
+
+        if (status === 401) {
+            const url = error.config?.url || '';
+            const isLoginPage = typeof window !== 'undefined' && window.location.pathname.includes('/login');
+            // Never auto-redirect for background auth-check (auth/user) or logout calls.
+            // logout() handles its own redirect; checkAuth() handles its own failure silently.
+            const isBackgroundAuthCall = url.includes('auth/user') || url.includes('auth/logout');
+
+            if (typeof window !== 'undefined' && !isLoginPage && !isBackgroundAuthCall) {
+                window.location.href = '/login?expired=true';
             }
         }
+
+        if (!isProduction) {
+            const url = error.config?.url || '';
+            const isExpectedAuthCall = url.includes('auth/user') || url.includes('auth/logout');
+            // Don't clutter the console with expected 401s from background auth checks
+            if (!isExpectedAuthCall || status !== 401) {
+                console.error(`[API Error] ${status || 'Network Error'} ${error.config?.url}`, error.response?.data);
+            }
+        }
+
         return Promise.reject(error);
     }
 );

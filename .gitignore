@@ -3,12 +3,23 @@
 # dependencies
 /node_modules
 /.pnp
+
+# Environment files
+.env.local
+.env.production
+.env.development.local
+.env.test.local
+.env.auth_token
+
+# Build output
+.next/
+out/
+build/
 .pnp.js
 
 # testing
 /coverage
 
-# next.js
 /.next/
 /out/
 

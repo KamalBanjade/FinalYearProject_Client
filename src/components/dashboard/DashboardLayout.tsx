@@ -1,0 +1,318 @@
+'use client';
+
+import React, { useState } from 'react';
+import Link from 'next/link';
+import { usePathname } from 'next/navigation';
+import { useAuthStore } from '@/store/authStore';
+import { ThemeToggle } from '@/components/theme/ThemeToggle';
+import toast from 'react-hot-toast';
+import {
+    DocumentTextIcon,
+    CalendarIcon,
+    QrCodeIcon,
+    ExclamationTriangleIcon,
+    HomeIcon,
+    PowerIcon,
+    ChevronLeftIcon,
+    ChevronRightIcon,
+    UsersIcon,
+    ShieldCheckIcon,
+    ClipboardDocumentListIcon,
+    FolderPlusIcon,
+    ChartBarIcon,
+    CircleStackIcon,
+    LockClosedIcon,
+    QuestionMarkCircleIcon,
+    Cog6ToothIcon,
+    BuildingOfficeIcon,
+    IdentificationIcon,
+} from '@heroicons/react/24/outline';
+
+interface SidebarItemProps {
+    icon: React.ComponentType<{ className?: string }>;
+    label: string;
+    href: string;
+    isActive: boolean;
+    isCollapsed: boolean;
+}
+
+const SidebarItem = ({ icon: Icon, label, href, isActive, isCollapsed }: SidebarItemProps) => {
+    return (
+        <Link href={href} className="group relative block">
+            <div
+                className={`
+                    relative flex items-center transition-all duration-300 ease-[cubic-bezier(0.4,0,0.2,1)]
+                    hover:-translate-y-[1px]
+                    ${isCollapsed
+                        ? 'justify-center w-12 h-12 mx-auto rounded-2xl'
+                        : 'px-4 py-3 gap-3 rounded-2xl mx-2'
+                    }
+                    ${isActive
+                        ? 'text-primary bg-[var(--sidebar-active-bg)] shadow-md shadow-primary/10'
+                        : 'text-[var(--muted)] hover:bg-[var(--surface-2)] hover:text-[var(--foreground)]'
+                    }
+                `}
+            >
+                {/* Active Box Gradient - subtle overlay */}
+                {isActive && (
+                    <div className="absolute inset-0 bg-gradient-to-r from-primary/5 to-transparent rounded-2xl pointer-events-none" />
+                )}
+
+                {/* Left active indicator bar */}
+                {!isCollapsed && isActive && (
+                    <div className="absolute left-0 top-1/2 -translate-y-1/2 h-5 w-1 bg-secondary rounded-r-full" />
+                )}
+
+                <Icon className={`
+                    shrink-0 transition-transform duration-300 ease-[cubic-bezier(0.4,0,0.2,1)]
+                    ${isCollapsed ? 'w-6 h-6 mx-auto' : 'w-5 h-5'}
+                    ${isActive ? 'text-primary scale-110' : 'group-hover:scale-110'}
+                `} />
+
+                {!isCollapsed && (
+                    <span className={`text-[15px] truncate transition-all duration-300 ${isActive ? 'text-primary font-bold' : 'text-[var(--foreground)] font-semibold opacity-80'}`}>
+                        {label}
+                    </span>
+                )}
+
+                {/* Collapsed Tooltip */}
+                {isCollapsed && (
+                    <div className="absolute left-full top-1/2 -translate-y-1/2 ml-4 px-2.5 py-1.5 bg-slate-800 text-white text-xs font-semibold rounded-lg opacity-0 group-hover:opacity-100 pointer-events-none transition-all duration-150 translate-x-[-6px] group-hover:translate-x-0 whitespace-nowrap z-50 shadow-xl">
+                        {label}
+                        <div className="absolute right-full top-1/2 -translate-y-1/2 border-4 border-transparent border-r-slate-800" />
+                    </div>
+                )}
+            </div>
+        </Link>
+    );
+};
+
+const SectionLabel = ({ label, isCollapsed }: { label: string; isCollapsed: boolean }) => {
+    if (isCollapsed) return <div className="my-1 mx-3 h-px bg-[var(--border)]" />;
+    return (
+        <div className="px-4 pt-2 pb-1">
+            <span className="text-[11px] font-bold text-[var(--muted)] uppercase tracking-widest">{label}</span>
+        </div>
+    );
+};
+
+export const DashboardLayout = ({ children, role }: { children: React.ReactNode; role: string }) => {
+    const { user, logout } = useAuthStore();
+    const pathname = usePathname();
+    const [isCollapsed, setIsCollapsed] = useState(false);
+
+    const patientItems = [
+        { icon: HomeIcon, label: 'Dashboard', href: '/dashboard', section: 'Main' },
+        { icon: DocumentTextIcon, label: 'Medical Records', href: '/records', section: 'Health' },
+        { icon: FolderPlusIcon, label: 'Upload Record', href: '/records/upload', section: 'Health' },
+        { icon: CalendarIcon, label: 'Appointments', href: '/appointments', section: 'Health' },
+        { icon: QrCodeIcon, label: 'QR Codes', href: '/qr-codes', section: 'Tools' },
+        { icon: ExclamationTriangleIcon, label: 'Emergency', href: '/emergency-settings', section: 'Tools' },
+        { icon: IdentificationIcon, label: 'My Profile', href: '/profile', section: 'Account' },
+        { icon: Cog6ToothIcon, label: 'Settings', href: '/settings', section: 'Account' },
+    ];
+
+    const doctorItems = [
+        { icon: HomeIcon, label: 'Dashboard', href: '/doctor/dashboard', section: 'Main' },
+        { icon: DocumentTextIcon, label: 'Pending Records', href: '/doctor/pending-records', section: 'Records' },
+        { icon: ShieldCheckIcon, label: 'Certified Records', href: '/doctor/certified-records', section: 'Records' },
+        { icon: UsersIcon, label: 'My Patients', href: '/doctor/patients', section: 'Patients' },
+        { icon: CalendarIcon, label: 'Appointments', href: '/doctor/appointments', section: 'Patients' },
+        { icon: IdentificationIcon, label: 'My Profile', href: '/doctor/profile', section: 'Account' },
+        { icon: QuestionMarkCircleIcon, label: 'Help Center', href: '/doctor/help', section: 'Account' },
+        { icon: Cog6ToothIcon, label: 'Settings', href: '/doctor/settings', section: 'Account' },
+    ];
+
+    const adminItems = [
+        { icon: HomeIcon, label: 'Dashboard', href: '/admin/dashboard', section: 'Main' },
+        { icon: UsersIcon, label: 'User Management', href: '/admin/users', section: 'Management' },
+        { icon: IdentificationIcon, label: 'Doctor Management', href: '/admin/doctors', section: 'Management' },
+        { icon: BuildingOfficeIcon, label: 'Departments', href: '/admin/departments', section: 'Management' },
+        { icon: UsersIcon, label: 'Patient Directory', href: '/admin/patients', section: 'Management' },
+        { icon: ClipboardDocumentListIcon, label: 'Audit Logs', href: '/admin/audit-logs', section: 'System' },
+        { icon: ChartBarIcon, label: 'System Stats', href: '/admin/statistics', section: 'System' },
+        { icon: CircleStackIcon, label: 'Backups', href: '/admin/backups', section: 'System' },
+        { icon: LockClosedIcon, label: 'Security', href: '/admin/security', section: 'System' },
+    ];
+
+    const items = role === 'Admin' ? adminItems : role === 'Doctor' ? doctorItems : patientItems;
+
+    // Find the active item using longest-match strategy to prevent parent/child double-activation
+    const sortedItems = [...items].sort((a, b) => b.href.length - a.href.length);
+    const activeItem = sortedItems.find(item =>
+        pathname === item.href || (item.href !== '/' && pathname.startsWith(item.href + '/'))
+    ) || items.find(item => pathname === item.href);
+
+    const sections = items.reduce((acc, item) => {
+        if (!acc[item.section]) acc[item.section] = [];
+        acc[item.section].push(item);
+        return acc;
+    }, {} as Record<string, typeof items>);
+
+    return (
+        <div className="relative flex h-screen font-sans overflow-hidden bg-[var(--background)] text-[var(--foreground)]">
+            {/* --- Premium Top Light Gradient --- */}
+            <div className="absolute inset-0 pointer-events-none z-0">
+                <div className="absolute top-0 left-0 w-full h-40 bg-gradient-to-b from-primary/5 to-transparent" />
+            </div>
+
+            {/* --- Sidebar (Floating Island) --- */}
+            <aside
+                className={`
+                    relative flex flex-col h-[calc(100vh-8px)] overflow-hidden z-30 shrink-0
+                    rounded-r-2xl border border-[var(--border)]
+                    mt-1 mb-1
+                    bg-[var(--surface)]/95 backdrop-blur-md transition-all duration-500
+                    ease-[cubic-bezier(0.4,0,0.2,1)] will-change-[width]
+                    ${isCollapsed ? 'w-[76px]' : 'w-64'}
+                    shadow-[8px_0_30px_-10px_rgba(0,0,0,0.15)] dark:shadow-[8px_0_30px_-10px_rgba(0,0,0,0.5)]
+                `}
+            >
+                {/* Logo Area */}
+                <div className={`flex items-center shrink-0 transition-all duration-500 ease-[cubic-bezier(0.4,0,0.2,1)] border-b border-[var(--border)] ${isCollapsed ? 'h-16 justify-center px-0' : 'h-[100px] px-3 gap-0'}`}>
+                    {isCollapsed ? (
+                        <img src="/images/logo.png" alt="Logo" className="h-9 w-9 object-contain transition-all duration-500" />
+                    ) : (
+                        <div className="flex items-center animate-in fade-in slide-in-from-left-4 duration-500">
+                            <div className="p-1 rounded-2xl shrink-0">
+                                <img src="/images/logo.png" alt="Logo" className="h-11 w-auto object-contain drop-shadow-sm" />
+                            </div>
+                            <div className="flex flex-col items-center -mt-2">
+                                <div className="relative w-fit mx-auto overflow-visible">
+                                    <img src="/images/sajilo.png" alt="सजिलो" className="h-14 w-36 object-contain translate-x-[-18px]" />
+                                    <span
+                                        className="absolute text-[16px] font-semibold text-secondary tracking-[0.05em] font-amita inline-block scale-x-110"
+                                        style={{ bottom: '4px', right: '14px' }}
+                                    >
+                                        स्वास्थ्य
+                                    </span>
+                                </div>
+                            </div>
+                        </div>
+                    )}
+                </div>
+
+                {/* Navigation */}
+                <nav className="flex-1 overflow-y-auto overflow-x-hidden pb-3 no-scrollbar transition-all duration-500">
+                    <div className={`flex flex-col transition-all duration-500 ${isCollapsed ? 'items-center gap-1.5 px-3 py-2' : 'gap-0.5 px-2'}`}>
+                        {Object.entries(sections).map(([section, sectionItems]) => (
+                            <div key={section} className="w-full">
+                                <SectionLabel label={section} isCollapsed={isCollapsed} />
+                                <div className="flex flex-col gap-0.5">
+                                    {sectionItems.map((item) => {
+                                        const isActive = activeItem?.href === item.href;
+                                        return <SidebarItem key={item.href} {...item} isActive={isActive} isCollapsed={isCollapsed} />;
+                                    })}
+                                </div>
+                            </div>
+                        ))}
+                    </div>
+                </nav>
+
+                <div className="shrink-0 border-t border-[var(--border)] bg-[var(--surface-2)] transition-all duration-500">
+
+                    {/* Logout + Toggle Row */}
+                    <div className={`flex items-center border-t border-[var(--border)] transition-all duration-500 ${isCollapsed ? 'flex-col' : ''}`}>
+                        <button
+                            onClick={() => {
+                                logout();
+                                toast.success('Logged out successfully.');
+                            }}
+                            className={`flex items-center gap-2 hover:text-rose-500 transition-all duration-200 text-[13px] font-semibold text-[var(--muted)] ${isCollapsed ? 'w-full justify-center py-3' : 'flex-1 px-4 py-3'}`}
+                        >
+                            <PowerIcon className="w-4 h-4 shrink-0 transition-transform hover:scale-110" />
+                            {!isCollapsed && <span className="animate-in fade-in duration-500">Logout</span>}
+                        </button>
+
+                        <button
+                            onClick={() => setIsCollapsed(!isCollapsed)}
+                            className={`flex items-center justify-center hover:text-primary transition-all duration-200 border-l border-[var(--border)] text-[var(--muted)] ${isCollapsed ? 'w-full py-3 border-t border-l-0' : 'px-3 py-3'}`}
+                            title={isCollapsed ? 'Expand' : 'Collapse'}
+                        >
+                            {isCollapsed ? (
+                                <ChevronRightIcon className="w-4 h-4 transition-transform hover:-translate-x-0.5" />
+                            ) : (
+                                <ChevronLeftIcon className="w-4 h-4 transition-transform hover:-translate-x-0.5" />
+                            )}
+                        </button>
+                    </div>
+                </div>
+            </aside>
+
+            {/* --- Main Content --- */}
+            <main className="flex-1 flex flex-col min-w-0 overflow-hidden">
+
+                {/* Header */}
+                <header
+                    className={`
+                        h-16 flex items-center justify-between px-8 shrink-0 
+                        border-b backdrop-blur-md z-10
+                        transition-all duration-500 ease-[cubic-bezier(0.4,0,0.2,1)]
+                        rounded-t-2xl mx-1 mt-1 border-x border-t shadow-sm shadow-black/[0.02]
+                    `}
+                    style={{
+                        background: 'color-mix(in srgb, var(--surface) 95%, transparent)',
+                        borderColor: 'var(--border)'
+                    }}
+                >
+                    <div className="flex flex-col justify-center">
+                        <h1 className="text-lg font-semibold tracking-tight" style={{ color: 'var(--foreground)' }}>
+                            {activeItem?.label || 'Overview'}
+                        </h1>
+                        <div className="flex items-center gap-1.5 mt-0.5">
+                            <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse" />
+                            <span className="text-[11px] font-medium font-mukta opacity-70" style={{ color: 'var(--muted)' }}>
+                                नमस्ते, {user?.firstName} · System Online
+                            </span>
+                        </div>
+                    </div>
+
+                    <div className="flex items-center gap-3">
+                        {/* QR Code Button */}
+                        <button
+                            className="w-9 h-9 rounded-2xl flex items-center justify-center transition-all hover:text-secondary hover:bg-secondary/10"
+                            style={{ background: 'var(--surface-2)', color: 'var(--muted)' }}
+                        >
+                            <QrCodeIcon className="w-5 h-5" />
+                        </button>
+
+                        {/* Dark Mode Toggle */}
+                        <ThemeToggle />
+
+                        <div className="h-7 w-px" style={{ background: 'var(--border)' }} />
+
+                        {/* User Area */}
+                        <div className="flex items-center gap-3 cursor-pointer group">
+                            <div className="text-right hidden md:block">
+                                <p className="text-[13px] font-bold leading-tight" style={{ color: 'var(--foreground)' }}>
+                                    {user?.firstName} {user?.lastName}
+                                </p>
+                                <span className="text-[10px] font-bold text-secondary uppercase tracking-widest opacity-80">{role}</span>
+                            </div>
+                            <div className="
+                        w-9 h-9 rounded-2xl bg-primary text-white flex items-center justify-center font-bold text-xs 
+                        shadow-sm shadow-primary/20 transition-all duration-300
+                        ring-2 ring-primary/20 group-hover:ring-primary/40 group-hover:shadow-md
+                    ">
+                                {user?.firstName?.[0]}{user?.lastName?.[0]}
+                            </div>
+                        </div>
+                    </div>
+                </header>
+
+                {/* Page Content */}
+                <div
+                    className={`flex-1 flex flex-col overflow-hidden relative z-10 transition-all duration-500 mx-1 mb-1 border-x border-b rounded-b-2xl p-2 backdrop-blur-md`}
+                    style={{
+                        background: 'color-mix(in srgb, var(--surface) 95%, transparent)',
+                        borderColor: 'var(--border)'
+                    }}
+                >
+                    <div className="flex-1 w-full overflow-y-auto no-scrollbar rounded-2xl p-6">
+                        {children}
+                    </div>
+                </div>
+            </main>
+        </div >
+    );
+};
