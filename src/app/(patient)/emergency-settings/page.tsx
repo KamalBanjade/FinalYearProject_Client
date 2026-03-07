@@ -126,17 +126,8 @@ export default function EmergencySettingsPage() {
 
     return (
         <div className="max-w-7xl mx-auto space-y-8 animate-in fade-in duration-500">
-            {/* Professional Header */}
-            <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 bg-white/40 dark:bg-white/5 p-6 rounded-2xl border border-white/10 backdrop-blur-sm">
-                <div>
-                    <h1 className="text-2xl font-bold text-slate-900 dark:text-white flex items-center gap-2">
-                        <ShieldAlert className="w-6 h-6 text-rose-500" />
-                        Emergency Health Vault
-                    </h1>
-                    <p className="text-sm font-medium text-slate-500 dark:text-slate-400 mt-1">
-                        Critical information for first responders. No authentication required to view these details via QR.
-                    </p>
-                </div>
+            {/* Page Actions */}
+            <div className="flex flex-col md:flex-row md:items-center justify-end gap-3 bg-white/40 dark:bg-white/5 p-6 rounded-2xl border border-white/10 backdrop-blur-sm">
                 <div className="flex items-center gap-3">
                     <Button
                         variant="ghost"

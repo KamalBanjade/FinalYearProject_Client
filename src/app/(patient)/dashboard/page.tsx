@@ -1,11 +1,12 @@
 'use client';
 
-import React, { useEffect, useState } from 'react';
+import React from 'react';
 import { useRouter } from 'next/navigation';
 import { PatientProfile } from '@/components/patient/PatientProfile';
 import { PlusIcon, DocumentDuplicateIcon, ClockIcon, ClipboardDocumentCheckIcon, ArrowRightIcon, ExclamationTriangleIcon } from '@heroicons/react/24/solid';
 import { useAuthStore } from '@/store/authStore';
-import { medicalRecordsApi, MedicalRecordResponseDTO } from '@/lib/api/medicalRecords';
+import { medicalRecordsApi } from '@/lib/api/medicalRecords';
+import { useQuery } from '@tanstack/react-query';
 
 const StatCard = ({ title, value, icon: Icon, color }: any) => (
     <div className="bg-white/40 dark:bg-white/5 p-6 rounded-3xl shadow-sm border border-white/10 dark:border-white/5 flex items-center space-x-4 backdrop-blur-sm">
@@ -22,23 +23,25 @@ const StatCard = ({ title, value, icon: Icon, color }: any) => (
 export default function PatientDashboard() {
     const router = useRouter();
     const { user } = useAuthStore();
-    const [recentRecords, setRecentRecords] = useState<MedicalRecordResponseDTO[]>([]);
-    const [stats, setStats] = useState({ total: 0, certified: 0, pending: 0 });
 
-    useEffect(() => {
-        medicalRecordsApi.getMyRecords().then((res) => {
-            const records: MedicalRecordResponseDTO[] = res?.data ?? [];
-            setRecentRecords(records.slice(0, 3));
-            setStats({
-                total: records.length,
-                certified: records.filter(r => r.isCertified).length,
-                pending: records.filter(r => !r.isCertified).length,
-            });
-        }).catch(() => { });
-    }, []);
+    const { data: recordsResponse } = useQuery({
+        queryKey: ['patient-medical-records'],
+        queryFn: () => medicalRecordsApi.getMyRecords(),
+    });
+
+    const groupedData = recordsResponse?.data;
+    const allRecords = groupedData?.sections.flatMap(section => section.records) || [];
+
+    const stats = {
+        total: groupedData?.totalCount || 0,
+        certified: allRecords.filter(r => r.isCertified).length,
+        pending: allRecords.filter(r => !r.isCertified).length,
+    };
+
+    const recentRecords = allRecords.slice(0, 3);
 
     return (
-        <div className="max-w-7xl mx-auto space-y-8">
+        <div className="max-w-7xl mx-auto px-4 md:px-8 pt-2 pb-12 space-y-8 animate-in fade-in duration-500">
             {/* Setup Reminder Banner */}
             {user && !user.totpSetupCompleted && (
                 <div className="bg-amber-50 border-l-4 border-amber-400 p-6 rounded-2xl shadow-sm animate-in slide-in-from-top duration-500">
@@ -64,18 +67,19 @@ export default function PatientDashboard() {
                 </div>
             )}
 
-            {/* Header */}
-            <div className="flex items-center justify-between">
-                <div>
-                    <h1 className="text-3xl font-bold text-slate-900 dark:text-white">Welcome back!</h1>
-                    <p className="text-slate-500 dark:text-slate-400 font-medium">Your medical overview for today.</p>
+            {/* Dashboard Actions Toolbar */}
+            <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-6 bg-white/50 dark:bg-white/5 backdrop-blur-md p-4 rounded-[2rem] border border-white/10 shadow-sm">
+                <div className="flex items-center gap-3 px-4">
+                    <div className="w-2 h-2 bg-indigo-500 rounded-full animate-pulse" />
+                    <span className="text-xs font-bold text-slate-500 uppercase tracking-widest">Active Health Monitor</span>
                 </div>
+
                 <button
                     onClick={() => router.push('/records/upload')}
-                    className="bg-indigo-600 hover:bg-indigo-700 dark:bg-primary dark:hover:bg-primary/90 text-white px-5 py-2.5 rounded-xl font-bold shadow-lg flex items-center space-x-2 transition-colors"
+                    className="bg-indigo-600 hover:bg-indigo-700 dark:bg-primary dark:hover:bg-primary/90 text-white px-8 py-3.5 rounded-2xl font-bold shadow-xl shadow-indigo-200 dark:shadow-none flex items-center space-x-2 transition-all active:scale-95 group"
                 >
-                    <PlusIcon className="w-5 h-5" />
-                    <span>Upload New Record</span>
+                    <PlusIcon className="w-5 h-5 group-hover:rotate-90 transition-transform duration-300" />
+                    <span>Upload New Medical Record</span>
                 </button>
             </div>
 

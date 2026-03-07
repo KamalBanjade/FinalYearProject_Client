@@ -4,6 +4,7 @@ import React, { useState } from 'react';
 import { X, CheckCircle, AlertCircle, FileText, Loader2 } from 'lucide-react';
 import { medicalRecordsApi, MedicalRecordResponseDTO } from '@/lib/api/medicalRecords';
 import toast from 'react-hot-toast';
+import { FullScreenRecordModal } from '@/components/ui/FullScreenRecordModal';
 
 interface DoctorReviewModalProps {
     record: MedicalRecordResponseDTO;
@@ -15,12 +16,24 @@ export const DoctorReviewModal = ({ record, onClose, onSuccess }: DoctorReviewMo
     const [notes, setNotes] = useState('');
     const [loading, setLoading] = useState(false);
     const [previewLoading, setPreviewLoading] = useState(false);
+    const [previewUrl, setPreviewUrl] = useState<string | null>(null);
     const [action, setAction] = useState<'certify' | 'reject' | null>(null);
+
+    React.useEffect(() => {
+        const handleEsc = (e: KeyboardEvent) => {
+            if (e.key === 'Escape') onClose();
+        };
+        window.addEventListener('keydown', handleEsc);
+        return () => window.removeEventListener('keydown', handleEsc);
+    }, [onClose]);
 
     const handlePreview = async () => {
         setPreviewLoading(true);
         try {
-            await medicalRecordsApi.previewRecordForDoctor(record.id);
+            const url = await medicalRecordsApi.previewRecordForDoctor(record.id);
+            if (url) setPreviewUrl(url);
+        } catch (err) {
+            // Toast is handled in API
         } finally {
             setPreviewLoading(false);
         }
@@ -191,6 +204,14 @@ export const DoctorReviewModal = ({ record, onClose, onSuccess }: DoctorReviewMo
                     </p>
                 </div>
             </div>
+
+            {/* Render immersive preview if loaded */}
+            {previewUrl && (
+                <FullScreenRecordModal
+                    pdfUrl={previewUrl}
+                    onClose={() => setPreviewUrl(null)}
+                />
+            )}
         </div>
     );
 };

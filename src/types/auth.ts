@@ -10,6 +10,8 @@ export interface User {
     totpSetupCompleted: boolean;
     requiresPasswordChange?: boolean;
     address?: string;
+    dateOfBirth?: string;
+    bloodType?: string;
 }
 
 export interface AuthResponse {
@@ -31,6 +33,8 @@ export interface AuthResponse {
     trustedDevice?: boolean;
     canRememberDevice?: boolean;
     deviceTrusted?: boolean;
+    dateOfBirth?: string;
+    bloodType?: string;
 
     // NEW: Recovery properties for incomplete setups
     totpSetupQRData?: string;

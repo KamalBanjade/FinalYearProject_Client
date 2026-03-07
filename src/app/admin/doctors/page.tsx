@@ -138,36 +138,23 @@ export default function DoctorListPage() {
 
     return (
         <div className="max-w-[1400px] mx-auto px-6 py-10 text-slate-900">
-            {/* Minimalist Header */}
-            <div className="flex justify-between items-end mb-10 border-b border-slate-100 pb-6">
-                <div>
-                    <h1 className="text-2xl font-semibold tracking-tight">Clinical Staff Management</h1>
-                    <p className="text-slate-500 text-sm mt-1">Registry of accredited practitioners and key states.</p>
-                </div>
-                <Link href="/admin/doctors/invite">
-                    <Button className="bg-slate-900 hover:bg-slate-800 text-white rounded-md px-5 h-10 text-xs font-bold uppercase tracking-wider flex items-center gap-2">
-                        <UserPlus size={16} />
-                        Invite Practitioner
-                    </Button>
-                </Link>
-            </div>
-
-            {/* Streamlined Search & Filter Bar */}
-            <div className="flex flex-col md:flex-row gap-3 items-center mb-8">
-                <div className="relative flex-1 w-full">
-                    <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" size={16} />
+            {/* Unified Toolbar */}
+            <div className="flex flex-col lg:flex-row items-center gap-4 bg-white/50 dark:bg-slate-900/50 backdrop-blur-md p-4 rounded-3xl border border-slate-100 dark:border-slate-800 shadow-sm mb-6">
+                <div className="relative flex-1 group w-full">
+                    <Search className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-400 group-focus-within:text-blue-500 transition-colors" size={18} />
                     <Input
-                        placeholder="Search by name, email, or license..."
-                        className="pl-9 h-11 bg-white border-slate-200 focus:border-slate-900 focus:ring-0 rounded-md transition-all text-sm"
+                        placeholder="Search by practitioner name, license, or specialization..."
+                        className="pl-12 h-12 bg-white dark:bg-slate-900 border border-slate-100 dark:border-slate-800 rounded-2xl focus:ring-4 focus:ring-blue-500/10 focus:border-blue-500 outline-none transition-all text-sm font-bold"
                         value={searchTerm}
                         onChange={(e) => setSearchTerm(e.target.value)}
                     />
                 </div>
-                <div className="flex gap-2 w-full md:w-auto">
+
+                <div className="flex flex-wrap items-center gap-3 w-full lg:w-auto">
                     <select
                         value={department}
                         onChange={(e) => setDepartment(e.target.value)}
-                        className="bg-white border border-slate-200 rounded-md px-3 h-11 text-sm font-medium text-slate-600 outline-none focus:border-slate-900"
+                        className="bg-white dark:bg-slate-900 border border-slate-100 dark:border-slate-800 rounded-2xl px-4 h-12 text-xs font-bold text-slate-600 dark:text-slate-400 outline-none focus:ring-2 focus:ring-blue-500/10 min-w-[160px] cursor-pointer"
                     >
                         <option value="">All Departments</option>
                         <option value="Cardiology">Cardiology</option>
@@ -182,21 +169,24 @@ export default function DoctorListPage() {
                             const val = e.target.value;
                             setIsActive(val === '' ? undefined : val === 'true');
                         }}
-                        className="bg-white border border-slate-200 rounded-md px-3 h-11 text-sm font-medium text-slate-600 outline-none focus:border-slate-900"
+                        className="bg-white dark:bg-slate-900 border border-slate-100 dark:border-slate-800 rounded-2xl px-4 h-12 text-xs font-bold text-slate-600 dark:text-slate-400 outline-none focus:ring-2 focus:ring-blue-500/10 min-w-[140px] cursor-pointer"
                     >
                         <option value="">Status: All</option>
-                        <option value="true">Active</option>
-                        <option value="false">Inactive</option>
+                        <option value="true">Active Only</option>
+                        <option value="false">Inactive Only</option>
                     </select>
 
-                    <div className="flex items-center px-4 bg-slate-50 rounded-md text-[10px] font-bold text-slate-400 border border-slate-100">
-                        {totalCount} TOTAL
-                    </div>
+                    <Link href="/admin/doctors/invite">
+                        <button className="flex items-center gap-2 px-6 py-3 bg-slate-900 dark:bg-blue-600 text-white rounded-2xl font-bold text-sm shadow-xl hover:bg-slate-800 dark:hover:bg-blue-700 transition-all active:scale-95 group">
+                            <UserPlus className="w-4 h-4 group-hover:rotate-12 transition-transform" />
+                            <span>Invite Staff</span>
+                        </button>
+                    </Link>
                 </div>
             </div>
 
             {/* Clean Professional Table */}
-            <div className="bg-white border border-slate-200 rounded-lg overflow-hidden shadow-sm">
+            <div className="bg-white dark:bg-slate-900 border border-slate-100 dark:border-slate-800 rounded-3xl overflow-hidden shadow-sm">
                 <table className="w-full text-left text-sm">
                     <thead>
                         <tr className="bg-slate-50 border-b border-slate-200 text-slate-500 font-bold text-[10px] uppercase tracking-widest">

@@ -3,12 +3,18 @@
 import { useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import { useAuthStore } from '@/store/authStore';
+import { MedicalLoader } from '@/components/ui/MedicalLoader';
 
 export default function RootPage() {
   const router = useRouter();
-  const { isAuthenticated, user, isLoading, getDashboardUrl } = useAuthStore();
+  const { isAuthenticated, user, isLoading, hasChecked, checkAuth, getDashboardUrl } = useAuthStore();
 
   useEffect(() => {
+    if (!hasChecked) {
+      checkAuth();
+      return;
+    }
+
     if (isLoading) return;
 
     if (!isAuthenticated) {
@@ -16,14 +22,11 @@ export default function RootPage() {
     } else {
       router.replace(getDashboardUrl(user));
     }
-  }, [isAuthenticated, user, isLoading, router, getDashboardUrl]);
+  }, [isAuthenticated, user, isLoading, hasChecked, checkAuth, router, getDashboardUrl]);
 
   return (
-    <div className="min-h-screen flex items-center justify-center bg-slate-50">
-      <div className="flex flex-col items-center space-y-4">
-        <div className="w-12 h-12 border-4 border-indigo-600 border-t-transparent rounded-full animate-spin"></div>
-        <p className="text-slate-500 font-medium">Loading session...</p>
-      </div>
+    <div className="fixed inset-0 flex items-center justify-center bg-white/40 dark:bg-slate-900/40 backdrop-blur-xl z-[9999]">
+      <MedicalLoader />
     </div>
   );
 }

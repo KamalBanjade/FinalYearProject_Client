@@ -181,7 +181,13 @@ export function RecordUpload({ onUploadSuccess, onRecordUploaded }: RecordUpload
                 recordDate: recordDate || undefined,
                 assignedDoctorId: selectedDoctorId,
             };
-            setUploadProgress(50);
+            setUploadProgress(40);
+            const result = await medicalRecordsApi.uploadRecord(data);
+            if (!result.success) {
+                setError(result.message || 'Upload failed. Please try again.');
+                setUploadProgress(0);
+                return;
+            }
             setUploadProgress(100);
             setSuccess(true);
             toast.success('Medical record uploaded and encrypted successfully!');

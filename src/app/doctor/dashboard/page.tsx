@@ -47,14 +47,7 @@ export default function DoctorDashboard() {
     const patientCount = new Set(records.map(r => r.patientName)).size;
 
     return (
-        <div className="max-w-7xl mx-auto space-y-8">
-            <div className="flex items-center justify-between">
-                <div>
-                    <h1 className="text-3xl font-bold text-slate-900 tracking-tight">Professional Portal</h1>
-                    <p className="text-slate-500 font-medium">Manage certifications and patient consults.</p>
-                </div>
-            </div>
-
+        <div className="max-w-7xl mx-auto px-4 md:px-8 pt-2 pb-12 space-y-8 animate-in fade-in duration-500">
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
                 <StatCard title="Pending Requests" value={loading ? '...' : pendingRecords.length} icon={ClockIcon} color="bg-rose-500" />
                 <StatCard title="Today's Consults" value="5" icon={CalendarDaysIcon} color="bg-indigo-500" />
@@ -63,13 +56,17 @@ export default function DoctorDashboard() {
             </div>
 
             <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
-                <div className="lg:col-span-2 bg-white rounded-3xl p-8 border border-slate-100 shadow-sm relative overflow-hidden">
-                    <div className="flex items-center justify-between mb-8">
-                        <h3 className="text-xl font-bold text-slate-900">Pending Certification Queue</h3>
-                        <a href="/doctor/pending-records" className="text-indigo-600 font-bold text-sm hover:text-indigo-800 transition-colors">View All</a>
+                <div className="lg:col-span-2 bg-white dark:bg-slate-900 rounded-[2.5rem] p-8 border border-slate-100 dark:border-slate-800 shadow-sm relative overflow-hidden group/queue">
+                    <div className="absolute top-0 right-0 w-32 h-32 bg-indigo-500/5 rounded-full blur-3xl -mr-16 -mt-16 group-hover/queue:bg-indigo-500/10 transition-colors"></div>
+                    <div className="flex items-center justify-between mb-8 relative z-10">
+                        <div>
+                            <h3 className="text-xl font-black text-slate-900 dark:text-white">Active Review Queue</h3>
+                            <p className="text-[10px] font-bold text-indigo-600 uppercase tracking-widest mt-0.5">Clinical Certification Verification</p>
+                        </div>
+                        <a href="/doctor/pending-records" className="px-4 py-2 bg-slate-50 dark:bg-slate-800 text-slate-600 dark:text-slate-400 font-bold text-xs rounded-xl hover:text-indigo-600 transition-colors border border-slate-100 dark:border-slate-700">View History</a>
                     </div>
 
-                    <div className="space-y-4">
+                    <div className="space-y-4 relative z-10">
                         {loading ? (
                             <div className="py-20 flex flex-col items-center justify-center opacity-40">
                                 <div className="w-10 h-10 border-4 border-indigo-500/20 border-t-indigo-500 rounded-full animate-spin mb-4"></div>

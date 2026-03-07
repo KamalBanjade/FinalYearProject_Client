@@ -52,6 +52,16 @@ export const InviteDoctorModal: React.FC<InviteDoctorModalProps> = ({ isOpen, on
         }
     }, [isOpen]);
 
+    React.useEffect(() => {
+        const handleEsc = (e: KeyboardEvent) => {
+            if (e.key === 'Escape') handleClose();
+        };
+        if (isOpen) {
+            window.addEventListener('keydown', handleEsc);
+        }
+        return () => window.removeEventListener('keydown', handleEsc);
+    }, [isOpen]);
+
     const fetchDepartments = async () => {
         try {
             setIsFetchingDepts(true);

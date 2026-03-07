@@ -3,6 +3,7 @@ import { Geist, Geist_Mono, Mukta, Yatra_One, Amita, Tiro_Devanagari_Hindi, Gotu
 import { Toaster } from "react-hot-toast";
 import { ThemeProvider, ThemeScript } from "@/components/theme/ThemeProvider";
 import { ConfirmProvider } from "@/context/ConfirmContext";
+import QueryProvider from "@/components/providers/QueryProvider";
 import "./globals.css";
 
 const geistSans = Geist({ variable: "--font-geist-sans", subsets: ["latin"] });
@@ -27,26 +28,28 @@ export default function RootLayout({ children }: Readonly<{ children: React.Reac
       </head>
       <body className={`${geistSans.variable} ${geistMono.variable} ${mukta.variable} ${yatraOne.variable} ${amita.variable} ${tiro.variable} ${gotu.variable} antialiased`}>
         <ThemeProvider>
-          <ConfirmProvider>
-            <Toaster
-              position="top-right"
-              toastOptions={{
-                className: 'react-hot-toast',
-                style: {
-                  background: 'var(--surface)',
-                  color: 'var(--foreground)',
-                  border: '1px solid var(--border)',
-                },
-                success: {
-                  iconTheme: {
-                    primary: 'var(--secondary)',
-                    secondary: 'white',
+          <QueryProvider>
+            <ConfirmProvider>
+              <Toaster
+                position="top-right"
+                toastOptions={{
+                  className: 'react-hot-toast',
+                  style: {
+                    background: 'var(--surface)',
+                    color: 'var(--foreground)',
+                    border: '1px solid var(--border)',
                   },
-                },
-              }}
-            />
-            {children}
-          </ConfirmProvider>
+                  success: {
+                    iconTheme: {
+                      primary: 'var(--secondary)',
+                      secondary: 'white',
+                    },
+                  },
+                }}
+              />
+              {children}
+            </ConfirmProvider>
+          </QueryProvider>
         </ThemeProvider>
       </body>
     </html>

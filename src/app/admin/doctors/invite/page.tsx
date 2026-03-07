@@ -97,74 +97,69 @@ export default function InviteDoctorPage() {
     }
 
     return (
-        <div className="max-w-4xl mx-auto py-8 px-4">
-            <div className="mb-8">
-                <h1 className="text-3xl font-bold text-slate-900">Invite New Doctor</h1>
-                <p className="text-slate-500">Create a doctor account and generate temporary credentials.</p>
+
+        <form onSubmit={handleSubmit(onSubmit)} className="bg-white p-8 rounded-2xl shadow-md border border-slate-100 space-y-6">
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                <Input
+                    label="First Name"
+                    required
+                    {...register('firstName')}
+                    error={errors.firstName?.message}
+                />
+                <Input
+                    label="Last Name"
+                    required
+                    {...register('lastName')}
+                    error={errors.lastName?.message}
+                />
+                <Input
+                    label="Email Address"
+                    type="email"
+                    required
+                    {...register('email')}
+                    error={errors.email?.message}
+                />
+                <Input
+                    label="Phone Number"
+                    required
+                    {...register('phoneNumber')}
+                    error={errors.phoneNumber?.message}
+                />
+                <Input
+                    label="NMC License Number"
+                    required
+                    placeholder="e.g. NMC-12345"
+                    {...register('nmcLicense')}
+                    error={errors.nmcLicense?.message}
+                />
+                <Input
+                    label="Department"
+                    required
+                    placeholder="e.g. Cardiology"
+                    {...register('department')}
+                    error={errors.department?.message}
+                />
+                <Input
+                    label="Specialization"
+                    required
+                    placeholder="e.g. Heart Surgeon"
+                    {...register('specialization')}
+                    error={errors.specialization?.message}
+                />
+                <Input
+                    label="Qualification Details"
+                    placeholder="e.g. MBBS, MD"
+                    {...register('qualificationDetails')}
+                    error={errors.qualificationDetails?.message}
+                />
             </div>
 
-            <form onSubmit={handleSubmit(onSubmit)} className="bg-white p-8 rounded-2xl shadow-md border border-slate-100 space-y-6">
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                    <Input
-                        label="First Name"
-                        required
-                        {...register('firstName')}
-                        error={errors.firstName?.message}
-                    />
-                    <Input
-                        label="Last Name"
-                        required
-                        {...register('lastName')}
-                        error={errors.lastName?.message}
-                    />
-                    <Input
-                        label="Email Address"
-                        type="email"
-                        required
-                        {...register('email')}
-                        error={errors.email?.message}
-                    />
-                    <Input
-                        label="Phone Number"
-                        required
-                        {...register('phoneNumber')}
-                        error={errors.phoneNumber?.message}
-                    />
-                    <Input
-                        label="NMC License Number"
-                        required
-                        placeholder="e.g. NMC-12345"
-                        {...register('nmcLicense')}
-                        error={errors.nmcLicense?.message}
-                    />
-                    <Input
-                        label="Department"
-                        required
-                        placeholder="e.g. Cardiology"
-                        {...register('department')}
-                        error={errors.department?.message}
-                    />
-                    <Input
-                        label="Specialization"
-                        required
-                        placeholder="e.g. Heart Surgeon"
-                        {...register('specialization')}
-                        error={errors.specialization?.message}
-                    />
-                    <Input
-                        label="Qualification Details"
-                        placeholder="e.g. MBBS, MD"
-                        {...register('qualificationDetails')}
-                        error={errors.qualificationDetails?.message}
-                    />
-                </div>
-
-                <div className="pt-6 border-t border-slate-100">
-                    <Button type="submit" className="w-full h-12 text-lg" isLoading={isLoading}>
-                        Invite Doctor & Generate Password
-                    </Button>
-                </div>
-            </form>
-        </div>
+            <div className="pt-6 border-t border-slate-100">
+                <Button type="submit" className="w-full h-12 text-lg" isLoading={isLoading}>
+                    Invite Doctor & Generate Password
+                </Button>
+            </div>
+        </form>
+        </div >
     );
 }

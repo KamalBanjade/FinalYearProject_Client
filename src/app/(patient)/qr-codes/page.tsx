@@ -172,29 +172,23 @@ export default function QRCodesPage() {
 
     return (
         <div className="max-w-7xl mx-auto space-y-8">
-            {/* Header */}
-            <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
-                <div>
-                    <h1 className="text-3xl font-extrabold text-slate-900 tracking-tight">My QR Codes</h1>
-                    <p className="text-slate-500 font-medium mt-1">Manage and share access to your medical records</p>
-                </div>
-                <div className="flex items-center gap-3">
-                    <Button
-                        variant="outline"
-                        onClick={() => { setGenType('Normal'); setShowGenModal(true); }}
-                        className="bg-white"
-                    >
-                        <Plus className="w-4 h-4 mr-2" />
-                        New Normal QR
-                    </Button>
-                    <Button
-                        variant="primary"
-                        onClick={() => { setGenType('Emergency'); setShowGenModal(true); }}
-                    >
-                        <ShieldAlert className="w-4 h-4 mr-2" />
-                        New Emergency QR
-                    </Button>
-                </div>
+            {/* Page Actions */}
+            <div className="flex flex-col md:flex-row md:items-center justify-end gap-3">
+                <Button
+                    variant="outline"
+                    onClick={() => { setGenType('Normal'); setShowGenModal(true); }}
+                    className="bg-white"
+                >
+                    <Plus className="w-4 h-4 mr-2" />
+                    New Normal QR
+                </Button>
+                <Button
+                    variant="primary"
+                    onClick={() => { setGenType('Emergency'); setShowGenModal(true); }}
+                >
+                    <ShieldAlert className="w-4 h-4 mr-2" />
+                    New Emergency QR
+                </Button>
             </div>
 
             {/* Featured Cards */}

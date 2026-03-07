@@ -20,6 +20,16 @@ export const RegenerateKeysModal: React.FC<RegenerateKeysModalProps> = ({
     const [confirmText, setConfirmText] = useState('');
     const [loading, setLoading] = useState(false);
 
+    React.useEffect(() => {
+        const handleEsc = (e: KeyboardEvent) => {
+            if (e.key === 'Escape') onClose();
+        };
+        if (isOpen) {
+            window.addEventListener('keydown', handleEsc);
+        }
+        return () => window.removeEventListener('keydown', handleEsc);
+    }, [isOpen, onClose]);
+
     if (!isOpen) return null;
 
     const handleConfirm = async () => {

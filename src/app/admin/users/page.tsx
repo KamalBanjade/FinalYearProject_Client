@@ -161,33 +161,25 @@ export default function AdminUsersPage() {
 
     return (
         <div className="p-8 max-w-7xl mx-auto space-y-8 animate-in fade-in duration-500">
-            {/* Header */}
-            <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 border-b border-gray-100 pb-8">
-                <div>
-                    <h1 className="text-3xl font-light text-gray-900 tracking-tight">System Users</h1>
-                    <p className="text-gray-500 mt-1 font-light">Manage accounts, roles, and access permissions</p>
-                </div>
-            </div>
+            {/* Unified Filter & Action Toolbar */}
+            <div className="flex flex-col lg:flex-row items-center gap-4 bg-white/50 dark:bg-slate-900/50 backdrop-blur-md p-4 rounded-3xl border border-slate-100 dark:border-slate-800 shadow-sm">
+                <form onSubmit={handleSearch} className="relative flex-1 group w-full">
+                    <Search className="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400 group-focus-within:text-blue-500 transition-colors" />
+                    <input
+                        type="text"
+                        placeholder="Search by name, email, or identity..."
+                        value={searchTerm}
+                        onChange={(e) => setSearchTerm(e.target.value)}
+                        className="w-full pl-12 pr-4 py-3 bg-white dark:bg-slate-900 border border-slate-100 dark:border-slate-800 rounded-2xl text-sm font-bold focus:ring-4 focus:ring-blue-500/10 focus:border-blue-500 outline-none transition-all dark:text-white"
+                    />
+                </form>
 
-            {/* Controls */}
-            <div className="bg-white p-4 rounded-2xl border border-gray-100 shadow-sm space-y-4">
-                <div className="flex flex-col lg:flex-row gap-4">
-                    <form onSubmit={handleSearch} className="relative flex-1 group">
-                        <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400 group-focus-within:text-blue-500 transition-colors" />
-                        <input
-                            type="text"
-                            placeholder="Search by name or email..."
-                            value={searchTerm}
-                            onChange={(e) => setSearchTerm(e.target.value)}
-                            className="w-full pl-10 pr-4 py-2.5 bg-gray-50/50 border border-gray-100 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500/50 hover:bg-white transition-all duration-300 text-gray-700"
-                        />
-                    </form>
-
-                    <div className="flex flex-wrap gap-3">
+                <div className="flex flex-wrap items-center gap-3 w-full lg:w-auto">
+                    <div className="flex items-center gap-2">
                         <select
                             value={roleFilter}
                             onChange={(e) => { setRoleFilter(e.target.value); setPagination(p => ({ ...p, page: 1 })); }}
-                            className="px-4 py-2.5 bg-gray-50/50 border border-gray-100 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500/20 text-gray-600 text-sm font-light min-w-[140px]"
+                            className="px-4 py-3 bg-white dark:bg-slate-900 border border-slate-100 dark:border-slate-800 rounded-2xl focus:outline-none focus:ring-2 focus:ring-blue-500/20 text-slate-600 dark:text-slate-400 text-xs font-bold min-w-[140px] cursor-pointer"
                         >
                             <option value="">All Roles</option>
                             <option value="Admin">Administrators</option>
@@ -198,13 +190,20 @@ export default function AdminUsersPage() {
                         <select
                             value={statusFilter}
                             onChange={(e) => { setStatusFilter(e.target.value); setPagination(p => ({ ...p, page: 1 })); }}
-                            className="px-4 py-2.5 bg-gray-50/50 border border-gray-100 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500/20 text-gray-600 text-sm font-light min-w-[140px]"
+                            className="px-4 py-3 bg-white dark:bg-slate-900 border border-slate-100 dark:border-slate-800 rounded-2xl focus:outline-none focus:ring-2 focus:ring-blue-500/20 text-slate-600 dark:text-slate-400 text-xs font-bold min-w-[140px] cursor-pointer"
                         >
                             <option value="">All Status</option>
-                            <option value="active">Active</option>
-                            <option value="inactive">Inactive</option>
+                            <option value="active">Active Only</option>
+                            <option value="inactive">Inactive Only</option>
                         </select>
                     </div>
+
+                    <div className="h-8 w-px bg-slate-100 dark:bg-slate-800 hidden lg:block" />
+
+                    <button className="flex items-center gap-2 px-6 py-3 bg-blue-600 text-white rounded-2xl font-bold text-sm shadow-lg shadow-blue-500/20 hover:bg-blue-700 transition-all active:scale-95 group">
+                        <Plus className="w-4 h-4 group-hover:rotate-90 transition-transform duration-300" />
+                        <span>Add New User</span>
+                    </button>
                 </div>
             </div>
 

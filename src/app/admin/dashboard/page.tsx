@@ -36,10 +36,7 @@ export default function AdminDashboard() {
     return (
         <div className="max-w-7xl mx-auto space-y-10">
             <div className="flex items-center justify-between">
-                <div>
-                    <h1 className="text-4xl font-extrabold text-slate-900 tracking-tight">System Control</h1>
-                    <p className="text-slate-500 font-semibold mt-1">Global monitoring and administrative tools.</p>
-                </div>
+                {/* Dashboard Stats */}
                 <div className="flex space-x-4">
                     <button
                         onClick={() => setIsInviteModalOpen(true)}
@@ -48,9 +45,13 @@ export default function AdminDashboard() {
                         <PlusIcon className="w-5 h-5" />
                         <span>Onboard Doctor</span>
                     </button>
-                    <button className="bg-white text-slate-900 border-2 border-slate-100 px-6 py-3 rounded-2xl font-bold shadow-sm hover:bg-slate-50 transition-all">
-                        System Reports
-                    </button>
+                    <a
+                        href="/admin/audit-logs"
+                        className="bg-white text-slate-900 border-2 border-slate-100 px-6 py-3 rounded-2xl font-bold shadow-sm hover:bg-slate-50 transition-all flex items-center space-x-2"
+                    >
+                        <ShieldCheckIcon className="w-5 h-5 text-indigo-600" />
+                        <span>Audit Logs</span>
+                    </a>
                 </div>
             </div>
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-8">

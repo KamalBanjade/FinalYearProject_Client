@@ -26,6 +26,7 @@ interface AuthState {
     user: User | null;
     isAuthenticated: boolean;
     isLoading: boolean;
+    hasChecked: boolean; // Tracks if the initial session check completed
     requiresTwoFactor: boolean;
     error: string | null;
     rememberedEmail: string | null;
@@ -53,7 +54,8 @@ export const useAuthStore = create<AuthState>()(
         (set, get) => ({
             user: null,
             isAuthenticated: false,
-            isLoading: false,
+            isLoading: false, // Start as false so checkAuth can be triggered
+            hasChecked: false,
             requiresTwoFactor: false,
             error: null,
             rememberedEmail: null,
@@ -116,8 +118,11 @@ export const useAuthStore = create<AuthState>()(
                                 twoFactorEnabled: data.twoFactorEnabled ?? false,
                                 totpSetupCompleted: data.totpSetupCompleted ?? false,
                                 requiresPasswordChange: data.requiresPasswordChange,
+                                dateOfBirth: data.dateOfBirth,
+                                bloodType: data.bloodType,
                             },
                             isAuthenticated: true,
+                            hasChecked: true, // Mark as checked after login too
                             requiresTwoFactor: false,
                             isLoading: false,
                         });
@@ -184,8 +189,11 @@ export const useAuthStore = create<AuthState>()(
                                 twoFactorEnabled: resData.twoFactorEnabled ?? false,
                                 totpSetupCompleted: resData.totpSetupCompleted ?? false,
                                 requiresPasswordChange: resData.requiresPasswordChange,
+                                dateOfBirth: resData.dateOfBirth,
+                                bloodType: resData.bloodType,
                             },
                             isAuthenticated: true,
+                            hasChecked: true,
                             requiresTwoFactor: false,
                             isLoading: false,
                         });
@@ -254,6 +262,7 @@ export const useAuthStore = create<AuthState>()(
                     set({
                         user: null,
                         isAuthenticated: false,
+                        hasChecked: true, // Still marked as checked
                         requiresTwoFactor: false,
                         error: null,
                     });
@@ -278,12 +287,15 @@ export const useAuthStore = create<AuthState>()(
                             role: userData.role,
                             twoFactorEnabled: userData.twoFactorEnabled,
                             totpSetupCompleted: userData.totpSetupCompleted,
+                            dateOfBirth: userData.dateOfBirth,
+                            bloodType: userData.bloodType,
                         },
                         isAuthenticated: true,
                         isLoading: false,
+                        hasChecked: true,
                     });
                 } catch (err) {
-                    set({ user: null, isAuthenticated: false, isLoading: false });
+                    set({ user: null, isAuthenticated: false, isLoading: false, hasChecked: true });
                 }
             },
 

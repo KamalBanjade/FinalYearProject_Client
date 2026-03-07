@@ -5,6 +5,8 @@ import { useRouter, usePathname } from 'next/navigation';
 import { useAuthStore } from '@/store/authStore';
 import { UserRole } from '@/types/auth';
 
+import { MedicalLoader } from '@/components/ui/MedicalLoader';
+
 interface ProtectedRouteProps {
     children: React.ReactNode;
     requiredRole?: UserRole;
@@ -18,17 +20,17 @@ export const ProtectedRoute: React.FC<ProtectedRouteProps> = ({
 }) => {
     const router = useRouter();
     const pathname = usePathname();
-    const { user, isAuthenticated, isLoading, checkAuth } = useAuthStore();
+    const { user, isAuthenticated, isLoading, hasChecked, checkAuth } = useAuthStore();
 
     useEffect(() => {
         // Initial auth check if not already loaded
-        if (!isAuthenticated) {
+        if (!hasChecked) {
             checkAuth();
         }
-    }, [isAuthenticated, checkAuth]);
+    }, [hasChecked, checkAuth]);
 
     useEffect(() => {
-        if (isLoading) return;
+        if (!hasChecked || isLoading) return;
 
         // 1. Check Authentication
         if (!isAuthenticated) {
@@ -53,13 +55,10 @@ export const ProtectedRoute: React.FC<ProtectedRouteProps> = ({
         }
     }, [isAuthenticated, isLoading, user, requiredRole, requireTwoFactor, router, pathname]);
 
-    if (isLoading) {
+    if (!hasChecked || isLoading) {
         return (
-            <div className="min-h-screen flex items-center justify-center bg-slate-50">
-                <div className="flex flex-col items-center space-y-4">
-                    <div className="w-12 h-12 border-4 border-green-500 border-t-transparent rounded-full animate-spin"></div>
-                    <p className="text-slate-500 font-medium animate-pulse">Loading...</p>
-                </div>
+            <div className="fixed inset-0 flex items-center justify-center bg-white/40 dark:bg-slate-900/40 backdrop-blur-xl z-[9999]">
+                <MedicalLoader />
             </div>
         );
     }

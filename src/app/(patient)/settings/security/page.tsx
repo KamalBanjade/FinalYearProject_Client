@@ -8,7 +8,7 @@ import { formatDistanceToNow, format, differenceInDays } from 'date-fns';
 import { useConfirm } from '@/context/ConfirmContext';
 
 interface TrustedDevice {
-    id: string;
+    deviceToken: string;
     deviceName: string;
     ipAddress: string;
     createdAt: string;
@@ -138,7 +138,7 @@ export default function SecuritySettingsPage() {
                     ) : (
                         <div className="space-y-4">
                             {devices.map((device) => (
-                                <div key={device.id} className="flex flex-col sm:flex-row sm:items-center justify-between p-4 rounded-xl border border-slate-100 bg-slate-50 hover:border-primary/20 hover:bg-white transition-all">
+                                <div key={device.deviceToken} className="flex flex-col sm:flex-row sm:items-center justify-between p-4 rounded-xl border border-slate-100 bg-slate-50 hover:border-primary/20 hover:bg-white transition-all">
                                     <div className="flex items-start gap-4">
                                         <div className="p-2 bg-white rounded-lg border border-slate-200 shadow-sm mt-1">
                                             {device.deviceName.toLowerCase().includes('phone') || device.deviceName.toLowerCase().includes('mobile') ? (
@@ -190,8 +190,8 @@ export default function SecuritySettingsPage() {
                                         <Button
                                             variant="danger"
                                             className="w-full sm:w-auto text-sm"
-                                            onClick={() => handleRevokeDevice(device.id)}
-                                            isLoading={isRevoking === device.id}
+                                            onClick={() => handleRevokeDevice(device.deviceToken)}
+                                            isLoading={isRevoking === device.deviceToken}
                                             disabled={isRevoking !== null}
                                         >
                                             Revoke Device

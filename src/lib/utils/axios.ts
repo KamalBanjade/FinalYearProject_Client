@@ -6,7 +6,7 @@ const isProduction = process.env.NODE_ENV === 'production';
 
 const axiosInstance = axios.create({
     baseURL: API_URL,
-    timeout: isProduction ? 10000 : 30000,
+    timeout: isProduction ? 15000 : 60000,
     withCredentials: true, // Crucial for sending/receiving cookies
     headers: {
         'Content-Type': 'application/json',

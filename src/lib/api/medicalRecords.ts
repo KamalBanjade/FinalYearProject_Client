@@ -32,12 +32,27 @@ export interface MedicalRecordResponseDTO {
     certifiedAt?: string;
     version: number;
     canDownload: boolean;
+    relativeTimeString: string;
+    timePeriod: string;
 }
 
 export interface UpdateMedicalRecordMetadataDTO {
     recordType?: string;
     description?: string;
     recordDate?: string;
+}
+
+export interface RecordSectionDTO {
+    timePeriod: string;
+    displayName: string;
+    recordCount: number;
+    isExpanded: boolean;
+    records: MedicalRecordResponseDTO[];
+}
+
+export interface GroupedMedicalRecordsDTO {
+    totalCount: number;
+    sections: RecordSectionDTO[];
 }
 
 const MEDICAL_RECORDS_API = 'patient/records';
@@ -61,11 +76,10 @@ export const medicalRecordsApi = {
         return response.data;
     },
 
-    // Get all patient records
-    getMyRecords: async (): Promise<{ success: boolean; message: string; data: MedicalRecordResponseDTO[] }> => {
+    // Get all patient records (grouped for elderly-friendly timeline)
+    getMyRecords: async (): Promise<{ success: boolean; message: string; data: GroupedMedicalRecordsDTO }> => {
         const response = await api.get(MEDICAL_RECORDS_API);
-        return response.data; // The current API returns the list directly or wrapped?
-        // According to the prompt, all responses are wrapped in { success, message, data }
+        return response.data;
     },
 
     // Get record details
@@ -151,58 +165,142 @@ export const medicalRecordsApi = {
         return response.data;
     },
 
-    // Download a record for doctor review
-    downloadRecordForDoctor: async (id: string): Promise<void> => {
+    // ─────────────────────────────────────────────────────────
+    // STREAMING DOWNLOAD — uses the pipelined backend endpoint.
+    // Session-scoped cache: instant re-open on second click.
+    // ─────────────────────────────────────────────────────────
+
+    /**
+     * Triggered when a user clicks "Download" on a certified record.
+     * Uses streaming endpoint → attachment mode → triggers Save As dialog.
+     * AbortController allows cancellation if the component unmounts.
+     */
+    downloadRecordForDoctor: async (id: string, signal?: AbortSignal): Promise<void> => {
         try {
-            const response = await api.get(`doctor/records/${id}/download`, {
-                responseType: 'blob',
+            const baseUrl = process.env.NEXT_PUBLIC_API_URL ?? 'https://localhost:7004/api';
+
+            const response = await fetch(`${baseUrl}/doctor/records/${id}/stream-download`, {
+                credentials: 'include', // cookie-based auth (same as Axios withCredentials)
+                signal,
             });
 
-            let filename = 'downloaded_record';
-            const disposition = response.headers['content-disposition'];
-            if (disposition && disposition.indexOf('attachment') !== -1) {
-                const filenameRegex = /filename[^;=\n]*=((['"]).*?\2|[^;\n]*)/;
-                const matches = filenameRegex.exec(disposition);
-                if (matches != null && matches[1]) {
-                    filename = matches[1].replace(/['"]/g, '');
-                }
+            if (!response.ok) {
+                if (response.status === 403) throw new Error('Access denied');
+                throw new Error(`HTTP ${response.status}`);
             }
 
-            const url = window.URL.createObjectURL(new Blob([response.data], { type: response.headers['content-type'] }));
+            const blob = await response.blob();
+            const contentDisposition = response.headers.get('content-disposition') ?? '';
+            const filenameMatch = /filename="?([^";\n]+)"?/i.exec(contentDisposition);
+            const filename = filenameMatch?.[1] ?? 'medical_record';
+
+            const url = URL.createObjectURL(blob);
             const link = document.createElement('a');
             link.href = url;
-            link.setAttribute('download', filename);
+            link.download = filename;
             document.body.appendChild(link);
             link.click();
+            link.remove();
+            setTimeout(() => URL.revokeObjectURL(url), 10_000);
+        } catch (error: any) {
+            if (error?.name === 'AbortError') return;
+            console.error('[medicalRecordsApi] downloadRecordForDoctor failed:', error);
+            toast.error('Failed to download secure record');
+        }
+    },
 
-            link.parentNode?.removeChild(link);
-            window.URL.revokeObjectURL(url);
-        } catch (error) {
-            console.error('Error downloading record:', error);
+    /**
+     * Triggered when a user clicks "View" on a certified record.
+     * Uses streaming /view endpoint → inline Content-Disposition → browser opens natively.
+     *
+     /**
+     * Retrieves the streaming URL for a certified record (Doctor view).
+     * Returns the ObjectURL to use in an iframe.
+     * Caches the URL for instant second access.
+     */
+    previewRecordForDoctor: async (id: string, signal?: AbortSignal): Promise<string> => {
+        const cached = _viewUrlCache.get(id);
+        if (cached) return cached;
+
+        try {
+            const baseUrl = process.env.NEXT_PUBLIC_API_URL ?? 'https://localhost:7004/api';
+
+            const response = await fetch(`${baseUrl}/doctor/records/${id}/view`, {
+                credentials: 'include',
+                signal,
+            });
+
+            if (!response.ok) {
+                if (response.status === 403) {
+                    toast.error('Access denied. You are not authorized to view this record.');
+                    throw new Error('Access denied');
+                }
+                throw new Error(`HTTP ${response.status}`);
+            }
+
+            const blob = await response.blob();
+            const url = URL.createObjectURL(blob);
+
+            _viewUrlCache.set(id, url);
+            setTimeout(() => {
+                URL.revokeObjectURL(url);
+                _viewUrlCache.delete(id);
+            }, 5 * 60 * 1000);
+
+            return url;
+        } catch (error: any) {
+            if (error?.name === 'AbortError') throw error;
+            console.error('[medicalRecordsApi] previewRecordForDoctor failed:', error);
+            toast.error('Failed to open record. Please try again.');
             throw error;
         }
     },
 
-    // Preview a record in a new tab
-    previewRecordForDoctor: async (id: string): Promise<void> => {
+    /**
+     * Retrieves the streaming URL for a patient's own record.
+     */
+    previewRecord: async (id: string, signal?: AbortSignal): Promise<string> => {
+        const cached = _viewUrlCache.get(id);
+        if (cached) return cached;
+
         try {
-            const response = await api.get(`doctor/records/${id}/download`, {
-                responseType: 'blob',
+            const baseUrl = process.env.NEXT_PUBLIC_API_URL ?? 'https://localhost:7004/api';
+
+            const response = await fetch(`${baseUrl}/medical-records/view/${id}`, {
+                credentials: 'include',
+                signal,
             });
 
-            const blob = new Blob([response.data], { type: response.headers['content-type'] });
-            const url = window.URL.createObjectURL(blob);
+            if (!response.ok) {
+                if (response.status === 403) throw new Error('Access denied');
+                throw new Error(`HTTP ${response.status}`);
+            }
 
-            // Open in new tab
-            window.open(url, '_blank');
+            const blob = await response.blob();
+            const url = URL.createObjectURL(blob);
 
-            // Note: We can't easily revokeObjectURL for a new tab without keeping the current page state 
-            // but for a single session preview it's acceptable.
-        } catch (error) {
-            console.error('Error previewing record:', error);
-            toast.error('Failed to preview document');
+            _viewUrlCache.set(id, url);
+            setTimeout(() => {
+                URL.revokeObjectURL(url);
+                _viewUrlCache.delete(id);
+            }, 5 * 60 * 1000);
+
+            return url;
+        } catch (error: any) {
+            if (error?.name === 'AbortError') throw error;
+            console.error('[medicalRecordsApi] previewRecord failed:', error);
+            toast.error('Failed to open record. Please try again.');
+            throw error;
         }
     },
+
+    /** Manually evict a record from the view cache (e.g., after it has been updated). */
+    evictViewCache: (id: string): void => {
+        const url = _viewUrlCache.get(id);
+        if (url) URL.revokeObjectURL(url);
+        _viewUrlCache.delete(id);
+    },
+
     // Verify digital signature integrity
     verifySignature: async (id: string): Promise<{
         success: boolean;
@@ -222,4 +320,17 @@ export const medicalRecordsApi = {
         const response = await api.post(`medical-records/${id}/verify-signature`);
         return response.data;
     },
+
+    // Get a specific patient's records (for doctors)
+    getPatientRecordsForDoctor: async (patientId: string): Promise<{ success: boolean; message: string; data: MedicalRecordResponseDTO[] }> => {
+        const response = await api.get(`medical-records/patient/${patientId}`);
+        return response.data;
+    },
 };
+
+// ─────────────────────────────────────────────────────────────────────────────
+// Session-scoped ObjectURL cache
+// Keys: record ID → ObjectURL blob string
+// Lifetime: current browser tab session only (GC'd on refresh)
+// ─────────────────────────────────────────────────────────────────────────────
+const _viewUrlCache = new Map<string, string>();

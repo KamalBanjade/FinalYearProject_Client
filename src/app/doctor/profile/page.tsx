@@ -81,35 +81,6 @@ export default function DoctorProfilePage() {
     return (
         <div className="max-w-5xl mx-auto py-8 px-4">
             {/* Header / Intro */}
-            <div className="mb-10 flex flex-col md:flex-row md:items-end justify-between gap-6">
-                <div className="flex items-center gap-6">
-                    <div className="w-24 h-24 bg-emerald-100 rounded-3xl flex items-center justify-center text-emerald-700 text-3xl font-bold border-4 border-white shadow-xl">
-                        {profile?.firstName?.charAt(0)}{profile?.lastName?.charAt(0)}
-                    </div>
-                    <div>
-                        <div className="flex items-center gap-3">
-                            <h1 className="text-3xl font-bold text-slate-900">Dr. {profile?.firstName} {profile?.lastName}</h1>
-                            <span className="bg-emerald-50 text-emerald-600 text-[10px] font-bold px-2 py-0.5 rounded border border-emerald-100 uppercase tracking-wider">
-                                Verified Practitioner
-                            </span>
-                        </div>
-                        <p className="text-slate-500 font-medium flex items-center gap-2 mt-1">
-                            <Mail size={14} className="text-slate-400" />
-                            {profile?.email}
-                        </p>
-                        <div className="flex items-center gap-4 mt-3">
-                            <div className="flex items-center gap-1.5 px-3 py-1 bg-white rounded-full border border-slate-200 text-xs font-semibold text-slate-600 shadow-sm">
-                                <BadgeCheck size={14} className="text-blue-500" />
-                                NMC: {profile?.nmcLicense}
-                            </div>
-                            <div className="flex items-center gap-1.5 px-3 py-1 bg-white rounded-full border border-slate-200 text-xs font-semibold text-slate-600 shadow-sm">
-                                <ShieldCheck size={14} className="text-indigo-500" />
-                                RSA-2048 Secure
-                            </div>
-                        </div>
-                    </div>
-                </div>
-            </div>
 
             <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
                 {/* Left Column: Quick View */}

@@ -88,11 +88,7 @@ export default function PatientProfilePage() {
     return (
         <div className="max-w-7xl mx-auto space-y-8">
             {/* Minimalist Tab-like Navigation Header */}
-            <div className="flex items-center justify-between mb-2">
-                <div>
-                    <h1 className="text-2xl font-bold text-slate-900">Personal Account</h1>
-                    <p className="text-sm font-medium text-slate-500">Manage your medical profile and emergency data</p>
-                </div>
+            <div className="flex items-center justify-end mb-2">
                 <div className="flex gap-3">
                     <Button
                         onClick={handleSave}
