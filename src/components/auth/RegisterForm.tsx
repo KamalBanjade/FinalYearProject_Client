@@ -10,146 +10,146 @@ import { Input } from '@/components/ui/Input';
 import { Select } from '@/components/ui/Select';
 import toast from 'react-hot-toast';
 import {
-    UserIcon,
-    LockClosedIcon,
-    InformationCircleIcon,
-    ChevronRightIcon,
-    ChevronLeftIcon,
-    CheckCircleIcon,
-    EnvelopeIcon,
-    ArrowPathIcon
-} from '@heroicons/react/24/outline';
+  UserIcon,
+  LockClosedIcon,
+  InformationCircleIcon,
+  ChevronRightIcon,
+  ChevronLeftIcon,
+  CheckCircleIcon,
+  EnvelopeIcon,
+  ArrowPathIcon } from
+'@heroicons/react/24/outline';
 
 const registerSchema = z.object({
-    email: z.string().email('Invalid email address'),
-    password: z.string()
-        .min(8, 'Password must be at least 8 characters')
-        .regex(/[A-Z]/, 'Must contain at least one uppercase letter')
-        .regex(/[a-z]/, 'Must contain at least one lowercase letter')
-        .regex(/[0-9]/, 'Must contain at least one number')
-        .regex(/[^A-Za-z0-9]/, 'Must contain at least one special character'),
-    confirmPassword: z.string(),
-    firstName: z.string()
-        .min(2, 'First name is required')
-        .regex(/^[A-Za-z\s]+$/, 'Numbers are not allowed in names'),
-    lastName: z.string()
-        .min(2, 'Last name is required')
-        .regex(/^[A-Za-z\s]+$/, 'Numbers are not allowed in names'),
-    phoneNumber: z.string()
-        .regex(/^\+977-\d{10}$/, 'Phone number must be exactly 10 digits after +977-'),
-    dateOfBirth: z.string().min(1, 'Date of birth is required').refine((val) => {
-        const date = new Date(val);
-        return date < new Date();
-    }, 'Date of birth must be in the past'),
-    gender: z.string().min(1, 'Gender is required'),
-    address: z.string().optional(),
+  email: z.string().email('Invalid email address'),
+  password: z.string().
+  min(8, 'Password must be at least 8 characters').
+  regex(/[A-Z]/, 'Must contain at least one uppercase letter').
+  regex(/[a-z]/, 'Must contain at least one lowercase letter').
+  regex(/[0-9]/, 'Must contain at least one number').
+  regex(/[^A-Za-z0-9]/, 'Must contain at least one special character'),
+  confirmPassword: z.string(),
+  firstName: z.string().
+  min(2, 'First name is required').
+  regex(/^[A-Za-z\s]+$/, 'Numbers are not allowed in names'),
+  lastName: z.string().
+  min(2, 'Last name is required').
+  regex(/^[A-Za-z\s]+$/, 'Numbers are not allowed in names'),
+  phoneNumber: z.string().
+  regex(/^\+977-\d{10}$/, 'Phone number must be exactly 10 digits after +977-'),
+  dateOfBirth: z.string().min(1, 'Date of birth is required').refine((val) => {
+    const date = new Date(val);
+    return date < new Date();
+  }, 'Date of birth must be in the past'),
+  gender: z.string().min(1, 'Gender is required'),
+  address: z.string().optional()
 }).refine((data) => data.password === data.confirmPassword, {
-    message: "Passwords don't match",
-    path: ['confirmPassword'],
+  message: "Passwords don't match",
+  path: ['confirmPassword']
 });
 
 type RegisterFormData = z.infer<typeof registerSchema>;
 
 export const RegisterForm = () => {
-    const [step, setStep] = useState(1);
-    const [passwordStrength, setPasswordStrength] = useState(0);
-    const [isSubmitted, setIsSubmitted] = useState(false);
-    const [submittedEmail, setSubmittedEmail] = useState('');
-    const [isResending, setIsResending] = useState(false);
-    const { register: registerUser, resendVerificationEmail, isLoading } = useAuthStore();
+  const [step, setStep] = useState(1);
+  const [passwordStrength, setPasswordStrength] = useState(0);
+  const [isSubmitted, setIsSubmitted] = useState(false);
+  const [submittedEmail, setSubmittedEmail] = useState('');
+  const [isResending, setIsResending] = useState(false);
+  const { register: registerUser, resendVerificationEmail, isLoading } = useAuthStore();
 
-    const STEPS = [
-        { id: 1, label: 'Personal', icon: UserIcon },
-        { id: 2, label: 'Security', icon: LockClosedIcon },
-        { id: 3, label: 'Details', icon: InformationCircleIcon },
-    ];
+  const STEPS = [
+  { id: 1, label: 'Personal', icon: UserIcon },
+  { id: 2, label: 'Security', icon: LockClosedIcon },
+  { id: 3, label: 'Details', icon: InformationCircleIcon }];
 
-    const {
-        register,
-        handleSubmit,
-        trigger,
-        watch,
-        setValue,
-        formState: { errors, dirtyFields },
-    } = useForm<RegisterFormData>({
-        resolver: zodResolver(registerSchema),
-        mode: 'onChange',
-        defaultValues: {
-            phoneNumber: '+977-',
-        }
-    });
 
-    const password = watch('password', '');
+  const {
+    register,
+    handleSubmit,
+    trigger,
+    watch,
+    setValue,
+    formState: { errors, dirtyFields }
+  } = useForm<RegisterFormData>({
+    resolver: zodResolver(registerSchema),
+    mode: 'onChange',
+    defaultValues: {
+      phoneNumber: '+977-'
+    }
+  });
 
-    // Simple password strength calculation
-    React.useEffect(() => {
-        let strength = 0;
-        if (password.length >= 8) strength += 25;
-        if (/[A-Z]/.test(password)) strength += 25;
-        if (/[0-9]/.test(password)) strength += 25;
-        if (/[^A-Za-z0-9]/.test(password)) strength += 25;
-        setPasswordStrength(strength);
-    }, [password]);
+  const password = watch('password', '');
 
-    const isFieldValid = (fieldName: keyof RegisterFormData) => {
-        return dirtyFields[fieldName] && !errors[fieldName];
-    };
+  // Simple password strength calculation
+  React.useEffect(() => {
+    let strength = 0;
+    if (password.length >= 8) strength += 25;
+    if (/[A-Z]/.test(password)) strength += 25;
+    if (/[0-9]/.test(password)) strength += 25;
+    if (/[^A-Za-z0-9]/.test(password)) strength += 25;
+    setPasswordStrength(strength);
+  }, [password]);
 
-    const nextStep = async () => {
-        const fields: (keyof RegisterFormData)[][] = [
-            ['firstName', 'lastName', 'email'],
-            ['password', 'confirmPassword'],
-            ['dateOfBirth', 'gender', 'address', 'phoneNumber']
-        ];
+  const isFieldValid = (fieldName: keyof RegisterFormData) => {
+    return dirtyFields[fieldName] && !errors[fieldName];
+  };
 
-        const isStepValid = await trigger(fields[step - 1]);
-        if (isStepValid) setStep((s) => s + 1);
-    };
+  const nextStep = async () => {
+    const fields: (keyof RegisterFormData)[][] = [
+    ['firstName', 'lastName', 'email'],
+    ['password', 'confirmPassword'],
+    ['dateOfBirth', 'gender', 'address', 'phoneNumber']];
 
-    const prevStep = () => setStep((s) => s - 1);
 
-    const onSubmit = async (data: RegisterFormData) => {
-        try {
-            const response = await registerUser(data);
-            const registrationData = response.data;
+    const isStepValid = await trigger(fields[step - 1]);
+    if (isStepValid) setStep((s) => s + 1);
+  };
 
-            if (registrationData?.requiresSetup) {
-                sessionStorage.setItem('registrationSetupData', JSON.stringify({
-                    totpQRData: registrationData.totpSetupQRData,
-                    totpSecretManual: registrationData.totpSecretManual,
-                    medicalAccessURL: registrationData.medicalAccessURL,
-                    medicalAccessToken: registrationData.medicalAccessToken,
-                    expiresAt: registrationData.medicalAccessExpiresAt
-                }));
-                // We'll still show the success message, but the "Continue" will go to setup
-                setSubmittedEmail(data.email);
-                setIsSubmitted(true);
-            } else {
-                setSubmittedEmail(data.email);
-                setIsSubmitted(true);
-            }
-            toast.success('Registration successful! Please verify your email.');
-        } catch (err) {
-            toast.error('Registration failed. Please try again.');
-        }
-    };
+  const prevStep = () => setStep((s) => s - 1);
 
-    const handleResendEmail = async () => {
-        if (!submittedEmail) return;
-        setIsResending(true);
-        try {
-            await resendVerificationEmail(submittedEmail);
-            toast.success('Verification email resent!');
-        } catch (err) {
-            toast.error('Failed to resend email. Please try again.');
-        } finally {
-            setIsResending(false);
-        }
-    };
+  const onSubmit = async (data: RegisterFormData) => {
+    try {
+      const response = await registerUser(data);
+      const registrationData = response.data;
 
-    if (isSubmitted) {
-        return (
-            <div className="w-full max-w-[500px] mx-auto bg-white dark:bg-slate-900 p-12 rounded-[40px] shadow-xl border border-slate-50 dark:border-slate-800 flex flex-col items-center text-center animate-in fade-in zoom-in duration-500">
+      if (registrationData?.requiresSetup) {
+        sessionStorage.setItem('registrationSetupData', JSON.stringify({
+          totpQRData: registrationData.totpSetupQRData,
+          totpSecretManual: registrationData.totpSecretManual,
+          medicalAccessURL: registrationData.medicalAccessURL,
+          medicalAccessToken: registrationData.medicalAccessToken,
+          expiresAt: registrationData.medicalAccessExpiresAt
+        }));
+        // We'll still show the success message, but the "Continue" will go to setup
+        setSubmittedEmail(data.email);
+        setIsSubmitted(true);
+      } else {
+        setSubmittedEmail(data.email);
+        setIsSubmitted(true);
+      }
+      toast.success('Registration successful! Please verify your email.');
+    } catch (err) {
+      toast.error('Registration failed. Please try again.');
+    }
+  };
+
+  const handleResendEmail = async () => {
+    if (!submittedEmail) return;
+    setIsResending(true);
+    try {
+      await resendVerificationEmail(submittedEmail);
+      toast.success('Verification email resent!');
+    } catch (err) {
+      toast.error('Failed to resend email. Please try again.');
+    } finally {
+      setIsResending(false);
+    }
+  };
+
+  if (isSubmitted) {
+    return (
+      <div className="w-full max-w-[500px] mx-auto bg-white dark:bg-slate-900 p-12 rounded-[40px] shadow-xl border border-slate-50 dark:border-slate-800 flex flex-col items-center text-center animate-in fade-in zoom-in duration-500">
                 <div className="w-24 h-24 bg-secondary/10 dark:bg-secondary/20 rounded-[32px] flex items-center justify-center mb-8 relative group">
                     <div className="absolute inset-0 bg-secondary/20 rounded-[32px] blur-xl opacity-50 group-hover:opacity-100 transition-opacity" />
                     <EnvelopeIcon className="w-12 h-12 text-secondary dark:text-secondary-light relative z-10 animate-bounce" />
@@ -172,18 +172,18 @@ export const RegisterForm = () => {
                     </div>
 
                     <button
-                        onClick={handleResendEmail}
-                        disabled={isResending}
-                        className="w-full h-14 bg-white dark:bg-slate-900 border-2 border-slate-100 dark:border-slate-800 text-slate-600 dark:text-slate-400 font-bold rounded-2xl hover:border-primary dark:hover:border-primary-light hover:text-primary dark:hover:text-primary-light active:scale-95 transition-all flex items-center justify-center gap-2 group disabled:opacity-50 disabled:pointer-events-none"
-                    >
+            onClick={handleResendEmail}
+            disabled={isResending}
+            className="w-full h-14 bg-white dark:bg-slate-900 border-2 border-slate-100 dark:border-slate-800 text-slate-600 dark:text-slate-400 font-bold rounded-2xl hover:border-primary dark:hover:border-primary-light hover:text-primary dark:hover:text-primary-light active:scale-95 transition-all flex items-center justify-center gap-2 group disabled:opacity-50 disabled:pointer-events-none">
+            
                         <ArrowPathIcon className={`w-5 h-5 ${isResending ? 'animate-spin' : 'group-hover:rotate-180 transition-transform duration-500'}`} />
                         <span>{isResending ? 'Resending...' : 'Resend Verification Email'}</span>
                     </button>
 
                     <a
-                        href="/login"
-                        className="w-full h-14 bg-primary text-white font-bold rounded-2xl shadow-lg shadow-primary/20 hover:scale-[1.02] active:scale-95 transition-all flex items-center justify-center gap-2"
-                    >
+            href="/login"
+            className="w-full h-14 bg-primary text-white font-bold rounded-2xl shadow-lg shadow-primary/20 hover:scale-[1.02] active:scale-95 transition-all flex items-center justify-center gap-2">
+            
                         <span>Continue to Login</span>
                         <ChevronRightIcon className="w-5 h-5" />
                     </a>
@@ -192,33 +192,33 @@ export const RegisterForm = () => {
                 <p className="mt-10 text-[11px] font-bold text-slate-300 dark:text-slate-600 uppercase tracking-[0.2em]">
                     Sajilo Swasthya &copy; 2024
                 </p>
-            </div>
-        );
-    }
+            </div>);
 
-    return (
-        <form onSubmit={handleSubmit(onSubmit)} className="w-full max-w-[500px] mx-auto bg-white dark:bg-slate-900 p-10 rounded-[40px] shadow-xl border border-slate-50 dark:border-slate-800 flex flex-col transition-all duration-500">
+  }
+
+  return (
+    <form onSubmit={handleSubmit(onSubmit)} className="w-full max-w-[500px] mx-auto bg-white dark:bg-slate-900 p-10 rounded-[40px] shadow-xl border border-slate-50 dark:border-slate-800 flex flex-col transition-all duration-500">
             <div className="text-center space-y-4 mb-10">
                 <div className="flex justify-center mb-6">
                     <div className="p-4 bg-gradient-to-b from-secondary/10 to-white/0 dark:from-secondary/20 dark:to-transparent rounded-[24px] relative group transition-all duration-500 hover:scale-105">
                         <img
-                            src="/images/logo.png"
-                            alt="सजिलो स्वास्थ्य"
-                            className="h-20 w-auto object-contain drop-shadow-sm dark:brightness-110"
-                        />
+              src="/images/logo.webp"
+              alt="सजिलो स्वास्थ्य"
+              className="h-20 w-auto object-contain drop-shadow-sm dark:brightness-110" />
+            
                     </div>
                 </div>
                 <div className="flex flex-col items-center -mt-4">
                     <div className="relative w-fit mx-auto overflow-visible">
                         <img
-                            src="/images/sajilo.png"
-                            alt="सजिलो"
-                            className="h-20 w-36 object-contain translate-x-[-32px] dark:brightness-110"
-                        />
+              src="/images/sajilo.webp"
+              alt="सजिलो"
+              className="h-20 w-36 object-contain translate-x-[-32px] dark:brightness-110" />
+            
                         <span
-                            className="absolute text-[18px] font-semibold text-secondary dark:text-secondary-light tracking-[0.05em] font-amita inline-block scale-x-110"
-                            style={{ bottom: '8px', right: '2px' }}
-                        >
+              className="absolute text-[18px] font-semibold text-secondary dark:text-secondary-light tracking-[0.05em] font-amita inline-block scale-x-110"
+              style={{ bottom: '8px', right: '2px' }}>
+              
                             स्वास्थ्य
                         </span>
                     </div>
@@ -230,205 +230,205 @@ export const RegisterForm = () => {
             {/* Step Indicators */}
             <div className="flex items-center justify-between px-2 mb-10">
                 {STEPS.map((s, idx) => {
-                    const Icon = s.icon;
-                    const isActive = step === s.id;
-                    const isDone = step > s.id;
-                    return (
-                        <React.Fragment key={s.id}>
+          const Icon = s.icon;
+          const isActive = step === s.id;
+          const isDone = step > s.id;
+          return (
+            <React.Fragment key={s.id}>
                             <div className="flex flex-col items-center gap-2 relative">
                                 <div className={`w-9 h-9 rounded-xl flex items-center justify-center transition-all duration-300 ${isDone ? 'bg-secondary text-white' :
-                                    isActive ? 'bg-secondary dark:bg-secondary text-white shadow-lg shadow-secondary/20 scale-110' :
-                                        'bg-slate-50 dark:bg-slate-800 text-slate-300 dark:text-slate-600'
-                                    }`}>
+                isActive ? 'bg-secondary dark:bg-secondary text-white shadow-lg shadow-secondary/20 scale-110' :
+                'bg-slate-50 dark:bg-slate-800 text-slate-300 dark:text-slate-600'}`
+                }>
                                     {isDone ? <CheckCircleIcon className="w-5 h-5" /> : <Icon className="w-4 h-4" />}
                                 </div>
                                 <span className={`text-[9px] font-black uppercase tracking-widest ${isActive ? 'text-secondary dark:text-secondary-light' : 'text-slate-300 dark:text-slate-600'}`}>
                                     {s.label}
                                 </span>
                             </div>
-                            {idx < STEPS.length - 1 && (
-                                <div className={`flex-1 h-0.5 mx-2 rounded-full transition-all duration-500 ${isDone ? 'bg-secondary' : 'bg-slate-100 dark:bg-slate-800'}`} />
-                            )}
-                        </React.Fragment>
-                    );
-                })}
+                            {idx < STEPS.length - 1 &&
+              <div className={`flex-1 h-0.5 mx-2 rounded-full transition-all duration-500 ${isDone ? 'bg-secondary' : 'bg-slate-100 dark:bg-slate-800'}`} />
+              }
+                        </React.Fragment>);
+
+        })}
             </div>
 
             <div className="flex-1 flex flex-col">
                 <div className="flex-1 animate-in fade-in slide-in-from-bottom-4 duration-500">
                     {/* Step 1: Personal Info */}
-                    {step === 1 && (
-                        <div className="space-y-5">
+                    {step === 1 &&
+          <div className="space-y-5">
                             <div className="grid grid-cols-2 gap-4">
                                 <Input
-                                    label="First Name"
-                                    placeholder="John"
-                                    required
-                                    {...register('firstName')}
-                                    error={errors.firstName?.message}
-                                    success={isFieldValid('firstName')}
-                                />
+                label="First Name"
+                placeholder="John"
+                required
+                {...register('firstName')}
+                error={errors.firstName?.message}
+                success={isFieldValid('firstName')} />
+              
                                 <Input
-                                    label="Last Name"
-                                    placeholder="Doe"
-                                    required
-                                    {...register('lastName')}
-                                    error={errors.lastName?.message}
-                                    success={isFieldValid('lastName')}
-                                />
+                label="Last Name"
+                placeholder="Doe"
+                required
+                {...register('lastName')}
+                error={errors.lastName?.message}
+                success={isFieldValid('lastName')} />
+              
                             </div>
                             <Input
-                                label="Email Address"
-                                type="email"
-                                placeholder="john@example.com"
-                                required
-                                {...register('email')}
-                                error={errors.email?.message}
-                                success={isFieldValid('email')}
-                            />
+              label="Email Address"
+              type="email"
+              placeholder="john@example.com"
+              required
+              {...register('email')}
+              error={errors.email?.message}
+              success={isFieldValid('email')} />
+            
                         </div>
-                    )}
+          }
 
                     {/* Step 2: Security */}
-                    {step === 2 && (
-                        <div className="space-y-5">
+                    {step === 2 &&
+          <div className="space-y-5">
                             <div className="grid grid-cols-2 gap-4">
                                 <Input
-                                    label="Password"
-                                    type="password"
-                                    placeholder="••••••••"
-                                    required
-                                    {...register('password')}
-                                    error={errors.password?.message}
-                                    success={isFieldValid('password')}
-                                />
+                label="Password"
+                type="password"
+                placeholder="••••••••"
+                required
+                {...register('password')}
+                error={errors.password?.message}
+                success={isFieldValid('password')} />
+              
                                 <Input
-                                    label="Confirm"
-                                    type="password"
-                                    placeholder="••••••••"
-                                    required
-                                    {...register('confirmPassword')}
-                                    error={errors.confirmPassword?.message}
-                                    success={isFieldValid('confirmPassword')}
-                                />
+                label="Confirm"
+                type="password"
+                placeholder="••••••••"
+                required
+                {...register('confirmPassword')}
+                error={errors.confirmPassword?.message}
+                success={isFieldValid('confirmPassword')} />
+              
                             </div>
 
-                            {password && (
-                                <div className="space-y-2 px-1 pt-2">
+                            {password &&
+            <div className="space-y-2 px-1 pt-2">
                                     <div className="flex justify-between text-[11px] font-black uppercase tracking-widest">
                                         <span className="text-slate-400 dark:text-slate-500">Security Strength</span>
                                         <span className={
-                                            passwordStrength <= 25 ? 'text-rose-500' :
-                                                passwordStrength <= 50 ? 'text-amber-500' :
-                                                    passwordStrength <= 75 ? 'text-primary dark:text-primary-light' : 'text-secondary dark:text-secondary-light'
-                                        }>
+                passwordStrength <= 25 ? 'text-rose-500' :
+                passwordStrength <= 50 ? 'text-amber-500' :
+                passwordStrength <= 75 ? 'text-primary dark:text-primary-light' : 'text-secondary dark:text-secondary-light'
+                }>
                                             {passwordStrength <= 25 ? 'Weak' :
-                                                passwordStrength <= 50 ? 'Fair' :
-                                                    passwordStrength <= 75 ? 'Good' : 'Very Strong'}
+                  passwordStrength <= 50 ? 'Fair' :
+                  passwordStrength <= 75 ? 'Good' : 'Very Strong'}
                                         </span>
                                     </div>
                                     <div className="h-2 w-full bg-slate-100 dark:bg-slate-800 rounded-full overflow-hidden">
                                         <div
-                                            className={`h-full transition-all duration-700 ease-out ${passwordStrength <= 25 ? 'bg-rose-500' :
-                                                passwordStrength <= 50 ? 'bg-amber-500' :
-                                                    passwordStrength <= 75 ? 'bg-primary' : 'bg-secondary'
-                                                }`}
-                                            style={{ width: `${passwordStrength}%` }}
-                                        />
+                  className={`h-full transition-all duration-700 ease-out ${passwordStrength <= 25 ? 'bg-rose-500' :
+                  passwordStrength <= 50 ? 'bg-amber-500' :
+                  passwordStrength <= 75 ? 'bg-primary' : 'bg-secondary'}`
+                  }
+                  style={{ width: `${passwordStrength}%` }} />
+                
                                     </div>
                                 </div>
-                            )}
+            }
                         </div>
-                    )}
+          }
 
                     {/* Step 3: Additional Details */}
-                    {step === 3 && (
-                        <div className="space-y-5">
+                    {step === 3 &&
+          <div className="space-y-5">
                             <div className="grid grid-cols-2 gap-4">
                                 <Input
-                                    label="Date of Birth"
-                                    type="date"
-                                    required
-                                    {...register('dateOfBirth')}
-                                    error={errors.dateOfBirth?.message}
-                                    success={isFieldValid('dateOfBirth')}
-                                />
+                label="Date of Birth"
+                type="date"
+                required
+                {...register('dateOfBirth')}
+                error={errors.dateOfBirth?.message}
+                success={isFieldValid('dateOfBirth')} />
+              
                                 <Select
-                                    label="Gender"
-                                    required
-                                    options={[
-                                        { value: '', label: 'Select' },
-                                        { value: 'Male', label: 'Male' },
-                                        { value: 'Female', label: 'Female' },
-                                        { value: 'Other', label: 'Other' },
-                                    ]}
-                                    {...register('gender')}
-                                    error={errors.gender?.message}
-                                    success={isFieldValid('gender')}
-                                />
+                label="Gender"
+                required
+                options={[
+                { value: '', label: 'Select' },
+                { value: 'Male', label: 'Male' },
+                { value: 'Female', label: 'Female' },
+                { value: 'Other', label: 'Other' }]
+                }
+                {...register('gender')}
+                error={errors.gender?.message}
+                success={isFieldValid('gender')} />
+              
                             </div>
                             <div className="grid grid-cols-2 gap-4">
                                 <Input
-                                    label="Physical Address"
-                                    placeholder="Kathmandu, Nepal"
-                                    {...register('address')}
-                                    error={errors.address?.message}
-                                    success={isFieldValid('address')}
-                                />
+                label="Physical Address"
+                placeholder="Kathmandu, Nepal"
+                {...register('address')}
+                error={errors.address?.message}
+                success={isFieldValid('address')} />
+              
                                 <Input
-                                    label="Phone Number"
-                                    placeholder="+977-98XXXXXXXX"
-                                    maxLength={15}
-                                    {...register('phoneNumber', {
-                                        onChange: (e) => {
-                                            const value = e.target.value;
-                                            if (!value.startsWith('+977-')) {
-                                                setValue('phoneNumber', '+977-', { shouldDirty: true, shouldValidate: true });
-                                                return;
-                                            }
-                                            const suffix = value.slice(5).replace(/\D/g, '');
-                                            setValue('phoneNumber', '+977-' + suffix, { shouldDirty: true, shouldValidate: true });
-                                        }
-                                    })}
-                                    error={errors.phoneNumber?.message}
-                                    success={isFieldValid('phoneNumber')}
-                                />
+                label="Phone Number"
+                placeholder="+977-98XXXXXXXX"
+                maxLength={15}
+                {...register('phoneNumber', {
+                  onChange: (e) => {
+                    const value = e.target.value;
+                    if (!value.startsWith('+977-')) {
+                      setValue('phoneNumber', '+977-', { shouldDirty: true, shouldValidate: true });
+                      return;
+                    }
+                    const suffix = value.slice(5).replace(/\D/g, '');
+                    setValue('phoneNumber', '+977-' + suffix, { shouldDirty: true, shouldValidate: true });
+                  }
+                })}
+                error={errors.phoneNumber?.message}
+                success={isFieldValid('phoneNumber')} />
+              
                             </div>
                         </div>
-                    )}
+          }
                 </div>
 
                 <div className="flex flex-col gap-3 pt-8">
-                    {step < 3 ? (
-                        <button
-                            type="button"
-                            onClick={nextStep}
-                            className="w-full h-14 bg-primary text-white font-bold rounded-2xl shadow-lg shadow-primary/20 hover:scale-[1.02] active:scale-95 transition-all flex items-center justify-center gap-2"
-                        >
+                    {step < 3 ?
+          <button
+            type="button"
+            onClick={nextStep}
+            className="w-full h-14 bg-primary text-white font-bold rounded-2xl shadow-lg shadow-primary/20 hover:scale-[1.02] active:scale-95 transition-all flex items-center justify-center gap-2">
+            
                             <span>Continue</span>
                             <ChevronRightIcon className="w-5 h-5" />
-                        </button>
-                    ) : (
-                        <Button
-                            type="submit"
-                            variant="secondary"
-                            className="w-full h-14 text-lg font-bold shadow-lg shadow-secondary/20 hover:scale-[1.02] active:scale-95 transition-all"
-                            isLoading={isLoading}
-                        >
+                        </button> :
+
+          <Button
+            type="submit"
+            variant="secondary"
+            className="w-full h-14 text-lg font-bold shadow-lg shadow-secondary/20 hover:scale-[1.02] active:scale-95 transition-all"
+            isLoading={isLoading}>
+            
                             {isLoading ? 'Registering...' : 'Complete Registration'}
                         </Button>
-                    )}
+          }
 
-                    {step > 1 && (
-                        <button
-                            type="button"
-                            onClick={prevStep}
-                            className="w-full h-12 text-slate-400 dark:text-slate-500 font-bold hover:text-slate-600 dark:hover:text-slate-300 transition-all flex items-center justify-center gap-2"
-                        >
+                    {step > 1 &&
+          <button
+            type="button"
+            onClick={prevStep}
+            className="w-full h-12 text-slate-400 dark:text-slate-500 font-bold hover:text-slate-600 dark:hover:text-slate-300 transition-all flex items-center justify-center gap-2">
+            
                             <ChevronLeftIcon className="w-4 h-4" />
                             <span className="text-sm">Back to previous step</span>
                         </button>
-                    )}
+          }
                 </div>
             </div>
 
@@ -440,6 +440,6 @@ export const RegisterForm = () => {
                     </a>
                 </p>
             </div>
-        </form>
-    );
+        </form>);
+
 };

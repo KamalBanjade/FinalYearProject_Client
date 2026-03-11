@@ -46,8 +46,9 @@ export default function InviteDoctorPage() {
                 message: response.data.message
             });
             reset();
-        } catch (err) {
-            toast.error('Failed to invite doctor. Please check the details.');
+        } catch (err: any) {
+            const serverMessage = err.response?.data?.message || 'Failed to invite doctor. Please check the details.';
+            toast.error(serverMessage);
         }
     };
 
@@ -160,6 +161,5 @@ export default function InviteDoctorPage() {
                 </Button>
             </div>
         </form>
-        </div >
     );
 }

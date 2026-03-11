@@ -6,65 +6,67 @@ import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 import { useAuthStore } from '@/store/authStore';
 import { ThemeToggle } from '@/components/theme/ThemeToggle';
+import { BottomNav } from '@/components/dashboard/BottomNav';
 import toast from 'react-hot-toast';
 import {
-    DocumentTextIcon,
-    CalendarIcon,
-    ClockIcon,
-    QrCodeIcon,
-    ExclamationTriangleIcon,
-    HomeIcon,
-    PowerIcon,
-    ChevronLeftIcon,
-    ChevronRightIcon,
-    UsersIcon,
-    ShieldCheckIcon,
-    ClipboardDocumentListIcon,
-    FolderPlusIcon,
-    ChartBarIcon,
-    CircleStackIcon,
-    LockClosedIcon,
-    QuestionMarkCircleIcon,
-    Cog6ToothIcon,
-    BuildingOfficeIcon,
-    IdentificationIcon,
-} from '@heroicons/react/24/outline';
+  DocumentTextIcon,
+  CalendarIcon,
+  ClockIcon,
+  QrCodeIcon,
+  ExclamationTriangleIcon,
+  HomeIcon,
+  PowerIcon,
+  ChevronLeftIcon,
+  ChevronRightIcon,
+  UsersIcon,
+  ShieldCheckIcon,
+  ClipboardDocumentListIcon,
+  FolderPlusIcon,
+  ChartBarIcon,
+  CircleStackIcon,
+  LockClosedIcon,
+  QuestionMarkCircleIcon,
+  Cog6ToothIcon,
+  BuildingOfficeIcon,
+  IdentificationIcon } from
+'@heroicons/react/24/outline';
+import { FadeIn } from '@/components/ui/FadeIn';
 
 interface SidebarItemProps {
-    icon: React.ComponentType<{ className?: string }>;
-    label: string;
-    desc: string;
-    href: string;
-    isActive: boolean;
-    isCollapsed: boolean;
+  icon: React.ComponentType<{className?: string;}>;
+  label: string;
+  desc: string;
+  href: string;
+  isActive: boolean;
+  isCollapsed: boolean;
 }
 
 const SidebarItem = ({ icon: Icon, label, href, isActive, isCollapsed }: SidebarItemProps) => {
-    return (
-        <Link href={href} className="group relative block">
+  return (
+    <Link href={href} className="group relative block">
             <div
-                className={`
+        className={`
                     relative flex items-center transition-all duration-300 ease-[cubic-bezier(0.4,0,0.2,1)]
                     hover:-translate-y-[1px]
-                    ${isCollapsed
-                        ? 'justify-center w-12 h-12 mx-auto rounded-2xl'
-                        : 'px-4 py-3 gap-3 rounded-2xl mx-2'
-                    }
-                    ${isActive
-                        ? 'text-primary bg-[var(--sidebar-active-bg)] shadow-md shadow-primary/10'
-                        : 'text-[var(--muted)] hover:bg-[var(--surface-2)] hover:text-[var(--foreground)]'
-                    }
-                `}
-            >
+                    ${isCollapsed ?
+        'justify-center w-12 h-12 mx-auto rounded-2xl' :
+        'px-4 py-3 gap-3 rounded-2xl mx-2'}
+                    ${
+        isActive ?
+        'text-primary bg-[var(--sidebar-active-bg)] shadow-md shadow-primary/10' :
+        'text-[var(--muted)] hover:bg-[var(--surface-2)] hover:text-[var(--foreground)]'}
+                `
+        }>
+        
                 {/* Active Box Gradient - subtle overlay */}
-                {isActive && (
-                    <div className="absolute inset-0 bg-gradient-to-r from-primary/5 to-transparent rounded-2xl pointer-events-none" />
-                )}
+                {isActive &&
+        <div className="absolute inset-0 bg-gradient-to-r from-primary/5 to-transparent rounded-2xl pointer-events-none" />
+        }
 
                 {/* Left active indicator bar */}
-                {!isCollapsed && isActive && (
-                    <div className="absolute left-0 top-1/2 -translate-y-1/2 h-5 w-1 bg-secondary rounded-r-full" />
-                )}
+                {!isCollapsed && isActive &&
+        <div className="absolute left-0 top-1/2 -translate-y-1/2 h-5 w-1 bg-secondary rounded-r-full" />
+        }
 
                 <Icon className={`
                     shrink-0 transition-transform duration-300 ease-[cubic-bezier(0.4,0,0.2,1)]
@@ -72,143 +74,143 @@ const SidebarItem = ({ icon: Icon, label, href, isActive, isCollapsed }: Sidebar
                     ${isActive ? 'text-primary scale-110' : 'group-hover:scale-110'}
                 `} />
 
-                {!isCollapsed && (
-                    <span className={`text-[15px] truncate transition-all duration-300 ${isActive ? 'text-primary font-bold' : 'text-[var(--foreground)] font-semibold opacity-80'}`}>
+                {!isCollapsed &&
+        <span className={`text-sm truncate transition-all duration-300 ${isActive ? 'text-primary font-bold' : 'text-[var(--foreground)] font-semibold opacity-70'}`}>
                         {label}
                     </span>
-                )}
+        }
 
                 {/* Collapsed Tooltip */}
-                {isCollapsed && (
-                    <div className="absolute left-full top-1/2 -translate-y-1/2 ml-4 px-2.5 py-1.5 bg-slate-800 text-white text-xs font-semibold rounded-lg opacity-0 group-hover:opacity-100 pointer-events-none transition-all duration-150 translate-x-[-6px] group-hover:translate-x-0 whitespace-nowrap z-50 shadow-xl">
+                {isCollapsed &&
+        <div className="absolute left-full top-1/2 -translate-y-1/2 ml-4 px-2.5 py-1.5 bg-slate-800 text-white text-xs font-semibold rounded-lg opacity-0 group-hover:opacity-100 pointer-events-none transition-all duration-150 translate-x-[-6px] group-hover:translate-x-0 whitespace-nowrap z-50 shadow-xl">
                         {label}
                         <div className="absolute right-full top-1/2 -translate-y-1/2 border-4 border-transparent border-r-slate-800" />
                     </div>
-                )}
+        }
             </div>
-        </Link>
-    );
+        </Link>);
+
 };
 
-const SectionLabel = ({ label, isCollapsed }: { label: string; isCollapsed: boolean }) => {
-    if (isCollapsed) return <div className="my-1 mx-3 h-px bg-[var(--border)]" />;
-    return (
-        <div className="px-4 pt-2 pb-1">
-            <span className="text-[11px] font-bold text-[var(--muted)] uppercase tracking-widest">{label}</span>
-        </div>
-    );
+const SectionLabel = ({ label, isCollapsed }: {label: string;isCollapsed: boolean;}) => {
+  if (isCollapsed) return <div className="my-1 mx-3 h-px bg-[var(--border)]" />;
+  return (
+    <div className="px-5 pt-4 pb-1">
+            <span className="text-[10px] font-black text-[var(--muted)] uppercase tracking-[0.15em] opacity-60">{label}</span>
+        </div>);
+
 };
 
-export const DashboardLayout = ({ children, role }: { children: React.ReactNode; role: string }) => {
-    const { user, logout } = useAuthStore();
-    const pathname = usePathname();
-    const [isCollapsed, setIsCollapsed] = useState(false);
+export const DashboardLayout = ({ children, role }: {children: React.ReactNode;role: string;}) => {
+  const { user, logout } = useAuthStore();
+  const pathname = usePathname();
+  const [isCollapsed, setIsCollapsed] = useState(false);
 
-    const patientItems = [
-        { icon: HomeIcon, label: 'Dashboard', desc: 'Overview of your health metrics and activities', href: '/dashboard', section: 'Main' },
-        { icon: DocumentTextIcon, label: 'Medical Records', desc: 'Secure repository of your medical documents', href: '/records', section: 'Health' },
-        { icon: FolderPlusIcon, label: 'Upload Record', desc: 'Add new documents to your secure vault', href: '/records/upload', section: 'Health' },
-        { icon: CalendarIcon, label: 'Appointments', desc: 'Schedule and manage your doctor visits', href: '/appointments', section: 'Health' },
-        { icon: QrCodeIcon, label: 'QR Codes', desc: 'Manage access links to your medical records', href: '/qr-codes', section: 'Tools' },
-        { icon: ExclamationTriangleIcon, label: 'Emergency', desc: 'Critical medical information for first responders', href: '/emergency-settings', section: 'Tools' },
-        { icon: Cog6ToothIcon, label: 'Settings', desc: 'Manage your account and security profile', href: '/settings', section: 'Account' },
-    ];
+  const patientItems = [
+  { icon: HomeIcon, label: 'Dashboard', desc: 'Overview of your health metrics and activities', href: '/dashboard', section: 'Main' },
+  { icon: DocumentTextIcon, label: 'Medical Records', desc: 'Secure repository of your medical documents', href: '/records', section: 'Health' },
+  { icon: FolderPlusIcon, label: 'Upload Record', desc: 'Add new documents to your secure vault', href: '/records/upload', section: 'Health' },
+  { icon: CalendarIcon, label: 'Appointments', desc: 'Schedule and manage your doctor visits', href: '/appointments', section: 'Health' },
+  { icon: QrCodeIcon, label: 'QR Codes', desc: 'Manage access links to your medical records', href: '/qr-codes', section: 'Tools' },
+  { icon: ExclamationTriangleIcon, label: 'Emergency', desc: 'Critical medical information for first responders', href: '/emergency-settings', section: 'Tools' },
+  { icon: IdentificationIcon, label: 'My Profile', desc: 'Manage your personal and medical identity', href: '/profile', section: 'Account' },
+  { icon: Cog6ToothIcon, label: 'Settings', desc: 'Manage your account and security profile', href: '/settings', section: 'Account' }];
 
-    const doctorItems = [
-        { icon: HomeIcon, label: 'Dashboard', desc: 'Overview of your clinical activity', href: '/doctor/dashboard', section: 'Main' },
-        { icon: DocumentTextIcon, label: 'Pending Records', desc: 'Vault documents awaiting your certification', href: '/doctor/pending-records', section: 'Records' },
-        { icon: ShieldCheckIcon, label: 'Certified Records', desc: 'Official registry of cryptographically signed medical documents', href: '/doctor/certified-records', section: 'Records' },
-        { icon: UsersIcon, label: 'My Patients', desc: 'Manage shared access from your patient directory', href: '/doctor/patients', section: 'Patients' },
-        { icon: CalendarIcon, label: 'Appointments', desc: 'Overview of today\'s clinical schedule', href: '/doctor/appointments', section: 'Patients' },
-        { icon: ClockIcon, label: 'Availability', desc: 'Manage your clinical working hours and blocked slots', href: '/doctor/availability', section: 'Patients' },
-        { icon: IdentificationIcon, label: 'My Profile', desc: 'Manage your professional identity and license', href: '/doctor/profile', section: 'Account' },
-        { icon: QuestionMarkCircleIcon, label: 'Help Center', desc: 'System documentation and support resources', href: '/doctor/help', section: 'Account' },
-        { icon: Cog6ToothIcon, label: 'Settings', desc: 'Manage application and security preferences', href: '/doctor/settings', section: 'Account' },
-    ];
 
-    const adminItems = [
-        { icon: HomeIcon, label: 'Dashboard', desc: 'System-wide monitoring and control center', href: '/admin/dashboard', section: 'Main' },
-        { icon: UsersIcon, label: 'User Management', desc: 'Control system users and access roles', href: '/admin/users', section: 'Management' },
-        { icon: IdentificationIcon, label: 'Doctor Management', desc: 'Verify and onboard medical professionals', href: '/admin/doctors', section: 'Management' },
-        { icon: BuildingOfficeIcon, label: 'Departments', desc: 'Manage clinical departments and units', href: '/admin/departments', section: 'Management' },
-        { icon: UsersIcon, label: 'Patient Directory', desc: 'Global directory of registered patients', href: '/admin/patients', section: 'Management' },
-        { icon: ClipboardDocumentListIcon, label: 'Audit Logs', desc: 'Immutable records of all system activities', href: '/admin/audit-logs', section: 'System' },
-        { icon: ChartBarIcon, label: 'System Stats', desc: 'Real-time infrastructure and usage metrics', href: '/admin/statistics', section: 'System' },
-        { icon: CircleStackIcon, label: 'Backups', desc: 'Manage system backups and recovery points', href: '/admin/backups', section: 'System' },
-        { icon: LockClosedIcon, label: 'Security', desc: 'Global threat monitoring and policy control', href: '/admin/security', section: 'System' },
-    ];
+  const doctorItems = [
+  { icon: HomeIcon, label: 'Dashboard', desc: 'Overview of your clinical activity', href: '/doctor/dashboard', section: 'Main' },
+  { icon: DocumentTextIcon, label: 'Pending Records', desc: 'Vault documents awaiting your certification', href: '/doctor/pending-records', section: 'Records' },
+  { icon: ShieldCheckIcon, label: 'Certified Records', desc: 'Official registry of cryptographically signed medical documents', href: '/doctor/certified-records', section: 'Records' },
+  { icon: UsersIcon, label: 'My Patients', desc: 'Manage shared access from your patient directory', href: '/doctor/patients', section: 'Patients' },
+  { icon: CalendarIcon, label: 'Appointments', desc: 'Overview of today\'s clinical schedule', href: '/doctor/appointments', section: 'Patients' },
+  { icon: ClockIcon, label: 'Availability', desc: 'Manage your clinical working hours and blocked slots', href: '/doctor/availability', section: 'Patients' },
+  { icon: IdentificationIcon, label: 'My Profile', desc: 'Manage your professional identity and license', href: '/doctor/profile', section: 'Account' },
+  { icon: QuestionMarkCircleIcon, label: 'Help Center', desc: 'System documentation and support resources', href: '/doctor/help', section: 'Account' },
+  { icon: Cog6ToothIcon, label: 'Settings', desc: 'Manage application and security preferences', href: '/doctor/settings', section: 'Account' }];
 
-    const items = role === 'Admin' ? adminItems : role === 'Doctor' ? doctorItems : patientItems;
 
-    // Find the active item using longest-match strategy to prevent parent/child double-activation
-    const sortedItems = [...items].sort((a, b) => b.href.length - a.href.length);
-    const activeItem = sortedItems.find(item =>
-        pathname === item.href || (item.href !== '/' && pathname.startsWith(item.href + '/'))
-    ) || items.find(item => pathname === item.href);
+  const adminItems = [
+  { icon: HomeIcon, label: 'Dashboard', desc: 'System-wide monitoring and control center', href: '/admin/dashboard', section: 'Main' },
+  { icon: UsersIcon, label: 'User Management', desc: 'Control system users and access roles', href: '/admin/users', section: 'Management' },
+  { icon: IdentificationIcon, label: 'Doctor Management', desc: 'Verify and onboard medical professionals', href: '/admin/doctors', section: 'Management' },
+  { icon: BuildingOfficeIcon, label: 'Departments', desc: 'Manage clinical departments and units', href: '/admin/departments', section: 'Management' },
+  { icon: UsersIcon, label: 'Patient Directory', desc: 'Global directory of registered patients', href: '/admin/patients', section: 'Management' },
+  { icon: ClipboardDocumentListIcon, label: 'Audit Logs', desc: 'Immutable records of all system activities', href: '/admin/audit-logs', section: 'System' },
+  { icon: ChartBarIcon, label: 'System Stats', desc: 'Real-time infrastructure and usage metrics', href: '/admin/statistics', section: 'System' },
+  { icon: CircleStackIcon, label: 'Backups', desc: 'Manage system backups and recovery points', href: '/admin/backups', section: 'System' },
+  { icon: LockClosedIcon, label: 'Security', desc: 'Global threat monitoring and policy control', href: '/admin/security', section: 'System' }];
 
-    const sections = items.reduce((acc, item) => {
-        if (!acc[item.section]) acc[item.section] = [];
-        acc[item.section].push(item);
-        return acc;
-    }, {} as Record<string, typeof items>);
 
-    return (
-        <div className="relative flex h-screen font-sans overflow-hidden bg-[var(--background)] text-[var(--foreground)]">
+  const items = role === 'Admin' ? adminItems : role === 'Doctor' ? doctorItems : patientItems;
+
+  const sortedItems = [...items].sort((a, b) => b.href.length - a.href.length);
+  const activeItem = sortedItems.find((item) =>
+  pathname === item.href || (item.href !== '/' && pathname.startsWith(item.href + '/'))
+  ) || items.find((item) => pathname === item.href);
+
+  const sections = items.reduce((acc, item) => {
+    if (!acc[item.section]) acc[item.section] = [];
+    acc[item.section].push(item);
+    return acc;
+  }, {} as Record<string, typeof items>);
+
+  return (
+    <div className="relative flex h-screen font-sans overflow-hidden bg-[var(--background)] text-[var(--foreground)]">
             {/* --- Premium Top Light Gradient --- */}
             <div className="absolute inset-0 pointer-events-none z-0">
                 <div className="absolute top-0 left-0 w-full h-40 bg-gradient-to-b from-primary/5 to-transparent" />
             </div>
 
-            {/* --- Sidebar (Floating Island) --- */}
+            {/* --- Sidebar (Floating Island) - Hidden on mobile/tablet --- */}
             <aside
-                className={`
-                    relative flex flex-col h-[calc(100vh-8px)] overflow-hidden z-30 shrink-0
+        className={`
+                    relative hidden lg:flex flex-col h-[calc(100vh-8px)] overflow-hidden z-30 shrink-0
                     rounded-r-2xl border border-[var(--border)]
                     mt-1 mb-1
                     bg-[var(--surface)]/95 backdrop-blur-md transition-all duration-500
                     ease-[cubic-bezier(0.4,0,0.2,1)] will-change-[width]
                     ${isCollapsed ? 'w-[76px]' : 'w-64'}
                     shadow-[8px_0_30px_-10px_rgba(0,0,0,0.15)] dark:shadow-[8px_0_30px_-10px_rgba(0,0,0,0.5)]
-                `}
-            >
+                `}>
+        
                 {/* Logo Area */}
                 <div className={`flex items-center shrink-0 transition-all duration-500 ease-[cubic-bezier(0.4,0,0.2,1)] border-b border-[var(--border)] ${isCollapsed ? 'h-16 justify-center px-0' : 'h-[100px] px-3 gap-0'}`}>
-                    {isCollapsed ? (
-                        <img src="/images/logo.png" alt="Logo" className="h-9 w-9 object-contain transition-all duration-500" />
-                    ) : (
-                        <div className="flex items-center animate-in fade-in slide-in-from-left-4 duration-500">
+                    {isCollapsed ?
+          <img src="/images/logo.webp" alt="Logo" className="h-9 w-9 object-contain transition-all duration-500" /> :
+
+          <div className="flex items-center animate-in fade-in slide-in-from-left-4 duration-500">
                             <div className="p-1 rounded-2xl shrink-0">
-                                <img src="/images/logo.png" alt="Logo" className="h-11 w-auto object-contain drop-shadow-sm" />
+                                <img src="/images/logo.webp" alt="Logo" className="h-11 w-auto object-contain drop-shadow-sm" />
                             </div>
                             <div className="flex flex-col items-center -mt-2">
                                 <div className="relative w-fit mx-auto overflow-visible">
-                                    <img src="/images/sajilo.png" alt="सजिलो" className="h-14 w-36 object-contain translate-x-[-18px]" />
+                                    <img src="/images/sajilo.webp" alt="सजिलो" className="h-14 w-36 object-contain translate-x-[-18px]" />
                                     <span
-                                        className="absolute text-[16px] font-semibold text-secondary tracking-[0.05em] font-amita inline-block scale-x-110"
-                                        style={{ bottom: '4px', right: '14px' }}
-                                    >
+                                  className="absolute text-[16px] font-semibold text-secondary tracking-[0.05em] font-amita inline-block scale-x-110"
+                                  style={{ bottom: '4px', right: '14px' }}>
+                                  
                                         स्वास्थ्य
                                     </span>
                                 </div>
                             </div>
                         </div>
-                    )}
+          }
                 </div>
 
                 {/* Navigation */}
                 <nav className="flex-1 overflow-y-auto overflow-x-hidden pb-3 no-scrollbar transition-all duration-500">
                     <div className={`flex flex-col transition-all duration-500 ${isCollapsed ? 'items-center gap-1.5 px-3 py-2' : 'gap-0.5 px-2'}`}>
-                        {Object.entries(sections).map(([section, sectionItems]) => (
-                            <div key={section} className="w-full">
+                        {Object.entries(sections).map(([section, sectionItems]) =>
+            <div key={section} className="w-full">
                                 <SectionLabel label={section} isCollapsed={isCollapsed} />
                                 <div className="flex flex-col gap-0.5">
                                     {sectionItems.map((item) => {
-                                        const isActive = activeItem?.href === item.href;
-                                        return <SidebarItem key={item.href} {...item} isActive={isActive} isCollapsed={isCollapsed} />;
-                                    })}
+                   const isActive = pathname === item.href || (item.href !== '/' && pathname.startsWith(item.href + '/'));
+                   return <SidebarItem key={item.href} {...item} isActive={isActive} isCollapsed={isCollapsed} />;
+                 })}
                                 </div>
                             </div>
-                        ))}
+            )}
                     </div>
                 </nav>
 
@@ -217,26 +219,26 @@ export const DashboardLayout = ({ children, role }: { children: React.ReactNode;
                     {/* Logout + Toggle Row */}
                     <div className={`flex items-center border-t border-[var(--border)] transition-all duration-500 ${isCollapsed ? 'flex-col' : ''}`}>
                         <button
-                            onClick={() => {
-                                logout();
-                                toast.success('Logged out successfully.');
-                            }}
-                            className={`flex items-center gap-2 hover:text-rose-500 transition-all duration-200 text-[13px] font-semibold text-[var(--muted)] ${isCollapsed ? 'w-full justify-center py-3' : 'flex-1 px-4 py-3'}`}
-                        >
+              onClick={() => {
+                logout();
+                toast.success('Logged out successfully.');
+              }}
+              className={`flex items-center gap-2 hover:text-rose-500 transition-all duration-200 text-xs font-bold text-[var(--muted)] ${isCollapsed ? 'w-full justify-center py-4' : 'flex-1 px-5 py-4'}`}>
+              
                             <PowerIcon className="w-4 h-4 shrink-0 transition-transform hover:scale-110" />
                             {!isCollapsed && <span className="animate-in fade-in duration-500">Logout</span>}
                         </button>
 
                         <button
-                            onClick={() => setIsCollapsed(!isCollapsed)}
-                            className={`flex items-center justify-center hover:text-primary transition-all duration-200 border-l border-[var(--border)] text-[var(--muted)] ${isCollapsed ? 'w-full py-3 border-t border-l-0' : 'px-3 py-3'}`}
-                            title={isCollapsed ? 'Expand' : 'Collapse'}
-                        >
-                            {isCollapsed ? (
-                                <ChevronRightIcon className="w-4 h-4 transition-transform hover:-translate-x-0.5" />
-                            ) : (
-                                <ChevronLeftIcon className="w-4 h-4 transition-transform hover:-translate-x-0.5" />
-                            )}
+              onClick={() => setIsCollapsed(!isCollapsed)}
+              className={`flex items-center justify-center hover:text-primary transition-all duration-200 border-l border-[var(--border)] text-[var(--muted)] ${isCollapsed ? 'w-full py-4 border-t border-l-0' : 'px-4 py-4'}`}
+              title={isCollapsed ? 'Expand' : 'Collapse'}>
+              
+                            {isCollapsed ?
+              <ChevronRightIcon className="w-4 h-4 transition-transform hover:-translate-x-0.5" /> :
+
+              <ChevronLeftIcon className="w-4 h-4 transition-transform hover:-translate-x-0.5" />
+              }
                         </button>
                     </div>
                 </div>
@@ -247,39 +249,39 @@ export const DashboardLayout = ({ children, role }: { children: React.ReactNode;
 
                 {/* Header */}
                 <header
-                    className={`
-                        h-16 flex items-center justify-between px-8 shrink-0 
+          className={`
+                        h-20 flex items-center justify-between px-4 md:px-6 shrink-0 
                         border-b backdrop-blur-md z-10
                         transition-all duration-500 ease-[cubic-bezier(0.4,0,0.2,1)]
                         rounded-t-2xl mx-1 mt-1 border-x border-t shadow-sm shadow-black/[0.02]
                     `}
-                    style={{
-                        background: 'color-mix(in srgb, var(--surface) 95%, transparent)',
-                        borderColor: 'var(--border)'
-                    }}
-                >
-                    <div className="flex flex-col justify-center">
-                        <h1 className="text-xl font-black text-slate-900 dark:text-white tracking-tight leading-tight">
+          style={{
+            background: 'color-mix(in srgb, var(--surface) 95%, transparent)',
+            borderColor: 'var(--border)'
+          }}>
+          
+                    <div className="flex flex-col justify-center max-w-[50%] md:max-w-none">
+                        <h1 className="text-xl md:text-2xl font-black text-slate-900 dark:text-white tracking-tight leading-none uppercase truncate">
                             {activeItem?.label || 'Overview'}
                         </h1>
-                        <p className="text-[11px] font-bold text-slate-400 dark:text-slate-500 uppercase tracking-widest mt-0.5 truncate max-w-[400px]">
+                        <p className="text-[9px] md:text-[10px] font-bold text-slate-400 dark:text-slate-500 uppercase tracking-[0.2em] mt-1.5 md:mt-2 truncate max-w-[200px] md:max-w-[400px]">
                             {activeItem?.desc || 'Welcome to the secure medical gateway'}
                         </p>
                     </div>
 
-                    <div className="flex items-center gap-3">
-                        {/* QR Code Button */}
+                    <div className="flex items-center gap-2 md:gap-3">
+                        {/* QR Code Button - Hidden on very small screens */}
                         <button
-                            className="w-9 h-9 rounded-2xl flex items-center justify-center transition-all hover:text-secondary hover:bg-secondary/10"
-                            style={{ background: 'var(--surface-2)', color: 'var(--muted)' }}
-                        >
+              className="hidden xs:flex w-9 h-9 rounded-2xl items-center justify-center transition-all hover:text-secondary hover:bg-secondary/10"
+              style={{ background: 'var(--surface-2)', color: 'var(--muted)' }}>
+              
                             <QrCodeIcon className="w-5 h-5" />
                         </button>
 
                         {/* Dark Mode Toggle */}
                         <ThemeToggle />
 
-                        <div className="h-7 w-px" style={{ background: 'var(--border)' }} />
+                        <div className="h-7 w-px hidden xs:block" style={{ background: 'var(--border)' }} />
 
                         {/* User Area */}
                         <UserPopover user={user} role={role} logout={logout} />
@@ -288,71 +290,75 @@ export const DashboardLayout = ({ children, role }: { children: React.ReactNode;
 
                 {/* Page Content */}
                 <div
-                    className={`flex-1 flex flex-col overflow-hidden relative z-10 transition-all duration-500 mx-1 mb-1 border-x border-b rounded-b-2xl p-2 backdrop-blur-md`}
-                    style={{
-                        background: 'color-mix(in srgb, var(--surface) 95%, transparent)',
-                        borderColor: 'var(--border)'
-                    }}
-                >
-                    <div className="flex-1 w-full overflow-y-auto no-scrollbar rounded-2xl p-6">
-                        {children}
+          className={`flex-1 flex flex-col overflow-hidden relative z-10 transition-all duration-500 mx-1 mb-1 border-x border-b rounded-b-2xl p-1 md:p-2`}
+          style={{
+            background: 'color-mix(in srgb, var(--background) 40%, var(--surface))',
+            borderColor: 'var(--border)'
+          }}>
+          
+                    <div className="flex-1 w-full overflow-y-auto no-scrollbar rounded-2xl p-4 md:p-6 pb-24 lg:pb-6">
+                        <FadeIn direction="down" distance={10} duration={0.6} key={pathname}>
+                            {children}
+                        </FadeIn>
                     </div>
                 </div>
+
+                <BottomNav items={items} />
             </main>
-        </div>
-    );
+        </div>);
+
 };
 
 /* --- Navbar User Popover Component --- */
-const UserPopover = ({ user, role, logout }: { user: any; role: string; logout: () => void }) => {
-    const [isOpen, setIsOpen] = useState(false);
-    const [isLocked, setIsLocked] = useState(false);
-    const [popoverPos, setPopoverPos] = useState({ top: 0, right: 0 });
-    const triggerRef = useRef<HTMLDivElement>(null);
+const UserPopover = ({ user, role, logout }: {user: any;role: string;logout: () => void;}) => {
+  const [isOpen, setIsOpen] = useState(false);
+  const [isLocked, setIsLocked] = useState(false);
+  const [popoverPos, setPopoverPos] = useState({ top: 0, right: 0 });
+  const triggerRef = useRef<HTMLDivElement>(null);
 
-    const showPopover = isOpen || isLocked;
+  const showPopover = isOpen || isLocked;
 
-    // Compute position relative to viewport when shown
-    const computePos = useCallback(() => {
-        if (!triggerRef.current) return;
-        const rect = triggerRef.current.getBoundingClientRect();
-        setPopoverPos({
-            top: rect.bottom + 10,
-            right: window.innerWidth - rect.right,
-        });
-    }, []);
+  // Compute position relative to viewport when shown
+  const computePos = useCallback(() => {
+    if (!triggerRef.current) return;
+    const rect = triggerRef.current.getBoundingClientRect();
+    setPopoverPos({
+      top: rect.bottom + 10,
+      right: window.innerWidth - rect.right
+    });
+  }, []);
 
-    useEffect(() => {
-        if (showPopover) computePos();
-    }, [showPopover, computePos]);
+  useEffect(() => {
+    if (showPopover) computePos();
+  }, [showPopover, computePos]);
 
-    useEffect(() => {
-        const handleClickOutside = (event: MouseEvent) => {
-            if (triggerRef.current && !triggerRef.current.contains(event.target as Node)) {
-                // also consider the portal node
-                const portalEl = document.getElementById('user-popover-portal');
-                if (portalEl && portalEl.contains(event.target as Node)) return;
-                setIsLocked(false);
-                setIsOpen(false);
-            }
-        };
-        const handleEsc = (e: KeyboardEvent) => {
-            if (e.key === 'Escape') { setIsLocked(false); setIsOpen(false); }
-        };
-        document.addEventListener('mousedown', handleClickOutside);
-        document.addEventListener('keydown', handleEsc);
-        return () => {
-            document.removeEventListener('mousedown', handleClickOutside);
-            document.removeEventListener('keydown', handleEsc);
-        };
-    }, []);
+  useEffect(() => {
+    const handleClickOutside = (event: MouseEvent) => {
+      if (triggerRef.current && !triggerRef.current.contains(event.target as Node)) {
+        // also consider the portal node
+        const portalEl = document.getElementById('user-popover-portal');
+        if (portalEl && portalEl.contains(event.target as Node)) return;
+        setIsLocked(false);
+        setIsOpen(false);
+      }
+    };
+    const handleEsc = (e: KeyboardEvent) => {
+      if (e.key === 'Escape') {setIsLocked(false);setIsOpen(false);}
+    };
+    document.addEventListener('mousedown', handleClickOutside);
+    document.addEventListener('keydown', handleEsc);
+    return () => {
+      document.removeEventListener('mousedown', handleClickOutside);
+      document.removeEventListener('keydown', handleEsc);
+    };
+  }, []);
 
-    const popoverCard = showPopover ? (
-        <div
-            id="user-popover-portal"
-            style={{ position: 'fixed', top: popoverPos.top, right: popoverPos.right, zIndex: 9999, width: 296 }}
-            className="animate-in fade-in zoom-in-95 slide-in-from-top-2 duration-200"
-        >
+  const popoverCard = showPopover ?
+  <div
+    id="user-popover-portal"
+    style={{ position: 'fixed', top: popoverPos.top, right: popoverPos.right, zIndex: 9999, width: 296 }}
+    className="animate-in fade-in zoom-in-95 slide-in-from-top-2 duration-200">
+    
             <div className="bg-white dark:bg-slate-900 rounded-2xl shadow-2xl border border-slate-200/60 dark:border-slate-800/60 overflow-hidden">
 
                 {/* Banner */}
@@ -390,14 +396,14 @@ const UserPopover = ({ user, role, logout }: { user: any; role: string; logout: 
                             <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider">Birthday</span>
                         </div>
                         <span className="text-[11px] font-bold text-slate-700 dark:text-slate-300">
-                            {user?.dateOfBirth
-                                ? new Date(user.dateOfBirth).toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' })
-                                : 'Not set'}
+                            {user?.dateOfBirth ?
+            new Date(user.dateOfBirth).toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' }) :
+            'Not set'}
                         </span>
                     </div>
 
-                    {user?.bloodType && (
-                        <div className="flex items-center justify-between">
+                    {user?.bloodType &&
+        <div className="flex items-center justify-between">
                             <div className="flex items-center gap-2">
                                 <span className="w-3.5 h-3.5 rounded-full bg-rose-100 dark:bg-rose-900/40 flex items-center justify-center text-[8px] font-black text-rose-500">B</span>
                                 <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider">Blood Type</span>
@@ -406,7 +412,7 @@ const UserPopover = ({ user, role, logout }: { user: any; role: string; logout: 
                                 {user.bloodType}
                             </span>
                         </div>
-                    )}
+        }
 
                     <div className="flex items-center justify-between">
                         <div className="flex items-center gap-2">
@@ -422,27 +428,27 @@ const UserPopover = ({ user, role, logout }: { user: any; role: string; logout: 
                 {/* Footer */}
                 <div className="px-4 pb-4">
                     <Link
-                        href="/settings"
-                        className="w-full py-2 rounded-xl bg-slate-50 dark:bg-slate-800 hover:bg-primary/5 dark:hover:bg-primary/10 text-slate-500 dark:text-slate-400 hover:text-primary transition-all text-xs font-bold flex items-center justify-center gap-1.5 border border-slate-100 dark:border-slate-700 hover:border-primary/20"
-                    >
+          href="/settings"
+          className="w-full py-2 rounded-xl bg-slate-50 dark:bg-slate-800 hover:bg-primary/5 dark:hover:bg-primary/10 text-slate-500 dark:text-slate-400 hover:text-primary transition-all text-xs font-bold flex items-center justify-center gap-1.5 border border-slate-100 dark:border-slate-700 hover:border-primary/20">
+          
                         <Cog6ToothIcon className="w-3.5 h-3.5" />
                         Advanced Settings
                     </Link>
                 </div>
             </div>
-        </div>
-    ) : null;
+        </div> :
+  null;
 
 
-    return (
-        <>
+  return (
+    <>
             <div
-                className="relative flex items-center gap-3 cursor-pointer group"
-                onMouseEnter={() => { setIsOpen(true); computePos(); }}
-                onMouseLeave={() => !isLocked && setIsOpen(false)}
-                onClick={() => { setIsLocked(l => !l); computePos(); }}
-                ref={triggerRef}
-            >
+        className="relative flex items-center gap-3 cursor-pointer group"
+        onMouseEnter={() => {setIsOpen(true);computePos();}}
+        onMouseLeave={() => !isLocked && setIsOpen(false)}
+        onClick={() => {setIsLocked((l) => !l);computePos();}}
+        ref={triggerRef}>
+        
                 <div className="text-right hidden md:block">
                     <p className="text-[13px] font-bold leading-tight" style={{ color: 'var(--foreground)' }}>
                         {user?.firstName} {user?.lastName}
@@ -465,6 +471,6 @@ const UserPopover = ({ user, role, logout }: { user: any; role: string; logout: 
 
             {/* Portal: renders directly in <body> — escapes any stacking context */}
             {typeof window !== 'undefined' && createPortal(popoverCard, document.body)}
-        </>
-    );
+        </>);
+
 };

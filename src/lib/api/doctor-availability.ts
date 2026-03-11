@@ -8,7 +8,7 @@ export interface DoctorAvailabilityDTO {
   startTime: string; // "HH:mm:ss"
   endTime: string;
   isAvailable: boolean;
-  recurrenceType: number;
+  recurrenceType: number | string;
   reason?: string;
 }
 
@@ -16,6 +16,8 @@ export interface SetWorkingHoursRequest {
   dayOfWeek: number;
   startTime: string; // "HH:mm"
   endTime: string;
+  breakStartTime?: string;
+  breakEndTime?: string;
 }
 
 export interface BlockTimeRequest {

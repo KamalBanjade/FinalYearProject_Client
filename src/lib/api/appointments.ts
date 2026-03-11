@@ -5,6 +5,8 @@ export interface AppointmentDTO {
     id: string;
     patientId: string;
     patientName: string;
+    patientAge: number;
+    patientGender: string;
     doctorId: string;
     doctorName: string;
     doctorDepartment: string;
@@ -66,6 +68,20 @@ export interface LinkRecordDTO {
     notes?: string;
 }
 
+export interface DoctorAppointmentStats {
+    totalAppointments: number;
+    completedAppointments: number;
+    upcomingAppointments: number;
+    cancelledAppointments: number;
+    pendingConfirmation: number;
+    todayAppointments: number;
+}
+
+export interface DailyAvailability {
+    date: string;
+    isAvailable: boolean;
+}
+
 export const appointmentsApi = {
     requestAppointment: async (data: CreateAppointmentDTO) => {
         const response = await axiosInstance.post('appointments/request', data);
@@ -77,9 +93,21 @@ export const appointmentsApi = {
         return response.data;
     },
 
-    getDoctorAppointments: async (date?: string) => {
-        const url = date ? `appointments/doctor?date=${date}` : 'appointments/doctor';
+    getDoctorAppointments: async (date?: string, includeHistory: boolean = false) => {
+        let url = 'appointments/doctor';
+        const params = new URLSearchParams();
+        if (date) params.append('date', date);
+        if (includeHistory) params.append('includeHistory', 'true');
+
+        const queryString = params.toString();
+        if (queryString) url += `?${queryString}`;
+
         const response = await axiosInstance.get(url);
+        return response.data;
+    },
+
+    getDoctorStats: async () => {
+        const response = await axiosInstance.get('appointments/doctor/stats');
         return response.data;
     },
 
@@ -115,6 +143,11 @@ export const appointmentsApi = {
 
     getAvailability: async (doctorId: string, date: string, duration: number = 30): Promise<{ data: TimeSlot[] }> => {
         const response = await axiosInstance.get(`doctor/availability/slots/${doctorId}?date=${date}&duration=${duration}`);
+        return response.data;
+    },
+
+    getMonthlyAvailability: async (doctorId: string, month: string): Promise<{ data: DailyAvailability[] }> => {
+        const response = await axiosInstance.get(`doctor/availability/calendar/${doctorId}?month=${month}`);
         return response.data;
     },
 

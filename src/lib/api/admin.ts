@@ -18,6 +18,11 @@ export const adminApi = {
         return response.data;
     },
 
+    getDoctorProfile: async (id: string) => {
+        const response = await axiosInstance.get(`admin/doctors/${id}/profile`);
+        return response.data;
+    },
+
     updateDoctor: async (id: string, data: UpdateDoctorRequest) => {
         const response = await axiosInstance.put(`admin/doctors/${id}`, data);
         return response.data;

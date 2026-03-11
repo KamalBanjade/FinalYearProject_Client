@@ -1,10 +1,12 @@
 import axiosInstance from '../utils/axios';
+import { DoctorExtendedProfile } from './doctor';
 
 export interface PatientProfileData {
     userId: string;
     firstName: string;
     lastName: string;
     email: string;
+    phoneNumber?: string;
     dateOfBirth: string;
     gender: string;
     bloodType: string;
@@ -95,6 +97,11 @@ export const patientApi = {
 
     updateEmergencySettings: async (data: EmergencySettingsDTO): Promise<{ success: boolean; message: string }> => {
         const response = await axiosInstance.put('patient/emergency-settings', data);
+        return response.data;
+    },
+
+    getDoctorById: async (doctorId: string): Promise<{ success: boolean; message: string; data: DoctorExtendedProfile }> => {
+        const response = await axiosInstance.get(`patient/doctors/${doctorId}`);
         return response.data;
     },
 };

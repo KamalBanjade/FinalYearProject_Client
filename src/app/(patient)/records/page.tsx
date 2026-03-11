@@ -60,6 +60,16 @@ function PatientRecordsPageInner() {
     const [editDesc, setEditDesc] = useState('');
     const [editRecordType, setEditRecordType] = useState('');
 
+    useEffect(() => {
+        const handleEsc = (e: KeyboardEvent) => {
+            if (e.key === 'Escape') setEditingRecord(null);
+        };
+        if (editingRecord) {
+            window.addEventListener('keydown', handleEsc);
+        }
+        return () => window.removeEventListener('keydown', handleEsc);
+    }, [editingRecord]);
+
     const handleDownload = async (id: string, fileName: string) => {
         try {
             await medicalRecordsApi.downloadRecord(id);
@@ -155,35 +165,37 @@ function PatientRecordsPageInner() {
             )}
 
             {/* Date Filters */}
-            <div className="flex flex-wrap items-center gap-4 bg-white dark:bg-slate-900 p-4 rounded-2xl border border-slate-100 dark:border-slate-800 shadow-sm">
+            <div className="flex flex-col sm:flex-row sm:items-center gap-4 bg-white dark:bg-slate-900 p-4 rounded-2xl border border-slate-100 dark:border-slate-800 shadow-sm">
                 <div className="flex items-center gap-2">
                     <span className="text-[10px] font-black uppercase tracking-wider text-slate-400">Filter By Date:</span>
                 </div>
 
-                <div className="flex items-center gap-2">
-                    <label className="text-[10px] font-bold text-slate-500 uppercase">From</label>
-                    <input
-                        type="date"
-                        value={fromDate}
-                        onChange={(e) => setFromDate(e.target.value)}
-                        className="bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-lg px-2 py-1 text-xs font-bold outline-none focus:ring-2 focus:ring-indigo-500 transition-all"
-                    />
-                </div>
+                <div className="flex flex-1 flex-wrap items-center gap-4">
+                    <div className="flex items-center gap-2">
+                        <label className="text-[10px] font-bold text-slate-500 uppercase">From</label>
+                        <input
+                            type="date"
+                            value={fromDate}
+                            onChange={(e) => setFromDate(e.target.value)}
+                            className="bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-lg px-2 py-1 text-xs font-bold outline-none focus:ring-2 focus:ring-indigo-500 transition-all flex-1"
+                        />
+                    </div>
 
-                <div className="flex items-center gap-2">
-                    <label className="text-[10px] font-bold text-slate-500 uppercase">To</label>
-                    <input
-                        type="date"
-                        value={toDate}
-                        onChange={(e) => setToDate(e.target.value)}
-                        className="bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-lg px-2 py-1 text-xs font-bold outline-none focus:ring-2 focus:ring-indigo-500 transition-all"
-                    />
+                    <div className="flex items-center gap-2">
+                        <label className="text-[10px] font-bold text-slate-500 uppercase">To</label>
+                        <input
+                            type="date"
+                            value={toDate}
+                            onChange={(e) => setToDate(e.target.value)}
+                            className="bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-lg px-2 py-1 text-xs font-bold outline-none focus:ring-2 focus:ring-indigo-500 transition-all flex-1"
+                        />
+                    </div>
                 </div>
 
                 {(fromDate || toDate) && (
                     <button
                         onClick={() => { setFromDate(''); setToDate(''); }}
-                        className="text-[10px] font-black text-rose-500 hover:text-rose-600 uppercase tracking-tight ml-auto"
+                        className="text-[10px] font-black text-rose-500 hover:text-rose-600 uppercase tracking-tight sm:ml-auto"
                     >
                         Clear Filters
                     </button>

@@ -81,14 +81,6 @@ export default function CertifiedRecordsPage() {
 
     return (
         <div className="max-w-[1200px] mx-auto px-6 py-8 space-y-8">
-            {/* Page Actions */}
-            <div className="flex flex-col md:flex-row justify-end items-center gap-4">
-                <div className="flex items-center gap-3">
-                    <div className="px-3 py-1.5 bg-indigo-50 dark:bg-indigo-900/20 rounded-xl border border-indigo-100 dark:border-indigo-900/30">
-                        <span className="text-[10px] font-black text-indigo-600 dark:text-indigo-400 uppercase tracking-widest">Signed Registry</span>
-                    </div>
-                </div>
-            </div>
 
             {/* Subtle Filters */}
             <div className="flex flex-col md:flex-row gap-4">
@@ -96,7 +88,7 @@ export default function CertifiedRecordsPage() {
                     <Search className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-400" size={14} />
                     <Input
                         placeholder="Search by patient name or file..."
-                        className="pl-10 h-10 bg-white dark:bg-slate-900 border-slate-200 dark:border-slate-800 focus:ring-indigo-500/10 rounded-xl text-xs font-medium transition-all"
+                        className="pl-10 h-10 bg-white dark:bg-slate-900 border-slate-200 dark:border-slate-800 focus:ring-primary/10 rounded-xl text-xs font-medium transition-all"
                         value={searchTerm}
                         onChange={(e) => setSearchTerm(e.target.value)}
                     />
@@ -104,7 +96,7 @@ export default function CertifiedRecordsPage() {
                 <select
                     value={recordType}
                     onChange={(e) => setRecordType(e.target.value)}
-                    className="h-10 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-xl px-4 text-[11px] font-bold text-slate-600 dark:text-slate-300 outline-none focus:border-indigo-500 transition-all cursor-pointer min-w-[160px]"
+                    className="h-10 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-xl px-4 text-xs font-bold text-slate-600 dark:text-slate-300 outline-none focus:border-indigo-500 transition-all cursor-pointer min-w-[160px]"
                 >
                     <option value="">All Categories</option>
                     <option value="Lab Report">Lab Reports</option>
@@ -115,16 +107,16 @@ export default function CertifiedRecordsPage() {
                 </select>
             </div>
 
-            {/* Registry Registry */}
-            <div className="bg-white dark:bg-slate-900 rounded-2xl border border-slate-100 dark:border-slate-800 shadow-sm overflow-hidden">
+            {/* Registry Table */}
+            <div className="bg-white dark:bg-slate-900 rounded-[2rem] border border-slate-200/60 dark:border-slate-800 shadow-premium dark:shadow-none overflow-hidden">
                 <div className="overflow-x-auto">
                     <table className="w-full text-left border-collapse">
                         <thead>
-                            <tr className="bg-slate-50/50 dark:bg-slate-800/30 border-b border-slate-100 dark:border-slate-800">
-                                <th className="px-6 py-3 text-[9px] font-black uppercase tracking-widest text-slate-400">Document</th>
-                                <th className="px-6 py-3 text-[9px] font-black uppercase tracking-widest text-slate-400">Patient Identity</th>
-                                <th className="px-6 py-3 text-[9px] font-black uppercase tracking-widest text-slate-400">Certification</th>
-                                <th className="px-6 py-3 text-[9px] font-black uppercase tracking-widest text-slate-400 text-right">Actions</th>
+                            <tr className="bg-slate-50/80 dark:bg-slate-800/30 border-b border-slate-100 dark:border-slate-800">
+                                <th className="px-6 py-4 text-[11px] font-black uppercase tracking-[0.1em] text-slate-400">Document</th>
+                                <th className="px-6 py-4 text-[11px] font-black uppercase tracking-[0.1em] text-slate-400">Patient Identity</th>
+                                <th className="px-6 py-4 text-[11px] font-black uppercase tracking-[0.1em] text-slate-400">Certification</th>
+                                <th className="px-6 py-4 text-[11px] font-black uppercase tracking-[0.1em] text-slate-400 text-right">Actions</th>
                             </tr>
                         </thead>
                         <tbody className="divide-y divide-slate-50 dark:divide-slate-800">
@@ -143,17 +135,17 @@ export default function CertifiedRecordsPage() {
                                     </td>
                                 </tr>
                             ) : filteredRecords.map((record) => (
-                                <tr key={record.id} className="hover:bg-slate-50/30 dark:hover:bg-slate-800/10 transition-colors">
+                                <tr key={record.id} className="hover:bg-slate-50/50 dark:hover:bg-slate-800/20 transition-colors">
                                     <td className="px-6 py-4">
                                         <div className="flex items-center gap-3">
-                                            <div className="w-8 h-8 rounded-lg bg-indigo-50 dark:bg-indigo-900/20 text-indigo-600 dark:text-indigo-400 flex items-center justify-center">
+                                            <div className="w-8 h-8 rounded-lg bg-primary/10 dark:bg-slate-800 text-primary dark:text-primary-light flex items-center justify-center border border-transparent dark:border-slate-700">
                                                 <FileText size={16} />
                                             </div>
                                             <div className="flex flex-col">
-                                                <span className="text-xs font-black text-slate-900 dark:text-white leading-tight">
+                                                <span className="text-sm font-black text-slate-900 dark:text-white leading-tight">
                                                     {record.originalFileName}
                                                 </span>
-                                                <span className="text-[9px] font-bold text-slate-400 uppercase mt-0.5">
+                                                <span className="text-[10px] font-bold text-slate-400 uppercase tracking-widest mt-1">
                                                     {record.recordType} • {record.fileSizeFormatted}
                                                 </span>
                                             </div>
@@ -161,8 +153,8 @@ export default function CertifiedRecordsPage() {
                                     </td>
                                     <td className="px-6 py-4">
                                         <div className="flex flex-col">
-                                            <span className="text-xs font-bold text-slate-700 dark:text-slate-300">{record.patientName}</span>
-                                            <span className="text-[9px] font-mono text-slate-400 uppercase tracking-tighter mt-0.5">ID: {record.patientId.substring(0, 8)}</span>
+                                            <span className="text-sm font-bold text-slate-700 dark:text-slate-300 capitalize leading-tight">{record.patientName}</span>
+                                            <span className="text-[10px] font-black text-slate-400 dark:text-slate-500 uppercase tracking-widest mt-0.5">ID: {record.patientId.substring(0, 8)}</span>
                                         </div>
                                     </td>
                                     <td className="px-6 py-4">
@@ -183,7 +175,7 @@ export default function CertifiedRecordsPage() {
                                             <button
                                                 onClick={() => handlePreview(record.id)}
                                                 disabled={loadingRecordId === record.id}
-                                                className="px-4 py-2 rounded-xl bg-slate-900 text-white hover:bg-indigo-600 text-[10px] font-black uppercase tracking-widest transition-all shadow-sm flex items-center gap-2 disabled:opacity-50"
+                                                className="px-4 py-2 rounded-xl bg-primary text-white hover:bg-primary/90 text-xs font-black uppercase tracking-widest transition-all shadow-lg shadow-primary/10 flex items-center gap-2 disabled:opacity-50"
                                             >
                                                 {loadingRecordId === record.id ? (
                                                     <Loader2 size={12} className="animate-spin" />
@@ -194,7 +186,7 @@ export default function CertifiedRecordsPage() {
                                             </button>
                                             <button
                                                 onClick={() => handleDownload(record.id, record.originalFileName)}
-                                                className="px-4 py-2 rounded-xl bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-slate-600 dark:text-slate-400 hover:text-indigo-600 hover:border-indigo-100 dark:hover:border-indigo-900 text-[10px] font-black uppercase tracking-widest transition-all shadow-sm flex items-center gap-2"
+                                                className="px-4 py-2 rounded-xl bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-slate-600 dark:text-slate-400 hover:text-primary hover:border-indigo-100 dark:hover:border-indigo-900 text-[10px] font-black uppercase tracking-widest transition-all shadow-sm flex items-center gap-2"
                                             >
                                                 <Download size={12} />
                                                 File

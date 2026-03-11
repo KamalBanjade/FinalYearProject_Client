@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState, useEffect } from 'react';
+import React, { useState, Suspense } from 'react';
 import { medicalRecordsApi, MedicalRecordResponseDTO } from '@/lib/api/medicalRecords';
 import { DoctorReviewModal } from '@/components/doctor/DoctorReviewModal';
 import {
@@ -12,33 +12,23 @@ import {
     DocumentTextIcon,
     UserIcon
 } from '@heroicons/react/24/outline';
+import { useQuery } from '@tanstack/react-query';
 import toast from 'react-hot-toast';
 
-export default function PendingRecordsPage() {
-    const [records, setRecords] = useState<MedicalRecordResponseDTO[]>([]);
-    const [loading, setLoading] = useState(true);
+function PendingRecordsContent() {
     const [selectedRecord, setSelectedRecord] = useState<MedicalRecordResponseDTO | null>(null);
     const [searchQuery, setSearchQuery] = useState('');
 
-    const fetchPendingRecords = async () => {
-        try {
-            setLoading(true);
-            const response = await medicalRecordsApi.getPendingRecords();
-            setRecords(response.data || []);
-        } catch (err) {
-            toast.error('Failed to load pending records');
-        } finally {
-            setLoading(false);
-        }
-    };
+    const { data: recordsRes, isLoading, refetch } = useQuery({
+        queryKey: ['doctor', 'records', 'pending'],
+        queryFn: () => medicalRecordsApi.getPendingRecords(),
+        staleTime: 1000 * 60 * 5,
+    });
 
-    useEffect(() => {
-        fetchPendingRecords();
-    }, []);
+    const records = recordsRes?.data || [];
 
-    const handleReviewSuccess = (updatedRecord: MedicalRecordResponseDTO) => {
-        // Remove from pending list
-        setRecords(records.filter(r => r.id !== updatedRecord.id));
+    const handleReviewSuccess = () => {
+        refetch();
     };
 
     const filteredRecords = records.filter(r =>
@@ -47,17 +37,17 @@ export default function PendingRecordsPage() {
     );
 
     return (
-        <div className="max-w-7xl mx-auto px-4 md:px-8 pt-2 pb-12 space-y-8 animate-in fade-in duration-500">
+        <div className="max-w-7xl mx-auto px-4 md:px-8 pt-2 pb-12 space-y-10 animate-in fade-in duration-500">
             {/* Unified Toolbar */}
-            <div className="flex flex-col lg:flex-row items-center gap-4 bg-white/50 dark:bg-slate-900/50 backdrop-blur-md p-4 rounded-3xl border border-slate-100 dark:border-slate-800 shadow-sm">
+            <div className="flex flex-col lg:flex-row items-center gap-4 bg-white dark:bg-slate-900 p-4 rounded-[2rem] border border-slate-200/60 dark:border-slate-800 shadow-premium dark:shadow-none">
                 <div className="relative flex-1 group w-full">
-                    <MagnifyingGlassIcon className="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-4 text-slate-400 group-focus-within:text-indigo-500 transition-colors" />
+                    <MagnifyingGlassIcon className="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-4 text-slate-400 group-focus-within:text-primary transition-colors" />
                     <input
                         type="text"
                         placeholder="Search records or patients..."
                         value={searchQuery}
                         onChange={(e) => setSearchQuery(e.target.value)}
-                        className="w-full pl-12 pr-4 py-3 bg-white dark:bg-slate-900 border border-slate-100 dark:border-slate-800 rounded-2xl text-sm font-bold focus:ring-4 focus:ring-indigo-500/10 focus:border-indigo-500 outline-none transition-all dark:text-white"
+                        className="w-full pl-12 pr-4 py-3 bg-white dark:bg-slate-900 border border-slate-200/60 dark:border-slate-800 rounded-2xl text-xs font-bold focus:ring-4 focus:ring-primary/10 focus:border-primary outline-none transition-all dark:text-white"
                     />
                 </div>
 
@@ -65,16 +55,16 @@ export default function PendingRecordsPage() {
                     <div className="px-4 py-2 bg-slate-50 dark:bg-slate-800 rounded-xl text-[10px] font-black uppercase text-slate-400 dark:text-slate-500 tracking-widest border border-slate-100 dark:border-slate-700">
                         {filteredRecords.length} Pending
                     </div>
-                    <button className="p-3 bg-white dark:bg-slate-900 border border-slate-100 dark:border-slate-800 rounded-2xl text-slate-600 dark:text-slate-400 hover:text-indigo-600 transition-all shadow-sm active:scale-95">
+                    <button className="p-3 bg-white dark:bg-slate-900 border border-slate-100 dark:border-slate-800 rounded-2xl text-slate-600 dark:text-slate-400 hover:text-primary transition-all shadow-sm active:scale-95">
                         <FunnelIcon className="w-5 h-5" />
                     </button>
                 </div>
             </div>
 
             {/* List Area */}
-            <div className="bg-white rounded-[32px] border border-slate-100 shadow-sm overflow-hidden">
+            <div className="bg-white dark:bg-slate-900 rounded-[2.5rem] border border-slate-200/60 dark:border-slate-800 shadow-premium dark:shadow-none overflow-hidden">
                 {
-                    loading ? (
+                    isLoading ? (
                         <div className="p-20 flex flex-col items-center justify-center text-slate-400" >
                             <div className="w-12 h-12 border-4 border-indigo-500/20 border-t-indigo-500 rounded-full animate-spin mb-4"></div>
                             <p className="font-bold text-sm uppercase tracking-widest animate-pulse">Scanning Secure Vault...</p>
@@ -91,48 +81,48 @@ export default function PendingRecordsPage() {
                         <div className="overflow-x-auto">
                             <table className="w-full text-left border-separate border-spacing-0">
                                 <thead>
-                                    <tr className="bg-slate-50/50">
-                                        <th className="px-8 py-5 text-[10px] font-bold text-slate-400 uppercase tracking-widest border-b border-slate-100">Document Name</th>
-                                        <th className="px-8 py-5 text-[10px] font-bold text-slate-400 uppercase tracking-widest border-b border-slate-100">Patient</th>
-                                        <th className="px-8 py-5 text-[10px] font-bold text-slate-400 uppercase tracking-widest border-b border-slate-100">Type</th>
-                                        <th className="px-8 py-5 text-[10px] font-bold text-slate-400 uppercase tracking-widest border-b border-slate-100">Date Received</th>
-                                        <th className="px-8 py-5 text-[10px] font-bold text-slate-400 uppercase tracking-widest border-b border-slate-100 text-right">Action</th>
+                                    <tr className="bg-slate-50/80 dark:bg-slate-800/30 border-b border-slate-100 dark:border-slate-800">
+                                        <th className="px-8 py-5 text-[11px] font-black text-slate-400 uppercase tracking-[0.1em]">Document Name</th>
+                                        <th className="px-8 py-5 text-[11px] font-black text-slate-400 uppercase tracking-[0.1em]">Patient</th>
+                                        <th className="px-8 py-5 text-[11px] font-black text-slate-400 uppercase tracking-[0.1em]">Type</th>
+                                        <th className="px-8 py-5 text-[11px] font-black text-slate-400 uppercase tracking-[0.1em]">Date Received</th>
+                                        <th className="px-8 py-5 text-[11px] font-black text-slate-400 uppercase tracking-[0.1em] text-right">Action</th>
                                     </tr>
                                 </thead>
-                                <tbody className="divide-y divide-slate-50">
+                                <tbody className="divide-y divide-slate-50 dark:divide-slate-800">
                                     {filteredRecords.map((record) => (
-                                        <tr key={record.id} className="group hover:bg-slate-50/50 transition-colors">
+                                        <tr key={record.id} className="group hover:bg-slate-50/50 dark:hover:bg-slate-800/20 transition-colors">
                                             <td className="px-8 py-5">
                                                 <div className="flex items-center space-x-4">
-                                                    <div className="w-12 h-12 bg-indigo-50 text-indigo-500 rounded-2xl flex items-center justify-center group-hover:bg-indigo-500 group-hover:text-white transition-all">
+                                                    <div className="w-12 h-12 bg-primary/10 text-primary rounded-2xl flex items-center justify-center group-hover:bg-primary group-hover:text-white transition-all">
                                                         <DocumentTextIcon className="w-6 h-6" />
                                                     </div>
                                                     <div>
-                                                        <p className="font-bold text-slate-900 group-hover:text-indigo-600 transition-colors">{record.originalFileName}</p>
+                                                        <p className="font-bold text-slate-900 group-hover:text-primary transition-colors">{record.originalFileName}</p>
                                                         <p className="text-xs text-slate-500 mt-0.5">Size: {record.fileSizeFormatted}</p>
                                                     </div>
                                                 </div>
                                             </td>
                                             <td className="px-8 py-5">
                                                 <div className="flex items-center space-x-2">
-                                                    <div className="w-6 h-6 bg-slate-100 rounded-full flex items-center justify-center">
-                                                        <UserIcon className="w-3.5 h-3.5 text-slate-400" />
+                                                    <div className="w-6 h-6 bg-slate-100 dark:bg-slate-800 rounded-full flex items-center justify-center">
+                                                        <UserIcon className="w-3.5 h-3.5 text-slate-400 dark:text-slate-500" />
                                                     </div>
-                                                    <span className="font-bold text-slate-700 text-sm">{record.patientName || 'Anonymous Patient'}</span>
+                                                    <span className="font-bold text-slate-700 dark:text-slate-200 text-sm">{record.patientName || 'Anonymous Patient'}</span>
                                                 </div>
                                             </td>
                                             <td className="px-8 py-5">
-                                                <span className="px-3 py-1 bg-slate-100 text-slate-600 text-[10px] font-bold rounded-full uppercase tracking-wider">
+                                                <span className="px-3 py-1 bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-400 text-[10px] font-bold rounded-full uppercase tracking-wider border border-transparent dark:border-slate-700">
                                                     {record.recordType || 'Other'}
                                                 </span>
                                             </td>
                                             <td className="px-8 py-5">
-                                                <p className="text-sm font-medium text-slate-600">{new Date(record.uploadedAt).toLocaleDateString()}</p>
+                                                <p className="text-sm font-medium text-slate-600 dark:text-slate-400">{new Date(record.uploadedAt).toLocaleDateString()}</p>
                                             </td>
                                             <td className="px-8 py-5 text-right">
                                                 <button
                                                     onClick={() => setSelectedRecord(record)}
-                                                    className="inline-flex items-center space-x-2 px-5 py-2.5 bg-slate-900 text-white rounded-xl text-xs font-bold hover:bg-indigo-600 transition-all shadow-lg shadow-slate-900/10 hover:shadow-indigo-500/20"
+                                                    className="inline-flex items-center space-x-2 px-5 py-2.5 bg-primary text-white hover:bg-primary/90 rounded-xl text-xs font-bold transition-all shadow-lg shadow-primary/10 active:scale-95"
                                                 >
                                                     <span>Review</span>
                                                     <ChevronRightIcon className="w-3 h-3" />
@@ -156,5 +146,18 @@ export default function PendingRecordsPage() {
                 />
             )}
         </div>
+    );
+}
+
+export default function PendingRecordsPage() {
+    return (
+        <Suspense fallback={
+            <div className="p-20 flex flex-col items-center justify-center text-slate-400" >
+                <div className="w-12 h-12 border-4 border-indigo-500/20 border-t-indigo-500 rounded-full animate-spin mb-4"></div>
+                <p className="font-bold text-sm uppercase tracking-widest animate-pulse">Hydrating Queue...</p>
+            </div>
+        }>
+            <PendingRecordsContent />
+        </Suspense>
     );
 }

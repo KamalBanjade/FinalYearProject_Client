@@ -3,24 +3,24 @@
 import React, { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import {
-    FileText,
-    Download,
-    LogOut,
-    Search,
-    Filter,
-    Clock,
-    ShieldCheck,
-    RefreshCw,
-    ChevronRight,
-    SearchX,
-    FolderOpen,
-    Info,
-    AlertCircle,
-    CheckCircle2,
-    Lock,
-    User,
-    Calendar
-} from 'lucide-react';
+  FileText,
+  Download,
+  LogOut,
+  Search,
+  Filter,
+  Clock,
+  ShieldCheck,
+  RefreshCw,
+  ChevronRight,
+  SearchX,
+  FolderOpen,
+  Info,
+  AlertCircle,
+  CheckCircle2,
+  Lock,
+  User,
+  Calendar } from
+'lucide-react';
 import { accessApi, SessionRecordDTO, SessionStatusDTO } from '@/lib/api/access';
 import { motion, AnimatePresence } from 'framer-motion';
 import { format } from 'date-fns';
@@ -28,103 +28,103 @@ import { Button } from '@/components/ui/Button';
 import toast from 'react-hot-toast';
 
 export default function SessionRecordViewerPage() {
-    const router = useRouter();
-    const [status, setStatus] = useState<SessionStatusDTO | null>(null);
-    const [loading, setLoading] = useState(true);
-    const [searchTerm, setSearchTerm] = useState('');
-    const [isLoggingOut, setIsLoggingOut] = useState(false);
-    const [timeLeft, setTimeLeft] = useState<number | null>(null);
+  const router = useRouter();
+  const [status, setStatus] = useState<SessionStatusDTO | null>(null);
+  const [loading, setLoading] = useState(true);
+  const [searchTerm, setSearchTerm] = useState('');
+  const [isLoggingOut, setIsLoggingOut] = useState(false);
+  const [timeLeft, setTimeLeft] = useState<number | null>(null);
 
-    const fetchRecords = async () => {
-        try {
-            setLoading(true);
-            const res = await accessApi.getSessionRecords();
-            if (res.success && res.data) {
-                setStatus(res.data);
-                if (res.data.remainingMinutes) {
-                    setTimeLeft(Math.floor(res.data.remainingMinutes * 60));
-                }
-            } else {
-                toast.error("Session expired or invalid");
-                router.push('/');
-            }
-        } catch (error) {
-            toast.error("Failed to load records");
-            router.push('/');
-        } finally {
-            setLoading(false);
+  const fetchRecords = async () => {
+    try {
+      setLoading(true);
+      const res = await accessApi.getSessionRecords();
+      if (res.success && res.data) {
+        setStatus(res.data);
+        if (res.data.remainingMinutes) {
+          setTimeLeft(Math.floor(res.data.remainingMinutes * 60));
         }
-    };
+      } else {
+        toast.error("Session expired or invalid");
+        router.push('/');
+      }
+    } catch (error) {
+      toast.error("Failed to load records");
+      router.push('/');
+    } finally {
+      setLoading(false);
+    }
+  };
 
-    useEffect(() => {
-        fetchRecords();
-    }, []);
+  useEffect(() => {
+    fetchRecords();
+  }, []);
 
-    useEffect(() => {
-        if (timeLeft === null) return;
+  useEffect(() => {
+    if (timeLeft === null) return;
 
-        const timer = setInterval(() => {
-            setTimeLeft((prev) => {
-                if (prev !== null && prev <= 1) {
-                    clearInterval(timer);
-                    handleLogout();
-                    return 0;
-                }
-                return prev !== null ? prev - 1 : null;
-            });
-        }, 10000); // 10s intervals to reduce render load
-
-        return () => clearInterval(timer);
-    }, [timeLeft]);
-
-    const handleLogout = async () => {
-        try {
-            setIsLoggingOut(true);
-            await accessApi.logoutSession();
-            toast.success("Session ended successfully");
-            router.push('/');
-        } catch (error) {
-            router.push('/');
-        } finally {
-            setIsLoggingOut(false);
+    const timer = setInterval(() => {
+      setTimeLeft((prev) => {
+        if (prev !== null && prev <= 1) {
+          clearInterval(timer);
+          handleLogout();
+          return 0;
         }
-    };
+        return prev !== null ? prev - 1 : null;
+      });
+    }, 10000); // 10s intervals to reduce render load
 
-    const handleDownload = async (recordId: string, fileName: string) => {
-        try {
-            toast.loading(`Decrypting ${fileName}...`, { id: 'download' });
-            await accessApi.downloadSessionRecord(recordId);
-            toast.success("Download complete", { id: 'download' });
-        } catch (error) {
-            toast.error("Failed to download record", { id: 'download' });
-        }
-    };
+    return () => clearInterval(timer);
+  }, [timeLeft]);
 
-    const formatTime = (seconds: number) => {
-        const mins = Math.floor(seconds / 60);
-        return `${mins}m left`;
-    };
+  const handleLogout = async () => {
+    try {
+      setIsLoggingOut(true);
+      await accessApi.logoutSession();
+      toast.success("Session ended successfully");
+      router.push('/');
+    } catch (error) {
+      router.push('/');
+    } finally {
+      setIsLoggingOut(false);
+    }
+  };
 
-    const records = status?.records || [];
-    const filteredRecords = records.filter(r =>
-        r.originalFileName.toLowerCase().includes(searchTerm.toLowerCase()) ||
-        r.recordType.toLowerCase().includes(searchTerm.toLowerCase()) ||
-        r.description?.toLowerCase().includes(searchTerm.toLowerCase())
-    );
+  const handleDownload = async (recordId: string, fileName: string) => {
+    try {
+      toast.loading(`Decrypting ${fileName}...`, { id: 'download' });
+      await accessApi.downloadSessionRecord(recordId);
+      toast.success("Download complete", { id: 'download' });
+    } catch (error) {
+      toast.error("Failed to download record", { id: 'download' });
+    }
+  };
 
-    if (loading && !status) {
-        return (
-            <div className="min-h-screen bg-slate-50 flex flex-col items-center justify-center p-6 bg-medical-gradient">
+  const formatTime = (seconds: number) => {
+    const mins = Math.floor(seconds / 60);
+    return `${mins}m left`;
+  };
+
+  const records = status?.records || [];
+  const filteredRecords = records.filter((r) =>
+  r.originalFileName.toLowerCase().includes(searchTerm.toLowerCase()) ||
+  r.recordType.toLowerCase().includes(searchTerm.toLowerCase()) ||
+  r.description?.toLowerCase().includes(searchTerm.toLowerCase())
+  );
+
+  if (loading && !status) {
+    return (
+      <div className="min-h-screen bg-slate-50 flex flex-col items-center justify-center p-6 bg-medical-gradient">
                 <RefreshCw className="w-12 h-12 text-primary animate-spin" />
                 <p className="mt-6 text-slate-500 font-black uppercase tracking-[0.2em] text-[11px] animate-pulse">
                     Decrypting Security Archive...
                 </p>
-            </div>
-        );
-    }
+            </div>);
 
-    return (
-        <div className="min-h-screen bg-slate-50 flex flex-col font-sans text-slate-900 pb-20">
+  }
+
+  return (
+    <div className="min-h-screen bg-slate-50 flex flex-col font-sans text-slate-900 pb-20">
             {/* 1. Header with Patient Name & Countdown */}
             <header className="bg-white border-b border-slate-100 h-24 px-8 flex items-center justify-between sticky top-0 z-50 shadow-md">
                 <div className="flex items-center gap-8">
@@ -150,11 +150,11 @@ export default function SessionRecordViewerPage() {
 
                 <div className="flex items-center gap-4">
                     <Button
-                        variant="outline"
-                        className="text-rose-600 border-rose-100 hover:bg-rose-50 font-black text-xs uppercase tracking-widest rounded-2xl h-12 px-6 shadow-sm"
-                        onClick={handleLogout}
-                        isLoading={isLoggingOut}
-                    >
+            variant="outline"
+            className="text-rose-600 border-rose-100 hover:bg-rose-50 font-black text-xs uppercase tracking-widest rounded-2xl h-12 px-6 shadow-sm"
+            onClick={handleLogout}
+            isLoading={isLoggingOut}>
+            
                         <LogOut className="w-4 h-4 mr-2" />
                         END SESSION
                     </Button>
@@ -172,12 +172,12 @@ export default function SessionRecordViewerPage() {
                         <div className="relative group">
                             <Search className="absolute left-6 top-1/2 -translate-y-1/2 w-6 h-6 text-slate-400 group-focus-within:text-primary transition-colors" />
                             <input
-                                type="text"
-                                placeholder="Search by document name, type, or clinical diagnosis..."
-                                className="w-full h-16 bg-white border-2 border-slate-100 rounded-[2rem] pl-16 pr-8 text-lg font-bold placeholder:text-slate-300 focus:outline-none focus:border-primary focus:ring-8 focus:ring-primary/5 transition-all shadow-sm"
-                                value={searchTerm}
-                                onChange={(e) => setSearchTerm(e.target.value)}
-                            />
+                type="text"
+                placeholder="Search by document name, type, or clinical diagnosis..."
+                className="w-full h-16 bg-white border-2 border-slate-100 rounded-[2rem] pl-16 pr-8 text-lg font-bold placeholder:text-slate-300 focus:outline-none focus:border-primary focus:ring-8 focus:ring-primary/5 transition-all shadow-sm"
+                value={searchTerm}
+                onChange={(e) => setSearchTerm(e.target.value)} />
+              
                         </div>
                     </div>
 
@@ -196,13 +196,13 @@ export default function SessionRecordViewerPage() {
 
                 {/* 2. Records Display List */}
                 <AnimatePresence mode="wait">
-                    {filteredRecords.length === 0 ? (
-                        <motion.div
-                            key="empty"
-                            initial={{ opacity: 0, y: 20 }}
-                            animate={{ opacity: 1, y: 0 }}
-                            className="py-32 flex flex-col items-center justify-center text-center space-y-8 bg-white/50 rounded-[4rem] border-2 border-dashed border-slate-200"
-                        >
+                    {filteredRecords.length === 0 ?
+          <motion.div
+            key="empty"
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+            className="py-32 flex flex-col items-center justify-center text-center space-y-8 bg-white/50 rounded-[4rem] border-2 border-dashed border-slate-200">
+            
                             <div className="w-24 h-24 bg-slate-100 text-slate-300 rounded-[3rem] flex items-center justify-center">
                                 <SearchX className="w-12 h-12" />
                             </div>
@@ -212,28 +212,28 @@ export default function SessionRecordViewerPage() {
                                     Your search criteria didn't match any documents in this patient's vault.
                                 </p>
                             </div>
-                        </motion.div>
-                    ) : (
-                        <motion.div
-                            key="list"
-                            initial={{ opacity: 0 }}
-                            animate={{ opacity: 1 }}
-                            className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8"
-                        >
-                            {filteredRecords.map((record, index) => (
-                                <motion.div
-                                    key={record.id}
-                                    initial={{ opacity: 0, y: 30 }}
-                                    animate={{ opacity: 1, y: 0 }}
-                                    transition={{ delay: index * 0.05 }}
-                                    className="bg-white rounded-[3rem] p-8 border border-slate-100 shadow-xl shadow-slate-200/40 hover:scale-[1.02] hover:shadow-2xl transition-all group flex flex-col"
-                                >
+                        </motion.div> :
+
+          <motion.div
+            key="list"
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
+            
+                            {filteredRecords.map((record, index) =>
+            <motion.div
+              key={record.id}
+              initial={{ opacity: 0, y: 30 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ delay: index * 0.05 }}
+              className="bg-white rounded-[3rem] p-8 border border-slate-100 shadow-xl shadow-slate-200/40 hover:scale-[1.02] hover:shadow-2xl transition-all group flex flex-col">
+              
                                     <div className="flex items-start justify-between mb-8">
                                         <div className={`w-16 h-16 rounded-[1.5rem] shadow-inner border border-black/5 flex items-center justify-center
                                             ${record.mimeType.includes('pdf') ? 'bg-rose-50 text-rose-600' :
-                                                record.mimeType.includes('image') ? 'bg-blue-50 text-blue-600' :
-                                                    'bg-primary/5 text-primary'}`}
-                                        >
+                record.mimeType.includes('image') ? 'bg-blue-50 text-blue-600' :
+                'bg-primary/5 text-primary'}`}>
+                  
                                             <FileText className="w-8 h-8" />
                                         </div>
                                         <div className="flex flex-col items-end gap-1.5">
@@ -262,8 +262,8 @@ export default function SessionRecordViewerPage() {
                                             </div>
                                         </div>
 
-                                        {record.description && (
-                                            <div className="p-5 bg-slate-50/80 rounded-[2rem] border border-slate-100/50 relative overflow-hidden group/note">
+                                        {record.description &&
+                <div className="p-5 bg-slate-50/80 rounded-[2rem] border border-slate-100/50 relative overflow-hidden group/note">
                                                 <div className="flex items-center gap-2 mb-2 opacity-50">
                                                     <Info className="w-3.5 h-3.5" />
                                                     <span className="text-[10px] font-black uppercase tracking-widest">Clinical Context</span>
@@ -272,23 +272,23 @@ export default function SessionRecordViewerPage() {
                                                     {record.description}
                                                 </p>
                                             </div>
-                                        )}
+                }
                                     </div>
 
                                     <div className="pt-8 mt-auto flex gap-3">
                                         <Button
-                                            variant="primary"
-                                            className="flex-1 h-14 rounded-2xl text-[11px] font-black uppercase tracking-[0.2em] shadow-lg shadow-primary/20 group-hover:shadow-primary/30 transition-all"
-                                            onClick={() => handleDownload(record.id, record.originalFileName)}
-                                        >
+                  variant="primary"
+                  className="flex-1 h-14 rounded-2xl text-[11px] font-black uppercase tracking-[0.2em] shadow-lg shadow-primary/20 group-hover:shadow-primary/30 transition-all"
+                  onClick={() => handleDownload(record.id, record.originalFileName)}>
+                  
                                             <Download className="w-4 h-4 mr-2" />
                                             DOWNLOAD
                                         </Button>
                                     </div>
                                 </motion.div>
-                            ))}
+            )}
                         </motion.div>
-                    )}
+          }
                 </AnimatePresence>
 
                 {/* Secure Session Footer */}
@@ -311,12 +311,12 @@ export default function SessionRecordViewerPage() {
                         </div>
 
                         <div className="flex flex-col items-center gap-3 opacity-30 pb-4 md:pb-0">
-                            <img src="/images/logo.png" alt="Logo" className="h-10 grayscale invert" />
+                            <img src="/images/logo.webp" alt="Logo" className="h-10 grayscale invert" />
                             <p className="text-[10px] font-black uppercase tracking-widest text-white">SAJILO SECURE STACK V1.0</p>
                         </div>
                     </div>
                 </div>
             </main>
-        </div>
-    );
+        </div>);
+
 }

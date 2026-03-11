@@ -3,9 +3,9 @@ import { useForm } from 'react-hook-form';
 import { Button } from '@/components/ui/Button';
 import { Input } from '@/components/ui/Input';
 import toast from 'react-hot-toast';
-import axiosInstance from '@/lib/utils/axios';
 import { patientApi } from '@/lib/api/patient';
 import { TrustedDevicesList } from '@/components/auth/TrustedDevicesList';
+import { useQuery } from '@tanstack/react-query';
 
 interface PatientProfileData {
     bloodType: string;
@@ -17,34 +17,28 @@ interface PatientProfileData {
 }
 
 export const PatientProfile: React.FC = () => {
-    const [isLoading, setIsLoading] = useState(true);
     const [isSaving, setIsSaving] = useState(false);
-    const [profileError, setProfileError] = useState<string | null>(null);
+
+    const { data: profileResponse, isLoading: isProfileLoading, error: queryError } = useQuery({
+        queryKey: ['patient-profile'],
+        queryFn: () => patientApi.getProfile(),
+    });
 
     const { register, handleSubmit, reset } = useForm<PatientProfileData>();
 
     useEffect(() => {
-        const fetchProfile = async () => {
-            try {
-                const response = await patientApi.getProfile();
-                const data = response.data;
-                reset({
-                    bloodType: data.bloodType || '',
-                    address: data.address || '',
-                    emergencyContactName: data.emergencyContactName || '',
-                    emergencyContactPhone: data.emergencyContactPhone || '',
-                    allergies: data.allergies || '',
-                    chronicConditions: data.chronicConditions || '',
-                });
-            } catch (err: any) {
-                setProfileError('Failed to load profile details.');
-            } finally {
-                setIsLoading(false);
-            }
-        };
-
-        fetchProfile();
-    }, [reset]);
+        if (profileResponse?.data) {
+            const data = profileResponse.data;
+            reset({
+                bloodType: data.bloodType || '',
+                address: data.address || '',
+                emergencyContactName: data.emergencyContactName || '',
+                emergencyContactPhone: data.emergencyContactPhone || '',
+                allergies: data.allergies || '',
+                chronicConditions: data.chronicConditions || '',
+            });
+        }
+    }, [profileResponse, reset]);
 
     const onSubmit = async (data: PatientProfileData) => {
         setIsSaving(true);
@@ -58,20 +52,20 @@ export const PatientProfile: React.FC = () => {
         }
     };
 
-    if (isLoading) {
+    if (isProfileLoading) {
         return <div className="animate-pulse bg-slate-100 dark:bg-slate-800 rounded-3xl h-[28rem] w-full"></div>;
     }
 
-    if (profileError) {
+    if (queryError) {
         return (
             <div className="bg-rose-50 dark:bg-rose-900/20 text-rose-600 dark:text-rose-400 p-6 rounded-3xl border border-rose-100 dark:border-rose-800/50 text-sm font-semibold">
-                {profileError}
+                Failed to load profile details.
             </div>
         );
     }
 
     return (
-        <div className="bg-white/40 dark:bg-white/5 rounded-3xl p-8 border border-white/10 dark:border-white/5 shadow-sm relative overflow-hidden backdrop-blur-sm">
+        <div className="bg-white/40 dark:bg-white/5 rounded-3xl p-4 md:p-8 border border-white/10 dark:border-white/5 shadow-sm relative overflow-hidden backdrop-blur-sm">
             <h3 className="text-xl font-bold text-slate-900 dark:text-white mb-6">Medical Profile</h3>
 
             <form onSubmit={handleSubmit(onSubmit)} className="space-y-4 relative z-10">

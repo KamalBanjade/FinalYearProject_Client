@@ -7,6 +7,7 @@ export interface UploadMedicalRecordDTO {
     description?: string;
     recordDate?: string;
     assignedDoctorId?: string;
+    tags?: string;
 }
 
 export interface MedicalRecordResponseDTO {
@@ -34,12 +35,14 @@ export interface MedicalRecordResponseDTO {
     canDownload: boolean;
     relativeTimeString: string;
     timePeriod: string;
+    tags?: string;
 }
 
 export interface UpdateMedicalRecordMetadataDTO {
     recordType?: string;
     description?: string;
     recordDate?: string;
+    tags?: string;
 }
 
 export interface RecordSectionDTO {
@@ -66,6 +69,7 @@ export const medicalRecordsApi = {
         if (data.description) formData.append('Description', data.description);
         if (data.recordDate) formData.append('RecordDate', data.recordDate);
         if (data.assignedDoctorId) formData.append('AssignedDoctorId', data.assignedDoctorId);
+        if (data.tags) formData.append('Tags', data.tags);
 
         const response = await api.post(`${MEDICAL_RECORDS_API}/upload`, formData, {
             headers: {
@@ -177,7 +181,7 @@ export const medicalRecordsApi = {
      */
     downloadRecordForDoctor: async (id: string, signal?: AbortSignal): Promise<void> => {
         try {
-            const baseUrl = process.env.NEXT_PUBLIC_API_URL ?? 'https://localhost:7004/api';
+            const baseUrl = '/api';
 
             const response = await fetch(`${baseUrl}/doctor/records/${id}/stream-download`, {
                 credentials: 'include', // cookie-based auth (same as Axios withCredentials)
@@ -223,7 +227,7 @@ export const medicalRecordsApi = {
         if (cached) return cached;
 
         try {
-            const baseUrl = process.env.NEXT_PUBLIC_API_URL ?? 'https://localhost:7004/api';
+            const baseUrl = '/api';
 
             const response = await fetch(`${baseUrl}/doctor/records/${id}/view`, {
                 credentials: 'include',
@@ -264,7 +268,7 @@ export const medicalRecordsApi = {
         if (cached) return cached;
 
         try {
-            const baseUrl = process.env.NEXT_PUBLIC_API_URL ?? 'https://localhost:7004/api';
+            const baseUrl = '/api';
 
             const response = await fetch(`${baseUrl}/medical-records/view/${id}`, {
                 credentials: 'include',

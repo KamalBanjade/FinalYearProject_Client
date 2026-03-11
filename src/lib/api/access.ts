@@ -1,4 +1,11 @@
 import axiosInstance from '../utils/axios';
+import { TemplateDTO } from './templates';
+
+export interface SuggestedTemplateDTO {
+    template: TemplateDTO;
+    matchScore: number;
+    matchReason: string;
+}
 
 export interface AccessInfoDTO {
     success: boolean;
@@ -54,7 +61,20 @@ export const accessApi = {
         return response.data;
     },
 
-    verifyAccess: async (token: string, totpCode: string): Promise<{ success: boolean; message: string; data?: { sessionToken: string; expiresAt: string; remainingMinutes: number } }> => {
+    verifyAccess: async (token: string, totpCode: string): Promise<{ 
+        success: boolean; 
+        message: string; 
+        data?: { 
+            sessionToken: string; 
+            expiresAt: string; 
+            remainingMinutes: number;
+            patientId: string;
+            patientName: string;
+            scannerRole: string;
+            permissions: string[];
+            suggestedTemplates: SuggestedTemplateDTO[];
+        } 
+    }> => {
         const response = await axiosInstance.post(`access/${token}/verify`, { totpCode });
         if (response.data.success && response.data.data?.sessionToken) {
             sessionStorage.setItem(SESSION_TOKEN_KEY, response.data.data.sessionToken);

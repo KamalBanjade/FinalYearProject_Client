@@ -41,6 +41,14 @@ export const LinkRecordsModal: React.FC<LinkRecordsModalProps> = ({
     const [isLinking, setIsLinking] = useState(false);
     const [progress, setProgress] = useState({ current: 0, total: 0 });
 
+    useEffect(() => {
+        const handleEsc = (e: KeyboardEvent) => {
+            if (e.key === 'Escape') onClose();
+        };
+        window.addEventListener('keydown', handleEsc);
+        return () => window.removeEventListener('keydown', handleEsc);
+    }, [onClose]);
+
     const { data: recordsResponse, isLoading, error } = useQuery({
         queryKey: ['patient-records', patientId],
         queryFn: () => medicalRecordsApi.getPatientRecordsForDoctor(patientId),

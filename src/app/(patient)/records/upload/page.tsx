@@ -9,10 +9,10 @@ export default function UploadRecordPage() {
     const router = useRouter();
 
     return (
-        <div className="w-full px-6 py-4 animate-in fade-in duration-500">
+        <div className="w-full px-1 sm:px-6 py-4 animate-in fade-in duration-500">
 
             {/* Form - Centered and Spacious */}
-            <div className="mx-auto max-w-2xl px-2 pb-20">
+            <div className="mx-auto max-w-7xl px-0 pb-20">
                 <RecordUpload
                     onUploadSuccess={() => router.push('/records')}
                 />

@@ -160,9 +160,9 @@ export default function AdminUsersPage() {
     };
 
     return (
-        <div className="p-8 max-w-7xl mx-auto space-y-8 animate-in fade-in duration-500">
+        <div className="p-4 sm:p-8 max-w-7xl mx-auto space-y-6 sm:space-y-8 animate-in fade-in duration-500">
             {/* Unified Filter & Action Toolbar */}
-            <div className="flex flex-col lg:flex-row items-center gap-4 bg-white/50 dark:bg-slate-900/50 backdrop-blur-md p-4 rounded-3xl border border-slate-100 dark:border-slate-800 shadow-sm">
+            <div className="flex flex-col lg:flex-row items-center gap-4 bg-white/50 dark:bg-slate-900/50 backdrop-blur-md p-3 sm:p-4 rounded-3xl border border-slate-100 dark:border-slate-800 shadow-sm">
                 <form onSubmit={handleSearch} className="relative flex-1 group w-full">
                     <Search className="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400 group-focus-within:text-blue-500 transition-colors" />
                     <input
@@ -221,7 +221,8 @@ export default function AdminUsersPage() {
                     </div>
                 ) : (
                     <div className="overflow-x-auto">
-                        <table className="w-full text-left border-collapse">
+                        {/* Desktop Table View */}
+                        <table className="w-full text-left border-collapse hidden md:table">
                             <thead>
                                 <tr className="bg-gray-50/50 border-b border-gray-100">
                                     <th className="px-6 py-4 text-xs font-semibold text-gray-400 uppercase tracking-wider">User</th>
@@ -282,6 +283,61 @@ export default function AdminUsersPage() {
                                 ))}
                             </tbody>
                         </table>
+
+                        {/* Mobile Card View */}
+                        <div className="md:hidden divide-y divide-gray-50 bg-white">
+                            {users.map((user) => (
+                                <div key={user.id} className="p-4 space-y-4">
+                                    <div className="flex items-start justify-between">
+                                        <div className="flex items-center gap-3">
+                                            <div className={`w-12 h-12 rounded-2xl flex items-center justify-center text-xl font-light ${user.role === 'Admin' ? 'bg-purple-100 text-purple-600 shadow-sm' :
+                                                user.role === 'Doctor' ? 'bg-blue-100 text-blue-600 shadow-sm' : 'bg-green-100 text-green-600 shadow-sm'
+                                                }`}>
+                                                {user.firstName[0]}{user.lastName[0]}
+                                            </div>
+                                            <div className="min-w-0">
+                                                <p className="text-base font-bold text-gray-900 truncate">{user.firstName} {user.lastName}</p>
+                                                <div className="flex items-center gap-1 text-xs text-gray-500 font-medium">
+                                                    <Mail className="w-3 h-3" />
+                                                    <span className="truncate">{user.email}</span>
+                                                </div>
+                                            </div>
+                                        </div>
+                                        <button
+                                            onClick={() => handleOpenEdit(user)}
+                                            className="p-2.5 text-gray-400 hover:text-blue-600 hover:bg-blue-50 rounded-xl transition-all border border-gray-100 shadow-sm"
+                                        >
+                                            <Edit2 className="w-4 h-4" />
+                                        </button>
+                                    </div>
+
+                                    <div className="flex items-center justify-between gap-2 pt-1">
+                                        <div className="flex flex-wrap gap-2">
+                                            <span className={`inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-bold border ${getRoleBadgeColor(user.role)}`}>
+                                                {getRoleIcon(user.role)}
+                                                {user.role}
+                                            </span>
+                                            <button
+                                                onClick={() => handleToggleStatus(user)}
+                                                className={`flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-bold transition-all shadow-sm ${user.isActive
+                                                    ? 'bg-green-50 text-green-600 border-green-100'
+                                                    : 'bg-red-50 text-red-600 border-red-100'
+                                                    }`}
+                                            >
+                                                {user.isActive ? <CheckCircle2 className="w-3 h-3" /> : <XCircle className="w-3 h-3" />}
+                                                {user.isActive ? 'Active' : 'Inactive'}
+                                            </button>
+                                        </div>
+                                        <div className="flex flex-col items-end gap-0.5">
+                                            <span className="text-[10px] font-bold text-gray-300 uppercase tracking-widest">Joined</span>
+                                            <span className="text-xs font-bold text-gray-600 bg-gray-50 px-2 py-1 rounded-lg border border-gray-100/50">
+                                                {new Date(user.createdAt).toLocaleDateString()}
+                                            </span>
+                                        </div>
+                                    </div>
+                                </div>
+                            ))}
+                        </div>
                     </div>
                 )}
 

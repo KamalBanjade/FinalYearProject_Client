@@ -68,7 +68,7 @@ export const RecordCard: React.FC<RecordCardProps> = ({
             case 1: // Pending
                 return {
                     label: '⏳ Awaiting Review',
-                    colorClass: 'bg-indigo-100 text-indigo-800 border-indigo-200 dark:bg-indigo-900/40 dark:text-indigo-300',
+                    colorClass: 'bg-rose-100 text-rose-800 border-rose-200 dark:bg-rose-900/40 dark:text-rose-300',
                     icon: <Clock className="w-5 h-5" />
                 };
             case 2: // Certified

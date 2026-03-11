@@ -21,6 +21,7 @@ const publicRoutes = [
     '/terms',
     '/emergency',
     '/access',
+    '/unauthorized',
 ];
 
 export function middleware(request: NextRequest) {
@@ -31,6 +32,7 @@ export function middleware(request: NextRequest) {
         const newPathname = pathname.replace('/auth/', '/');
         const url = request.nextUrl.clone();
         url.pathname = newPathname;
+        console.info(`[Middleware Diagnostic] Redirecting legacy /auth/ prefix: ${pathname} -> ${newPathname}`);
         return NextResponse.redirect(url);
     }
 
@@ -56,6 +58,7 @@ export function middleware(request: NextRequest) {
     if (!token) {
         // If not authenticated and trying to access protected route
         if (!isPublicRoute) {
+            console.info(`[Middleware Diagnostic] Unauthorized access attempt to "${pathname}". Redirecting to /login.`);
             const redirectUrl = new URL('/login', request.url);
             redirectUrl.searchParams.set('returnUrl', pathname);
             return NextResponse.redirect(redirectUrl);
@@ -69,7 +72,10 @@ export function middleware(request: NextRequest) {
         const userRole = decoded['http://schemas.microsoft.com/ws/2008/06/identity/claims/role'] || decoded['role'];
         const isExp = decoded.exp * 1000 < Date.now();
 
+        console.info(`[Middleware Diagnostic] Auth detected. Role: "${userRole}" | Expired: ${isExp}`);
+
         if (isExp) {
+            console.info(`[Middleware Diagnostic] Session expired for "${pathname}". Clearing cookie and redirecting to /login.`);
             const response = NextResponse.redirect(new URL('/login', request.url));
             response.cookies.delete('auth_token');
             return response;
@@ -77,37 +83,39 @@ export function middleware(request: NextRequest) {
 
         // Prevent authenticated users from visiting login/register
         if (pathname === '/login' || pathname === '/register') {
-            if (userRole === 'Admin') return NextResponse.redirect(new URL('/admin/dashboard', request.url));
-            if (userRole === 'Doctor') return NextResponse.redirect(new URL('/doctor/dashboard', request.url));
-            return NextResponse.redirect(new URL('/dashboard', request.url));
+            let redirectDashboard = '/dashboard';
+            if (userRole === 'Admin') redirectDashboard = '/admin/dashboard';
+            if (userRole === 'Doctor') redirectDashboard = '/doctor/dashboard';
+
+            console.info(`[Middleware Diagnostic] Authenticated user on auth page. Redirecting to "${redirectDashboard}".`);
+            return NextResponse.redirect(new URL(redirectDashboard, request.url));
         }
 
         // Role-based Access Control
         if (pathname.startsWith('/admin') && userRole !== 'Admin') {
-            return NextResponse.redirect(new URL('/dashboard', request.url));
+            console.warn(`[Middleware Diagnostic] Role mismatch: User "${userRole}" tried to access Admin route "${pathname}". Redirecting to /unauthorized.`);
+            return NextResponse.redirect(new URL('/unauthorized', request.url));
         }
 
         if (pathname.startsWith('/doctor') && userRole !== 'Doctor') {
-            return NextResponse.redirect(new URL('/dashboard', request.url));
+            console.warn(`[Middleware Diagnostic] Role mismatch: User "${userRole}" tried to access Doctor route "${pathname}". Redirecting to /unauthorized.`);
+            return NextResponse.redirect(new URL('/unauthorized', request.url));
         }
 
-        // Patient routes are default (no prefix), but we should ensure Admins/Doctors
-        // can still access generic profile/settings if we didn't prefix them.
-        // Actually, the user's plan says profile is at /profile for patients,
-        // but /doctor/profile for doctors.
-        // If a doctor tries to access /profile, we might want to redirect them to /doctor/profile.
+        // Patient routes are default (no prefix)
+        // Check if a Doctor/Admin is accessing patient routes like /appointments/new
+        // If the ProtectedRoute in the page also checks, it might cause double redirects,
+        // but here we ensure they have access or redirect them.
+
         if (pathname === '/profile' && userRole === 'Doctor') {
             return NextResponse.redirect(new URL('/doctor/profile', request.url));
         }
-        if (pathname === '/profile' && userRole === 'Admin') {
-            // Admin profile might just be a generic one or none? 
-            // The prompt says /admin/profile isn't explicitly listed but typically exists.
-            // For now, let it be.
-        }
 
+        console.info(`[Middleware Diagnostic] Access granted to "${pathname}" for role "${userRole}".`);
         return NextResponse.next();
     } catch (error) {
         // Invalid token
+        console.error(`[Middleware Diagnostic] Token decoding failed. Potential tampering or malformed token. Redirecting to /login.`);
         const response = NextResponse.redirect(new URL('/login', request.url));
         response.cookies.delete('auth_token');
         return response;

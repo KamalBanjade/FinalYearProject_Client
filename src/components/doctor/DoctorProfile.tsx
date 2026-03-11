@@ -64,7 +64,7 @@ export const DoctorProfile: React.FC = () => {
     }
 
     return (
-        <div className="bg-white rounded-3xl p-8 border border-slate-100 shadow-sm">
+        <div className="bg-white dark:bg-slate-900 rounded-3xl p-8 border border-slate-200/60 dark:border-slate-800 shadow-premium dark:shadow-none">
             <h3 className="text-xl font-bold text-slate-900 mb-6">Professional Details</h3>
 
             <form onSubmit={handleSubmit(onSubmit)} className="space-y-4">

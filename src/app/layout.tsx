@@ -4,6 +4,7 @@ import { Toaster } from "react-hot-toast";
 import { ThemeProvider, ThemeScript } from "@/components/theme/ThemeProvider";
 import { ConfirmProvider } from "@/context/ConfirmContext";
 import QueryProvider from "@/components/providers/QueryProvider";
+import { PatientScanReceiver } from "@/components/scanner/PatientScanReceiver";
 import "./globals.css";
 
 const geistSans = Geist({ variable: "--font-geist-sans", subsets: ["latin"] });
@@ -48,6 +49,7 @@ export default function RootLayout({ children }: Readonly<{ children: React.Reac
                 }}
               />
               {children}
+              <PatientScanReceiver />
             </ConfirmProvider>
           </QueryProvider>
         </ThemeProvider>

@@ -55,7 +55,11 @@ export const ProtectedRoute: React.FC<ProtectedRouteProps> = ({
         }
     }, [isAuthenticated, isLoading, user, requiredRole, requireTwoFactor, router, pathname]);
 
-    if (!hasChecked || isLoading) {
+    // Optimization: If we have a user and are authenticated (from persistence), 
+    // don't show the loader even if a background check (isLoading) is happening.
+    const showLoader = (!hasChecked || isLoading) && !isAuthenticated;
+
+    if (showLoader) {
         return (
             <div className="fixed inset-0 flex items-center justify-center bg-white/40 dark:bg-slate-900/40 backdrop-blur-xl z-[9999]">
                 <MedicalLoader />
