@@ -2,6 +2,7 @@ import React, { useState, useRef, useEffect } from 'react';
 import { UploadCloud, File as FileIcon, X, CheckCircle, AlertCircle, Sparkles, Calendar, Star, Clock, ChevronDown, User, Stethoscope } from 'lucide-react';
 import { medicalRecordsApi, UploadMedicalRecordDTO } from '@/lib/api/medicalRecords';
 import { patientApi, DoctorBasicInfo, DoctorSuggestionItem, SmartDoctorSuggestionDTO } from '@/lib/api/patient';
+import { FormGrid } from '@/components/layout/ResponsiveGrid';
 import toast from 'react-hot-toast';
 
 const MAX_FILE_SIZE = 10 * 1024 * 1024;
@@ -429,7 +430,7 @@ export function RecordUpload({ onUploadSuccess, onRecordUploaded }: RecordUpload
 
                     {/* RIGHT SIDE: Metadata & Tags */}
                     <div className="lg:col-span-6 flex flex-col space-y-8">
-                        <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
+                        <FormGrid columns={2}>
                             <div className="space-y-3.5">
                                 <label className="text-[11px] font-black text-slate-500 dark:text-slate-400 uppercase tracking-[0.2em] block px-1">
                                     Record Type <span className="text-rose-500">*</span>
@@ -458,7 +459,7 @@ export function RecordUpload({ onUploadSuccess, onRecordUploaded }: RecordUpload
                                         className="w-full h-14 rounded-2xl border-2 bg-white/50 dark:bg-slate-900/50 backdrop-blur-md border-slate-100 dark:border-slate-800/50 px-5 text-sm font-bold text-slate-900 dark:text-white focus:outline-none focus:border-secondary focus:ring-4 focus:ring-secondary/5 transition-all" />
                                 </div>
                             </div>
-                        </div>
+                        </FormGrid>
 
                         {/* Tag Selector */}
                         <div className="space-y-4">

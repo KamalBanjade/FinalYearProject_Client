@@ -1,9 +1,10 @@
 'use client';
 
 import React, { useEffect, useState } from 'react';
+import { motion } from 'framer-motion';
 import { adminApi } from '@/lib/api/admin';
 import { Doctor } from '@/types/admin';
-import { Button } from '@/components/ui/Button';
+
 import { Input } from '@/components/ui/Input';
 import {
     Search,
@@ -28,6 +29,14 @@ import { useConfirm } from '@/context/ConfirmContext';
 import { RegenerateKeysModal } from '@/components/admin/RegenerateKeysModal';
 import { EditDoctorModal } from '@/components/admin/EditDoctorModal';
 import { UpdateDoctorRequest } from '@/types/admin';
+import { PageLayout, Section } from '@/components/layout/PageLayout';
+import { Stack } from '@/components/ui/Stack';
+import { Button } from '@/components/ui/Button';
+import { H1, H2, H3, Text } from '@/components/ui/Typography';
+import { ResponsiveTable } from '@/components/data-display/ResponsiveTable';
+import { Card } from '@/components/ui/Card';
+import { Plus, X } from 'lucide-react';
+import { InviteDoctorModal } from '@/components/admin/InviteDoctorModal';
 
 export default function DoctorListPage() {
     const { confirm } = useConfirm();
@@ -46,6 +55,7 @@ export default function DoctorListPage() {
     const [isEditModalOpen, setIsEditModalOpen] = useState(false);
     const [selectedDoctor, setSelectedDoctor] = useState<{ id: string, name: string } | null>(null);
     const [editingDoctor, setEditingDoctor] = useState<Doctor | null>(null);
+    const [isInviteModalOpen, setIsInviteModalOpen] = useState(false);
 
     const fetchDoctors = async () => {
         setLoading(true);
@@ -137,134 +147,138 @@ export default function DoctorListPage() {
     };
 
     return (
-        <div className="max-w-[1400px] mx-auto px-6 py-10 text-slate-900">
-            {/* Unified Toolbar */}
-            <div className="flex flex-col lg:flex-row items-center gap-4 bg-white/50 dark:bg-slate-900/50 backdrop-blur-md p-4 rounded-3xl border border-slate-100 dark:border-slate-800 shadow-sm mb-6">
-                <div className="relative flex-1 group w-full">
-                    <Search className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-400 group-focus-within:text-blue-500 transition-colors" size={18} />
-                    <Input
-                        placeholder="Search by practitioner name, license, or specialization..."
-                        className="pl-12 h-12 bg-white dark:bg-slate-900 border border-slate-100 dark:border-slate-800 rounded-2xl focus:ring-4 focus:ring-blue-500/10 focus:border-blue-500 outline-none transition-all text-sm font-bold"
-                        value={searchTerm}
-                        onChange={(e) => setSearchTerm(e.target.value)}
-                    />
-                </div>
+        <PageLayout>
+            <Section>
+                <Stack spacing="lg">
+                    {/* Toolbar */}
+                    <Stack direction={{ base: 'col', lg: 'row' } as any} align="center" spacing="md" className="bg-white/50 dark:bg-slate-900/50 backdrop-blur-md p-4 rounded-3xl border border-slate-100 dark:border-slate-800 shadow-sm">
+                        <div className="relative flex-1 group w-full">
+                            <Search className="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400 group-focus-within:text-indigo-500 transition-colors" />
+                            <input
+                                type="text"
+                                placeholder="Search by name, specialty, or email..."
+                                value={searchTerm}
+                                onChange={(e) => setSearchTerm(e.target.value)}
+                                className="w-full pl-12 pr-4 py-3 bg-white dark:bg-slate-900 border border-slate-100 dark:border-slate-800 rounded-2xl text-sm font-bold focus:ring-4 focus:ring-indigo-500/10 focus:border-indigo-500 outline-none transition-all dark:text-white"
+                            />
+                        </div>
 
-                <div className="flex flex-wrap items-center gap-3 w-full lg:w-auto">
-                    <select
-                        value={department}
-                        onChange={(e) => setDepartment(e.target.value)}
-                        className="bg-white dark:bg-slate-900 border border-slate-100 dark:border-slate-800 rounded-2xl px-4 h-12 text-xs font-bold text-slate-600 dark:text-slate-400 outline-none focus:ring-2 focus:ring-blue-500/10 min-w-[160px] cursor-pointer"
-                    >
-                        <option value="">All Departments</option>
-                        <option value="Cardiology">Cardiology</option>
-                        <option value="Neurology">Neurology</option>
-                        <option value="Pediatrics">Pediatrics</option>
-                        <option value="General Medicine">General Medicine</option>
-                    </select>
+                        <Stack direction={{ base: 'col', sm: 'row' } as any} align="center" spacing="md" className="w-full lg:w-auto">
+                            <select
+                                value={department}
+                                onChange={(e) => {
+                                    setDepartment(e.target.value);
+                                    setPage(1);
+                                }}
+                                className="w-full sm:w-48 px-4 py-3 bg-white dark:bg-slate-900 border border-slate-100 dark:border-slate-800 rounded-2xl focus:outline-none focus:ring-2 focus:ring-indigo-500/20 text-slate-600 dark:text-slate-400 text-xs font-bold cursor-pointer shadow-sm"
+                            >
+                                <option value="">All Departments</option>
+                                <option value="Cardiology">Cardiology</option>
+                                <option value="Neurology">Neurology</option>
+                                <option value="Pediatrics">Pediatrics</option>
+                                <option value="General Medicine">General Medicine</option>
+                            </select>
 
-                    <select
-                        value={isActive === undefined ? '' : isActive.toString()}
-                        onChange={(e) => {
-                            const val = e.target.value;
-                            setIsActive(val === '' ? undefined : val === 'true');
-                        }}
-                        className="bg-white dark:bg-slate-900 border border-slate-100 dark:border-slate-800 rounded-2xl px-4 h-12 text-xs font-bold text-slate-600 dark:text-slate-400 outline-none focus:ring-2 focus:ring-blue-500/10 min-w-[140px] cursor-pointer"
-                    >
-                        <option value="">Status: All</option>
-                        <option value="true">Active Only</option>
-                        <option value="false">Inactive Only</option>
-                    </select>
+                            <select
+                                value={isActive === undefined ? 'all' : isActive ? 'active' : 'inactive'}
+                                onChange={(e) => {
+                                    const val = e.target.value;
+                                    setIsActive(val === 'all' ? undefined : val === 'active');
+                                    setPage(1);
+                                }}
+                                className="w-full sm:w-48 px-4 py-3 bg-white dark:bg-slate-900 border border-slate-100 dark:border-slate-800 rounded-2xl focus:outline-none focus:ring-2 focus:ring-indigo-500/20 text-slate-600 dark:text-slate-400 text-xs font-bold cursor-pointer shadow-sm"
+                            >
+                                <option value="all">All Status</option>
+                                <option value="active">Active Only</option>
+                                <option value="inactive">Inactive Only</option>
+                            </select>
 
-                    <Link href="/admin/doctors/invite">
-                        <button className="flex items-center gap-2 px-6 py-3 bg-slate-900 dark:bg-blue-600 text-white rounded-2xl font-bold text-sm shadow-xl hover:bg-slate-800 dark:hover:bg-blue-700 transition-all active:scale-95 group">
-                            <UserPlus className="w-4 h-4 group-hover:rotate-12 transition-transform" />
-                            <span>Invite Staff</span>
-                        </button>
-                    </Link>
-                </div>
-            </div>
+                            <Button
+                                onClick={() => setIsInviteModalOpen(true)}
+                                className="w-full sm:w-auto h-12 px-6 bg-indigo-600 text-white rounded-2xl font-bold shadow-lg shadow-indigo-500/20"
+                            >
+                                <Plus className="w-4 h-4 mr-2" />
+                                Onboard Doctor
+                            </Button>
+                        </Stack>
+                    </Stack>
 
-            {/* Clean Professional Table */}
-            <div className="bg-white dark:bg-slate-900 border border-slate-100 dark:border-slate-800 rounded-3xl overflow-hidden shadow-sm">
-                {/* Desktop Table View */}
-                <div className="hidden md:block overflow-x-auto">
-                    <table className="w-full text-left text-sm">
-                        <thead>
-                            <tr className="bg-slate-50 dark:bg-slate-800/50 border-b border-slate-200 dark:border-slate-700 text-slate-500 dark:text-slate-400 font-black text-[10px] uppercase tracking-widest">
-                                <th className="px-6 py-4 text-center">Status</th>
-                                <th className="px-6 py-4">Name & Email</th>
-                                <th className="px-6 py-4">Credentials</th>
-                                <th className="px-6 py-4">Key State</th>
-                                <th className="px-6 py-4">Added</th>
-                                <th className="px-6 py-4 text-right">Actions</th>
-                            </tr>
-                        </thead>
-                        <tbody className="divide-y divide-slate-100 dark:divide-slate-800">
-                            {loading ? (
-                                Array.from({ length: 5 }).map((_, i) => (
-                                    <tr key={i} className="animate-pulse">
-                                        <td colSpan={6} className="px-6 py-5">
-                                            <div className="h-6 bg-slate-50 dark:bg-slate-800 rounded w-full"></div>
-                                        </td>
-                                    </tr>
-                                ))
-                            ) : doctors.length === 0 ? (
-                                <tr>
-                                    <td colSpan={6} className="px-6 py-20 text-center">
-                                        <div className="flex flex-col items-center gap-3 text-slate-300 dark:text-slate-600">
-                                            <SearchX size={40} strokeWidth={1.5} />
-                                            <p className="font-black uppercase tracking-widest text-[10px]">No Practitioners Found</p>
-                                        </div>
-                                    </td>
-                                </tr>
-                            ) : doctors.map((doc: any) => (
-                                <tr key={doc.userId} className="hover:bg-slate-50/50 dark:hover:bg-slate-800/30 transition-colors">
-                                    <td className="px-6 py-5 text-center">
-                                        {doc.isActive ? (
-                                            <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-[9px] font-black uppercase tracking-widest bg-emerald-500 text-white shadow-lg shadow-emerald-500/20">
-                                                Active
-                                            </span>
-                                        ) : (
-                                            <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-[9px] font-black uppercase tracking-widest bg-slate-200 dark:bg-slate-700 text-slate-500 dark:text-slate-400">
-                                                Inactive
-                                            </span>
-                                        )}
-                                    </td>
-                                    <td className="px-6 py-5">
+                    {/* Table Container */}
+                    <div>
+                        <ResponsiveTable
+                            loading={loading}
+                            data={doctors}
+                            keyExtractor={(doc) => doc.userId}
+                            emptyState={
+                                <div className="text-center py-24 space-y-4">
+                                    <div className="w-16 h-16 bg-slate-50 dark:bg-slate-800 rounded-3xl flex items-center justify-center mx-auto text-slate-200">
+                                        <Search className="w-8 h-8" />
+                                    </div>
+                                    <Text variant="body" className="text-gray-500 font-bold uppercase tracking-widest text-xs">No medical staff found</Text>
+                                    <button onClick={() => setSearchTerm('')} className="text-indigo-600 font-black text-xs uppercase underline">Clear Search</button>
+                                </div>
+                            }
+                            columns={[
+                                {
+                                    header: 'Status',
+                                    className: 'text-center',
+                                    accessor: (doc: any) => doc.isActive ? (
+                                        <span className="inline-flex px-2 py-0.5 rounded text-[10px] font-black uppercase tracking-widest bg-emerald-50 dark:bg-emerald-500/10 text-emerald-600 dark:text-emerald-400">
+                                            Active
+                                        </span>
+                                    ) : (
+                                        <span className="inline-flex px-2 py-0.5 rounded text-[10px] font-black uppercase tracking-widest bg-slate-100 dark:bg-slate-800 text-slate-400 italic">
+                                            Inactive
+                                        </span>
+                                    )
+                                },
+                                {
+                                    header: 'Name & Email',
+                                    accessor: (doc: any) => (
                                         <div className="flex flex-col">
-                                            <span className="font-black text-slate-900 dark:text-white text-base tracking-tight uppercase italic">Dr. {doc.firstName} {doc.lastName}</span>
-                                            <span className="text-[10px] text-slate-400 font-bold uppercase tracking-wider mt-0.5">{doc.email}</span>
+                                            <p className="text-sm font-bold text-slate-700 dark:text-slate-200">Dr. {doc.firstName} {doc.lastName}</p>
+                                            <p className="text-xs font-semibold text-slate-400 dark:text-slate-500">{doc.email}</p>
                                         </div>
-                                    </td>
-                                    <td className="px-6 py-5">
+                                    )
+                                },
+                                {
+                                    header: 'Credentials',
+                                    accessor: (doc: any) => (
                                         <div className="flex flex-col">
-                                            <span className="text-[11px] font-black text-slate-700 dark:text-slate-300 flex items-center gap-1.5">
-                                                <BadgeCheck size={14} className="text-primary" strokeWidth={3} />
+                                            <span className="text-xs font-bold text-slate-600 dark:text-slate-300 flex items-center gap-1.5">
+                                                <BadgeCheck size={13} className="text-primary" strokeWidth={3} />
                                                 {doc.nmcLicense}
                                             </span>
-                                            <span className="text-[9px] text-primary font-black uppercase tracking-[0.2em] mt-1">{doc.department}</span>
+                                            <span className="text-[10px] font-black text-primary uppercase tracking-[0.15em] mt-0.5">{doc.department}</span>
                                         </div>
-                                    </td>
-                                    <td className="px-6 py-5">
-                                        {doc.hasKeys ? (
-                                            <span className="inline-flex items-center gap-2 text-slate-400 text-[10px] font-black tracking-widest uppercase">
-                                                <ShieldCheck size={16} className="text-emerald-500" />
-                                                RSA-2048
-                                            </span>
-                                        ) : (
-                                            <span className="inline-flex items-center gap-2 text-amber-500 text-[10px] font-black tracking-widest uppercase">
-                                                <AlertCircle size={16} />
-                                                NO KEY
-                                            </span>
-                                        )}
-                                    </td>
-                                    <td className="px-6 py-5 whitespace-nowrap">
-                                        <span className="text-[11px] font-black text-slate-400 uppercase">
+                                    )
+                                },
+                                {
+                                    header: 'Key State',
+                                    accessor: (doc: any) => doc.hasKeys ? (
+                                        <span className="inline-flex items-center gap-1.5 text-slate-500 dark:text-slate-400 text-[10px] font-black tracking-widest uppercase">
+                                            <ShieldCheck size={14} className="text-emerald-500" />
+                                            RSA-2048
+                                        </span>
+                                    ) : (
+                                        <span className="inline-flex items-center gap-1.5 text-amber-500 text-[10px] font-black tracking-widest uppercase">
+                                            <AlertCircle size={14} />
+                                            No Key
+                                        </span>
+                                    )
+                                },
+                                {
+                                    header: 'Added',
+                                    accessor: (doc: any) => (
+                                        <span className="text-sm font-semibold text-slate-500 dark:text-slate-400">
                                             {format(new Date(doc.createdAt), 'MMM dd, yyyy')}
                                         </span>
-                                    </td>
-                                    <td className="px-6 py-5 text-right">
+                                    )
+                                },
+                                {
+                                    header: 'Actions',
+                                    className: 'text-right',
+                                    accessor: (doc: any) => (
                                         <div className="flex justify-end gap-2">
                                             <Button
                                                 variant="ghost"
@@ -307,32 +321,14 @@ export default function DoctorListPage() {
                                                 )}
                                             </Button>
                                         </div>
-                                    </td>
-                                </tr>
-                            ))}
-                        </tbody>
-                    </table>
-                </div>
-
-                {/* Mobile Card View */}
-                <div className="md:hidden p-4 space-y-4">
-                    {loading ? (
-                        Array.from({ length: 3 }).map((_, i) => (
-                            <div key={i} className="h-48 bg-slate-50 dark:bg-slate-800 rounded-3xl animate-pulse" />
-                        ))
-                    ) : doctors.length === 0 ? (
-                        <div className="py-20 text-center">
-                            <SearchX className="w-10 h-10 text-slate-300 mx-auto mb-4" />
-                            <p className="text-[10px] font-black uppercase text-slate-400 tracking-widest">No Results</p>
-                        </div>
-                    ) : (
-                        <div className="grid grid-cols-1 gap-4">
-                            {doctors.map((doc: any) => (
+                                    )
+                                }
+                            ]}
+                            renderMobileCard={(doc: any) => (
                                 <motion.div
-                                    key={doc.userId}
                                     initial={{ opacity: 0, scale: 0.95 }}
                                     animate={{ opacity: 1, scale: 1 }}
-                                    className="p-6 bg-white dark:bg-slate-900 rounded-[2.5rem] border border-slate-100 dark:border-slate-800 shadow-sm space-y-5"
+                                    className="p-6 space-y-5"
                                 >
                                     <div className="flex items-start justify-between">
                                         <div className="flex items-center gap-4">
@@ -340,8 +336,8 @@ export default function DoctorListPage() {
                                                 {doc.firstName?.[0]}{doc.lastName?.[0]}
                                             </div>
                                             <div className="min-w-0">
-                                                <h4 className="font-black text-slate-900 dark:text-white uppercase italic tracking-tight truncate">Dr. {doc.firstName} {doc.lastName}</h4>
-                                                <p className="text-[9px] font-black text-primary uppercase tracking-[0.2em]">{doc.department}</p>
+                                                <H3 className="font-black text-slate-900 dark:text-white uppercase italic tracking-tight truncate">Dr. {doc.firstName} {doc.lastName}</H3>
+                                                <Text variant="label" className="text-[9px] font-black text-primary uppercase tracking-[0.2em]">{doc.department}</Text>
                                             </div>
                                         </div>
                                         {doc.isActive ? (
@@ -353,14 +349,14 @@ export default function DoctorListPage() {
 
                                     <div className="grid grid-cols-2 gap-3">
                                         <div className="p-3 bg-slate-50 dark:bg-slate-800 rounded-2xl border border-slate-100 dark:border-slate-700">
-                                            <p className="text-[8px] font-black text-slate-400 uppercase tracking-widest mb-1">License No.</p>
-                                            <p className="text-[11px] font-black text-slate-900 dark:text-white">{doc.nmcLicense}</p>
+                                            <Text variant="label" className="text-[8px] font-black text-slate-400 uppercase tracking-widest mb-1">License No.</Text>
+                                            <Text variant="body" className="text-[11px] font-black text-slate-900 dark:text-white">{doc.nmcLicense}</Text>
                                         </div>
                                         <div className="p-3 bg-slate-50 dark:bg-slate-800 rounded-2xl border border-slate-100 dark:border-slate-700">
-                                            <p className="text-[8px] font-black text-slate-400 uppercase tracking-widest mb-1">Key State</p>
-                                            <p className={`text-[11px] font-black uppercase ${doc.hasKeys ? 'text-emerald-500' : 'text-amber-500'}`}>
+                                            <Text variant="label" className="text-[8px] font-black text-slate-400 uppercase tracking-widest mb-1">Key State</Text>
+                                            <Text variant="body" className={`text-[11px] font-black uppercase ${doc.hasKeys ? 'text-emerald-500' : 'text-amber-500'}`}>
                                                 {doc.hasKeys ? 'Active RSA' : 'No Key'}
-                                            </p>
+                                            </Text>
                                         </div>
                                     </div>
 
@@ -381,51 +377,46 @@ export default function DoctorListPage() {
                                             onClick={() => handleToggleStatus(doc)}
                                             disabled={togglingId === doc.userId}
                                             className={`w-12 h-12 rounded-xl flex items-center justify-center border transition-all
-                                                ${doc.isActive 
-                                                    ? 'bg-white dark:bg-slate-900 text-rose-500 border-rose-100 dark:border-rose-800' 
+                                                ${doc.isActive
+                                                    ? 'bg-white dark:bg-slate-900 text-rose-500 border-rose-100 dark:border-rose-800'
                                                     : 'bg-emerald-600 text-white border-emerald-500'}`}
                                         >
                                             {togglingId === doc.userId ? <RefreshCw size={16} className="animate-spin" /> : doc.isActive ? <UserX size={18} /> : <UserCheck size={18} />}
                                         </button>
                                     </div>
                                 </motion.div>
-                            ))}
-                        </div>
-                    )}
-                </div>
+                            )}
+                        />
 
-                {/* Footer / Pagination */}
-                <div className="px-6 py-4 bg-slate-50/50 border-t border-slate-100 flex items-center justify-between">
-                    <div className="text-[10px] text-slate-500 font-bold uppercase tracking-widest">
-                        Showing {(page - 1) * pageSize + 1} to {Math.min(page * pageSize, totalCount)} of {totalCount} entries
+                        {/* Pagination */}
+                        <div className="px-6 py-4 flex flex-col sm:row items-center justify-between gap-4">
+                            <Text variant="label" className="text-xs text-gray-400 font-bold uppercase tracking-widest">
+                                Showing {(page - 1) * pageSize + 1} to {Math.min(page * pageSize, totalCount)} of {totalCount} entries
+                            </Text>
+                            <Stack direction="row" spacing="sm">
+                                <Button
+                                    disabled={page <= 1}
+                                    variant="ghost"
+                                    size="sm"
+                                    onClick={() => setPage(page - 1)}
+                                    className="px-4 h-10 border border-gray-100 dark:border-slate-800 rounded-xl disabled:opacity-50 shadow-sm"
+                                >
+                                    Previous
+                                </Button>
+                                <Button
+                                    disabled={page >= totalPages}
+                                    variant="ghost"
+                                    size="sm"
+                                    onClick={() => setPage(page + 1)}
+                                    className="px-4 h-10 border border-gray-100 dark:border-slate-800 rounded-xl disabled:opacity-50 shadow-sm"
+                                >
+                                    Next
+                                </Button>
+                            </Stack>
+                        </div>
                     </div>
-                    {totalPages > 1 && (
-                        <div className="flex items-center gap-1">
-                            <Button
-                                variant="outline"
-                                className="h-8 w-8 p-0 rounded border-slate-200 bg-white text-slate-500 hover:bg-slate-50 disabled:opacity-40"
-                                onClick={() => setPage(p => Math.max(1, p - 1))}
-                                disabled={page === 1}
-                            >
-                                <ChevronLeft size={16} />
-                            </Button>
-
-                            <div className="flex gap-1 text-[11px] font-bold text-slate-400 px-2">
-                                {page} / {totalPages}
-                            </div>
-
-                            <Button
-                                variant="outline"
-                                className="h-8 w-8 p-0 rounded border-slate-200 bg-white text-slate-500 hover:bg-slate-50 disabled:opacity-40"
-                                onClick={() => setPage(p => Math.min(totalPages, p + 1))}
-                                disabled={page === totalPages}
-                            >
-                                <ChevronRight size={16} />
-                            </Button>
-                        </div>
-                    )}
-                </div>
-            </div>
+                </Stack>
+            </Section>
 
             <RegenerateKeysModal
                 isOpen={isRotateModalOpen}
@@ -433,13 +424,17 @@ export default function DoctorListPage() {
                 onConfirm={handleConfirmRotation}
                 doctorName={selectedDoctor?.name || 'Doctor'}
             />
-
             <EditDoctorModal
                 isOpen={isEditModalOpen}
                 onClose={() => setIsEditModalOpen(false)}
                 doctor={editingDoctor}
                 onSave={handleSaveDoctor}
             />
-        </div>
+            <InviteDoctorModal
+                isOpen={isInviteModalOpen}
+                onClose={() => setIsInviteModalOpen(false)}
+                onSuccess={fetchDoctors}
+            />
+        </PageLayout>
     );
 }

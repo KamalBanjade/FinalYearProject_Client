@@ -58,5 +58,19 @@ export const adminApi = {
     updateUser: async (id: string, data: any) => {
         const response = await axiosInstance.put(`admin/users/${id}`, data);
         return response.data;
-    }
+    },
+
+    uploadProfilePicture: async (file: File) => {
+        const formData = new FormData();
+        formData.append('file', file);
+        const response = await axiosInstance.post('admin/profile/picture', formData, {
+            headers: { 'Content-Type': 'multipart/form-data' }
+        });
+        return response.data;
+    },
+
+    deleteProfilePicture: async () => {
+        const response = await axiosInstance.delete('admin/profile/picture');
+        return response.data;
+    },
 };

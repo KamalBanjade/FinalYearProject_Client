@@ -3,25 +3,18 @@
 import React, { useEffect, useState } from 'react';
 import { doctorApi } from '@/lib/api/doctor';
 import { medicalRecordsApi } from '@/lib/api/medicalRecords';
-import { Button } from '@/components/ui/Button';
-import { Input } from '@/components/ui/Input';
 import {
     FileText,
     Search,
-    SearchX,
-    Calendar,
-    User,
     Download,
     ShieldCheck,
-    History,
     ExternalLink,
     Loader2,
-    Filter
 } from 'lucide-react';
 import { format } from 'date-fns';
 import toast from 'react-hot-toast';
-import axiosInstance from '@/lib/utils/axios';
 import { FullScreenRecordModal } from '@/components/ui/FullScreenRecordModal';
+import { ResponsiveTable } from '@/components/data-display/ResponsiveTable';
 
 export default function CertifiedRecordsPage() {
     const [records, setRecords] = useState<any[]>([]);
@@ -37,7 +30,6 @@ export default function CertifiedRecordsPage() {
             const response = await doctorApi.getCertifiedRecords();
             setRecords(response.data);
         } catch (error) {
-            console.error('Failed to fetch certified records:', error);
             toast.error('Failed to load clinical certification history');
         } finally {
             setLoading(false);
@@ -53,9 +45,7 @@ export default function CertifiedRecordsPage() {
             record.patientName.toLowerCase().includes(searchTerm.toLowerCase()) ||
             record.description?.toLowerCase().includes(searchTerm.toLowerCase()) ||
             record.originalFileName.toLowerCase().includes(searchTerm.toLowerCase());
-
         const matchesType = recordType === '' || record.recordType === recordType;
-
         return matchesSearch && matchesType;
     });
 
@@ -73,30 +63,30 @@ export default function CertifiedRecordsPage() {
             const url = await medicalRecordsApi.previewRecordForDoctor(recordId);
             if (url) setPreviewUrl(url);
         } catch (error) {
-            // Error toast handled by API
+            // handled by API
         } finally {
             setLoadingRecordId(null);
         }
     };
 
     return (
-        <div className="max-w-[1200px] mx-auto px-6 py-8 space-y-8">
-
-            {/* Subtle Filters */}
-            <div className="flex flex-col md:flex-row gap-4">
-                <div className="flex-1 relative">
-                    <Search className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-400" size={14} />
-                    <Input
+        <div className="max-w-[1200px] mx-auto px-6 py-8 space-y-6">
+            {/* Filters */}
+            <div className="flex flex-col md:flex-row gap-4 bg-white/50 dark:bg-slate-900/50 backdrop-blur-md p-4 rounded-3xl border border-slate-100 dark:border-slate-800 shadow-sm">
+                <div className="relative flex-1 group">
+                    <Search className="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400 group-focus-within:text-primary transition-colors" />
+                    <input
+                        type="text"
                         placeholder="Search by patient name or file..."
-                        className="pl-10 h-10 bg-white dark:bg-slate-900 border-slate-200 dark:border-slate-800 focus:ring-primary/10 rounded-xl text-xs font-medium transition-all"
                         value={searchTerm}
                         onChange={(e) => setSearchTerm(e.target.value)}
+                        className="w-full pl-12 pr-4 py-3 bg-white dark:bg-slate-900 border border-slate-100 dark:border-slate-800 rounded-2xl text-sm font-bold focus:ring-4 focus:ring-primary/10 focus:border-primary outline-none transition-all dark:text-white"
                     />
                 </div>
                 <select
                     value={recordType}
                     onChange={(e) => setRecordType(e.target.value)}
-                    className="h-10 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-xl px-4 text-xs font-bold text-slate-600 dark:text-slate-300 outline-none focus:border-indigo-500 transition-all cursor-pointer min-w-[160px]"
+                    className="h-12 bg-white dark:bg-slate-900 border border-slate-100 dark:border-slate-800 rounded-2xl px-4 text-xs font-bold text-slate-600 dark:text-slate-400 outline-none focus:border-primary transition-all cursor-pointer min-w-[160px]"
                 >
                     <option value="">All Categories</option>
                     <option value="Lab Report">Lab Reports</option>
@@ -107,100 +97,116 @@ export default function CertifiedRecordsPage() {
                 </select>
             </div>
 
-            {/* Registry Table */}
-            <div className="bg-white dark:bg-slate-900 rounded-[2rem] border border-slate-200/60 dark:border-slate-800 shadow-premium dark:shadow-none overflow-hidden">
-                <div className="overflow-x-auto">
-                    <table className="w-full text-left border-collapse">
-                        <thead>
-                            <tr className="bg-slate-50/80 dark:bg-slate-800/30 border-b border-slate-100 dark:border-slate-800">
-                                <th className="px-6 py-4 text-[11px] font-black uppercase tracking-[0.1em] text-slate-400">Document</th>
-                                <th className="px-6 py-4 text-[11px] font-black uppercase tracking-[0.1em] text-slate-400">Patient Identity</th>
-                                <th className="px-6 py-4 text-[11px] font-black uppercase tracking-[0.1em] text-slate-400">Certification</th>
-                                <th className="px-6 py-4 text-[11px] font-black uppercase tracking-[0.1em] text-slate-400 text-right">Actions</th>
-                            </tr>
-                        </thead>
-                        <tbody className="divide-y divide-slate-50 dark:divide-slate-800">
-                            {loading ? (
-                                Array.from({ length: 4 }).map((_, i) => (
-                                    <tr key={i} className="animate-pulse">
-                                        <td colSpan={4} className="px-6 py-5">
-                                            <div className="h-10 bg-slate-50 dark:bg-slate-800/50 rounded-lg w-full"></div>
-                                        </td>
-                                    </tr>
-                                ))
-                            ) : filteredRecords.length === 0 ? (
-                                <tr>
-                                    <td colSpan={4} className="px-6 py-16 text-center">
-                                        <p className="text-xs font-bold text-slate-400 uppercase tracking-widest">No entries found</p>
-                                    </td>
-                                </tr>
-                            ) : filteredRecords.map((record) => (
-                                <tr key={record.id} className="hover:bg-slate-50/50 dark:hover:bg-slate-800/20 transition-colors">
-                                    <td className="px-6 py-4">
-                                        <div className="flex items-center gap-3">
-                                            <div className="w-8 h-8 rounded-lg bg-primary/10 dark:bg-slate-800 text-primary dark:text-primary-light flex items-center justify-center border border-transparent dark:border-slate-700">
-                                                <FileText size={16} />
-                                            </div>
-                                            <div className="flex flex-col">
-                                                <span className="text-sm font-black text-slate-900 dark:text-white leading-tight">
-                                                    {record.originalFileName}
-                                                </span>
-                                                <span className="text-[10px] font-bold text-slate-400 uppercase tracking-widest mt-1">
-                                                    {record.recordType} • {record.fileSizeFormatted}
-                                                </span>
-                                            </div>
-                                        </div>
-                                    </td>
-                                    <td className="px-6 py-4">
-                                        <div className="flex flex-col">
-                                            <span className="text-sm font-bold text-slate-700 dark:text-slate-300 capitalize leading-tight">{record.patientName}</span>
-                                            <span className="text-[10px] font-black text-slate-400 dark:text-slate-500 uppercase tracking-widest mt-0.5">ID: {record.patientId.substring(0, 8)}</span>
-                                        </div>
-                                    </td>
-                                    <td className="px-6 py-4">
-                                        <div className="flex items-center gap-2">
-                                            <div className="flex flex-col">
-                                                <span className="text-xs font-bold text-slate-600 dark:text-slate-400 uppercase tracking-tight">
-                                                    {format(new Date(record.certifiedAt), 'MMM dd, yyyy')}
-                                                </span>
-                                                <div className="flex items-center gap-1 mt-0.5">
-                                                    <ShieldCheck size={10} className="text-emerald-500" />
-                                                    <span className="text-[8px] font-black text-emerald-600 uppercase tracking-widest">Verified</span>
-                                                </div>
-                                            </div>
-                                        </div>
-                                    </td>
-                                    <td className="px-6 py-4 text-right">
-                                        <div className="flex justify-end gap-2">
-                                            <button
-                                                onClick={() => handlePreview(record.id)}
-                                                disabled={loadingRecordId === record.id}
-                                                className="px-4 py-2 rounded-xl bg-primary text-white hover:bg-primary/90 text-xs font-black uppercase tracking-widest transition-all shadow-lg shadow-primary/10 flex items-center gap-2 disabled:opacity-50"
-                                            >
-                                                {loadingRecordId === record.id ? (
-                                                    <Loader2 size={12} className="animate-spin" />
-                                                ) : (
-                                                    <ExternalLink size={12} />
-                                                )}
-                                                {loadingRecordId === record.id ? 'Loading' : 'View'}
-                                            </button>
-                                            <button
-                                                onClick={() => handleDownload(record.id, record.originalFileName)}
-                                                className="px-4 py-2 rounded-xl bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-slate-600 dark:text-slate-400 hover:text-primary hover:border-indigo-100 dark:hover:border-indigo-900 text-[10px] font-black uppercase tracking-widest transition-all shadow-sm flex items-center gap-2"
-                                            >
-                                                <Download size={12} />
-                                                File
-                                            </button>
-                                        </div>
-                                    </td>
-                                </tr>
-                            ))}
-                        </tbody>
-                    </table>
-                </div>
-            </div>
+            {/* Table */}
+            <ResponsiveTable
+                loading={loading}
+                data={filteredRecords}
+                keyExtractor={(r) => r.id}
+                emptyState={
+                    <div className="px-8 py-16 text-center">
+                        <p className="text-sm font-black uppercase tracking-widest text-slate-400 dark:text-slate-500">No certified records found</p>
+                    </div>
+                }
+                columns={[
+                    {
+                        header: 'Document',
+                        accessor: (r) => (
+                            <div className="flex items-center gap-3">
+                                <div className="w-9 h-9 rounded-xl bg-primary/10 dark:bg-slate-800 text-primary flex items-center justify-center flex-shrink-0">
+                                    <FileText size={15} />
+                                </div>
+                                <div>
+                                    <p className="text-sm font-bold text-slate-700 dark:text-slate-200">{r.originalFileName}</p>
+                                    <p className="text-xs font-semibold text-slate-400 dark:text-slate-500 uppercase tracking-wide">{r.recordType} · {r.fileSizeFormatted}</p>
+                                </div>
+                            </div>
+                        )
+                    },
+                    {
+                        header: 'Patient',
+                        accessor: (r) => (
+                            <div>
+                                <p className="text-sm font-bold text-slate-700 dark:text-slate-200 capitalize">{r.patientName}</p>
+                                <p className="text-xs font-semibold text-slate-400 dark:text-slate-500">ID: {r.patientId.substring(0, 8)}</p>
+                            </div>
+                        )
+                    },
+                    {
+                        header: 'Certified',
+                        accessor: (r) => (
+                            <div>
+                                <p className="text-sm font-semibold text-slate-500 dark:text-slate-400">{format(new Date(r.certifiedAt), 'MMM dd, yyyy')}</p>
+                                <div className="flex items-center gap-1 mt-0.5">
+                                    <ShieldCheck size={10} className="text-emerald-500" />
+                                    <span className="text-[10px] font-black uppercase tracking-widest text-emerald-600 dark:text-emerald-400">Verified</span>
+                                </div>
+                            </div>
+                        )
+                    },
+                    {
+                        header: 'Actions',
+                        className: 'text-right',
+                        accessor: (r) => (
+                            <div className="flex justify-end gap-2">
+                                <button
+                                    onClick={() => handlePreview(r.id)}
+                                    disabled={loadingRecordId === r.id}
+                                    className="inline-flex items-center gap-1.5 px-3 py-2 bg-primary text-white hover:bg-primary/90 rounded-xl text-[10px] font-black uppercase tracking-widest transition-all shadow-lg shadow-primary/10 disabled:opacity-50 active:scale-95"
+                                >
+                                    {loadingRecordId === r.id ? <Loader2 size={11} className="animate-spin" /> : <ExternalLink size={11} />}
+                                    {loadingRecordId === r.id ? 'Loading' : 'View'}
+                                </button>
+                                <button
+                                    onClick={() => handleDownload(r.id, r.originalFileName)}
+                                    className="inline-flex items-center gap-1.5 p-2 text-slate-400 dark:text-slate-500 hover:text-primary hover:bg-slate-50 dark:hover:bg-slate-800 rounded-xl transition-all active:scale-95"
+                                >
+                                    <Download size={15} />
+                                </button>
+                            </div>
+                        )
+                    }
+                ]}
+                renderMobileCard={(r) => (
+                    <div className="p-5 space-y-4">
+                        <div className="flex items-center gap-3">
+                            <div className="w-10 h-10 bg-primary/10 text-primary rounded-xl flex items-center justify-center flex-shrink-0">
+                                <FileText size={16} />
+                            </div>
+                            <div className="flex-1 min-w-0">
+                                <p className="text-sm font-bold text-slate-700 dark:text-slate-200 truncate">{r.originalFileName}</p>
+                                <p className="text-xs font-semibold text-slate-400 dark:text-slate-500 uppercase tracking-wide">{r.recordType}</p>
+                            </div>
+                        </div>
+                        <div className="grid grid-cols-2 gap-3">
+                            <div className="p-3 bg-slate-50 dark:bg-slate-800/50 rounded-2xl border border-slate-100 dark:border-slate-700">
+                                <p className="text-[8px] font-black text-slate-400 uppercase tracking-widest mb-1">Patient</p>
+                                <p className="text-xs font-bold text-slate-700 dark:text-slate-200 capitalize truncate">{r.patientName}</p>
+                            </div>
+                            <div className="p-3 bg-slate-50 dark:bg-slate-800/50 rounded-2xl border border-slate-100 dark:border-slate-700">
+                                <p className="text-[8px] font-black text-slate-400 uppercase tracking-widest mb-1">Certified</p>
+                                <p className="text-xs font-bold text-slate-700 dark:text-slate-200">{format(new Date(r.certifiedAt), 'MMM dd, yyyy')}</p>
+                            </div>
+                        </div>
+                        <div className="flex gap-2">
+                            <button
+                                onClick={() => handlePreview(r.id)}
+                                disabled={loadingRecordId === r.id}
+                                className="flex-1 h-11 rounded-xl bg-primary text-white font-black text-[10px] uppercase tracking-widest shadow-lg shadow-primary/20 flex items-center justify-center gap-2 disabled:opacity-50"
+                            >
+                                {loadingRecordId === r.id ? <Loader2 size={12} className="animate-spin" /> : <ExternalLink size={12} />}
+                                {loadingRecordId === r.id ? 'Loading...' : 'View Record'}
+                            </button>
+                            <button
+                                onClick={() => handleDownload(r.id, r.originalFileName)}
+                                className="w-11 h-11 rounded-xl bg-slate-50 dark:bg-slate-800 border border-slate-100 dark:border-slate-700 flex items-center justify-center text-slate-400 hover:text-primary transition-colors"
+                            >
+                                <Download size={16} />
+                            </button>
+                        </div>
+                    </div>
+                )}
+            />
 
-            {/* Immersive Preview */}
             {previewUrl && (
                 <FullScreenRecordModal
                     pdfUrl={previewUrl}

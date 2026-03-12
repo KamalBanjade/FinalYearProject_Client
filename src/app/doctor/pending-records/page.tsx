@@ -5,15 +5,14 @@ import { medicalRecordsApi, MedicalRecordResponseDTO } from '@/lib/api/medicalRe
 import { DoctorReviewModal } from '@/components/doctor/DoctorReviewModal';
 import {
     ClipboardDocumentCheckIcon,
-    ClockIcon,
     MagnifyingGlassIcon,
     FunnelIcon,
-    ChevronRightIcon,
     DocumentTextIcon,
     UserIcon
 } from '@heroicons/react/24/outline';
+import { ChevronRight } from 'lucide-react';
 import { useQuery } from '@tanstack/react-query';
-import toast from 'react-hot-toast';
+import { ResponsiveTable } from '@/components/data-display/ResponsiveTable';
 
 function PendingRecordsContent() {
     const [selectedRecord, setSelectedRecord] = useState<MedicalRecordResponseDTO | null>(null);
@@ -37,107 +36,130 @@ function PendingRecordsContent() {
     );
 
     return (
-        <div className="max-w-7xl mx-auto px-4 md:px-8 pt-2 pb-12 space-y-10 animate-in fade-in duration-500">
-            {/* Unified Toolbar */}
-            <div className="flex flex-col lg:flex-row items-center gap-4 bg-white dark:bg-slate-900 p-4 rounded-[2rem] border border-slate-200/60 dark:border-slate-800 shadow-premium dark:shadow-none">
+        <div className="max-w-7xl mx-auto px-4 md:px-8 pt-2 pb-12 space-y-6 animate-in fade-in duration-500">
+            {/* Toolbar */}
+            <div className="flex flex-col lg:flex-row items-center gap-4 bg-white/50 dark:bg-slate-900/50 backdrop-blur-md p-4 rounded-3xl border border-slate-100 dark:border-slate-800 shadow-sm">
                 <div className="relative flex-1 group w-full">
-                    <MagnifyingGlassIcon className="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-4 text-slate-400 group-focus-within:text-primary transition-colors" />
+                    <MagnifyingGlassIcon className="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400 group-focus-within:text-primary transition-colors" />
                     <input
                         type="text"
                         placeholder="Search records or patients..."
                         value={searchQuery}
                         onChange={(e) => setSearchQuery(e.target.value)}
-                        className="w-full pl-12 pr-4 py-3 bg-white dark:bg-slate-900 border border-slate-200/60 dark:border-slate-800 rounded-2xl text-xs font-bold focus:ring-4 focus:ring-primary/10 focus:border-primary outline-none transition-all dark:text-white"
+                        className="w-full pl-12 pr-4 py-3 bg-white dark:bg-slate-900 border border-slate-100 dark:border-slate-800 rounded-2xl text-sm font-bold focus:ring-4 focus:ring-primary/10 focus:border-primary outline-none transition-all dark:text-white"
                     />
                 </div>
-
                 <div className="flex items-center gap-3 w-full lg:w-auto">
                     <div className="px-4 py-2 bg-slate-50 dark:bg-slate-800 rounded-xl text-[10px] font-black uppercase text-slate-400 dark:text-slate-500 tracking-widest border border-slate-100 dark:border-slate-700">
                         {filteredRecords.length} Pending
                     </div>
-                    <button className="p-3 bg-white dark:bg-slate-900 border border-slate-100 dark:border-slate-800 rounded-2xl text-slate-600 dark:text-slate-400 hover:text-primary transition-all shadow-sm active:scale-95">
-                        <FunnelIcon className="w-5 h-5" />
-                    </button>
                 </div>
             </div>
 
-            {/* List Area */}
-            <div className="bg-white dark:bg-slate-900 rounded-[2.5rem] border border-slate-200/60 dark:border-slate-800 shadow-premium dark:shadow-none overflow-hidden">
-                {
-                    isLoading ? (
-                        <div className="p-20 flex flex-col items-center justify-center text-slate-400" >
-                            <div className="w-12 h-12 border-4 border-indigo-500/20 border-t-indigo-500 rounded-full animate-spin mb-4"></div>
-                            <p className="font-bold text-sm uppercase tracking-widest animate-pulse">Scanning Secure Vault...</p>
+            {/* Table */}
+            <ResponsiveTable
+                loading={isLoading}
+                data={filteredRecords}
+                keyExtractor={(r) => r.id}
+                emptyState={
+                    <div className="px-8 py-20 flex flex-col items-center gap-4">
+                        <div className="w-16 h-16 bg-slate-50 dark:bg-slate-800/60 rounded-3xl flex items-center justify-center">
+                            <ClipboardDocumentCheckIcon className="w-8 h-8 text-slate-300 dark:text-slate-600" />
                         </div>
-                    ) : filteredRecords.length === 0 ? (
-                        <div className="p-20 text-center flex flex-col items-center justify-center">
-                            <div className="w-20 h-20 bg-slate-50 rounded-full flex items-center justify-center mb-6">
-                                <ClipboardDocumentCheckIcon className="w-10 h-10 text-slate-200" />
-                            </div>
-                            <h3 className="text-xl font-bold text-slate-900 mb-1">Queue is Clear</h3>
-                            <p className="text-slate-500 max-w-xs mx-auto">All submitted medical records have been certified or reviewed.</p>
-                        </div>
-                    ) : (
-                        <div className="overflow-x-auto">
-                            <table className="w-full text-left border-separate border-spacing-0">
-                                <thead>
-                                    <tr className="bg-slate-50/80 dark:bg-slate-800/30 border-b border-slate-100 dark:border-slate-800">
-                                        <th className="px-8 py-5 text-[11px] font-black text-slate-400 uppercase tracking-[0.1em]">Document Name</th>
-                                        <th className="px-8 py-5 text-[11px] font-black text-slate-400 uppercase tracking-[0.1em]">Patient</th>
-                                        <th className="px-8 py-5 text-[11px] font-black text-slate-400 uppercase tracking-[0.1em]">Type</th>
-                                        <th className="px-8 py-5 text-[11px] font-black text-slate-400 uppercase tracking-[0.1em]">Date Received</th>
-                                        <th className="px-8 py-5 text-[11px] font-black text-slate-400 uppercase tracking-[0.1em] text-right">Action</th>
-                                    </tr>
-                                </thead>
-                                <tbody className="divide-y divide-slate-50 dark:divide-slate-800">
-                                    {filteredRecords.map((record) => (
-                                        <tr key={record.id} className="group hover:bg-slate-50/50 dark:hover:bg-slate-800/20 transition-colors">
-                                            <td className="px-8 py-5">
-                                                <div className="flex items-center space-x-4">
-                                                    <div className="w-12 h-12 bg-primary/10 text-primary rounded-2xl flex items-center justify-center group-hover:bg-primary group-hover:text-white transition-all">
-                                                        <DocumentTextIcon className="w-6 h-6" />
-                                                    </div>
-                                                    <div>
-                                                        <p className="font-bold text-slate-900 group-hover:text-primary transition-colors">{record.originalFileName}</p>
-                                                        <p className="text-xs text-slate-500 mt-0.5">Size: {record.fileSizeFormatted}</p>
-                                                    </div>
-                                                </div>
-                                            </td>
-                                            <td className="px-8 py-5">
-                                                <div className="flex items-center space-x-2">
-                                                    <div className="w-6 h-6 bg-slate-100 dark:bg-slate-800 rounded-full flex items-center justify-center">
-                                                        <UserIcon className="w-3.5 h-3.5 text-slate-400 dark:text-slate-500" />
-                                                    </div>
-                                                    <span className="font-bold text-slate-700 dark:text-slate-200 text-sm">{record.patientName || 'Anonymous Patient'}</span>
-                                                </div>
-                                            </td>
-                                            <td className="px-8 py-5">
-                                                <span className="px-3 py-1 bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-400 text-[10px] font-bold rounded-full uppercase tracking-wider border border-transparent dark:border-slate-700">
-                                                    {record.recordType || 'Other'}
-                                                </span>
-                                            </td>
-                                            <td className="px-8 py-5">
-                                                <p className="text-sm font-medium text-slate-600 dark:text-slate-400">{new Date(record.uploadedAt).toLocaleDateString()}</p>
-                                            </td>
-                                            <td className="px-8 py-5 text-right">
-                                                <button
-                                                    onClick={() => setSelectedRecord(record)}
-                                                    className="inline-flex items-center space-x-2 px-5 py-2.5 bg-primary text-white hover:bg-primary/90 rounded-xl text-xs font-bold transition-all shadow-lg shadow-primary/10 active:scale-95"
-                                                >
-                                                    <span>Review</span>
-                                                    <ChevronRightIcon className="w-3 h-3" />
-                                                </button>
-                                            </td>
-                                        </tr>
-                                    ))}
-                                </tbody>
-                            </table>
-                        </div>
-                    )
+                        <p className="text-sm font-black uppercase tracking-widest text-slate-400 dark:text-slate-500">Queue is Clear</p>
+                        <p className="text-xs font-semibold text-slate-400 dark:text-slate-500">All submitted records have been reviewed.</p>
+                    </div>
                 }
-            </div>
+                columns={[
+                    {
+                        header: 'Document',
+                        accessor: (r) => (
+                            <div className="flex items-center gap-3">
+                                <div className="w-9 h-9 bg-primary/10 dark:bg-primary/5 text-primary rounded-xl flex items-center justify-center flex-shrink-0">
+                                    <DocumentTextIcon className="w-4 h-4" />
+                                </div>
+                                <div>
+                                    <p className="text-sm font-bold text-slate-700 dark:text-slate-200">{r.originalFileName}</p>
+                                    <p className="text-xs font-semibold text-slate-400 dark:text-slate-500">{r.fileSizeFormatted}</p>
+                                </div>
+                            </div>
+                        )
+                    },
+                    {
+                        header: 'Patient',
+                        accessor: (r) => (
+                            <div className="flex items-center gap-2">
+                                <div className="w-7 h-7 bg-slate-100 dark:bg-slate-800 rounded-lg flex items-center justify-center flex-shrink-0">
+                                    <UserIcon className="w-3.5 h-3.5 text-slate-400" />
+                                </div>
+                                <span className="text-sm font-bold text-slate-700 dark:text-slate-200">{r.patientName || 'Anonymous'}</span>
+                            </div>
+                        )
+                    },
+                    {
+                        header: 'Type',
+                        accessor: (r) => (
+                            <span className="inline-flex px-2 py-0.5 rounded text-[10px] font-black uppercase tracking-widest bg-slate-100 dark:bg-slate-800 text-slate-500 dark:text-slate-400">
+                                {r.recordType || 'Other'}
+                            </span>
+                        )
+                    },
+                    {
+                        header: 'Received',
+                        accessor: (r) => (
+                            <span className="text-sm font-semibold text-slate-500 dark:text-slate-400">
+                                {new Date(r.uploadedAt).toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' })}
+                            </span>
+                        )
+                    },
+                    {
+                        header: 'Action',
+                        className: 'text-right',
+                        accessor: (r) => (
+                            <div className="flex justify-end">
+                                <button
+                                    onClick={() => setSelectedRecord(r)}
+                                    className="inline-flex items-center gap-1.5 px-4 py-2 bg-primary text-white hover:bg-primary/90 rounded-xl text-xs font-black uppercase tracking-widest transition-all shadow-lg shadow-primary/10 active:scale-95"
+                                >
+                                    Review
+                                    <ChevronRight className="w-3 h-3" />
+                                </button>
+                            </div>
+                        )
+                    }
+                ]}
+                renderMobileCard={(r) => (
+                    <div className="p-5 space-y-4">
+                        <div className="flex items-center gap-3">
+                            <div className="w-10 h-10 bg-primary/10 text-primary rounded-xl flex items-center justify-center flex-shrink-0">
+                                <DocumentTextIcon className="w-5 h-5" />
+                            </div>
+                            <div className="flex-1 min-w-0">
+                                <p className="text-sm font-bold text-slate-700 dark:text-slate-200 truncate">{r.originalFileName}</p>
+                                <p className="text-xs font-semibold text-slate-400 dark:text-slate-500">{r.fileSizeFormatted}</p>
+                            </div>
+                        </div>
+                        <div className="grid grid-cols-2 gap-3">
+                            <div className="p-3 bg-slate-50 dark:bg-slate-800/50 rounded-2xl border border-slate-100 dark:border-slate-700">
+                                <p className="text-[8px] font-black text-slate-400 uppercase tracking-widest mb-1">Patient</p>
+                                <p className="text-xs font-bold text-slate-700 dark:text-slate-200">{r.patientName || 'Anonymous'}</p>
+                            </div>
+                            <div className="p-3 bg-slate-50 dark:bg-slate-800/50 rounded-2xl border border-slate-100 dark:border-slate-700">
+                                <p className="text-[8px] font-black text-slate-400 uppercase tracking-widest mb-1">Received</p>
+                                <p className="text-xs font-bold text-slate-700 dark:text-slate-200">{new Date(r.uploadedAt).toLocaleDateString()}</p>
+                            </div>
+                        </div>
+                        <button
+                            onClick={() => setSelectedRecord(r)}
+                            className="w-full h-11 rounded-xl bg-primary text-white font-black text-[10px] uppercase tracking-widest shadow-lg shadow-primary/20 flex items-center justify-center gap-2"
+                        >
+                            Review Record
+                            <ChevronRight className="w-3.5 h-3.5" />
+                        </button>
+                    </div>
+                )}
+            />
 
-            {/* Review Modal */}
             {selectedRecord && (
                 <DoctorReviewModal
                     record={selectedRecord}
@@ -152,7 +174,7 @@ function PendingRecordsContent() {
 export default function PendingRecordsPage() {
     return (
         <Suspense fallback={
-            <div className="p-20 flex flex-col items-center justify-center text-slate-400" >
+            <div className="p-20 flex flex-col items-center justify-center text-slate-400">
                 <div className="w-12 h-12 border-4 border-indigo-500/20 border-t-indigo-500 rounded-full animate-spin mb-4"></div>
                 <p className="font-bold text-sm uppercase tracking-widest animate-pulse">Hydrating Queue...</p>
             </div>

@@ -22,6 +22,8 @@ const publicRoutes = [
     '/emergency',
     '/access',
     '/unauthorized',
+    '/google/callback',
+    '/auth/google/callback',
 ];
 
 export function middleware(request: NextRequest) {

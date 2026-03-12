@@ -19,6 +19,8 @@ interface SetupData {
     totpSecretManual: string;
 }
 
+import { motion, AnimatePresence } from 'framer-motion';
+
 export default function CompleteSetupPage() {
     const { confirm } = useConfirm();
     const router = useRouter();
@@ -79,7 +81,7 @@ export default function CompleteSetupPage() {
                 medicalQRSaved: true
             });
 
-            await checkAuth(); // Mute the setup banner
+            await checkAuth();
             toast.success('Security setup completed!');
             sessionStorage.removeItem('registrationSetupData');
             router.push('/dashboard');
@@ -92,9 +94,9 @@ export default function CompleteSetupPage() {
 
     if (isLoading || !setupData) {
         return (
-            <div className="text-center">
-                <div className="w-16 h-16 border-4 border-primary border-t-transparent rounded-full animate-spin mx-auto mb-4" />
-                <p className="text-slate-600 font-medium">Loading setup data...</p>
+            <div className="flex flex-col items-center justify-center min-h-[60vh]">
+                <div className="w-16 h-16 border-4 border-primary border-t-transparent rounded-full animate-spin mb-4" />
+                <p className="text-slate-600 dark:text-slate-400 font-bold uppercase tracking-widest text-xs animate-pulse">Initializing Secure Setup...</p>
             </div>
         );
     }
@@ -102,114 +104,163 @@ export default function CompleteSetupPage() {
     const canComplete = totpScanned && verificationCode.length === 6;
 
     return (
-        <div className="max-w-3xl mx-auto w-full">
-            <div className="text-center mb-10">
-                <h1 className="text-4xl font-black text-slate-900 mb-4 tracking-tight">Complete Your Security Setup</h1>
-                <p className="text-lg text-slate-500 max-w-2xl mx-auto">
-                    Follow this essential step to secure your medical records and enable quick access for your doctors.
-                </p>
-            </div>
+        <div className="min-h-[85vh] flex flex-col items-center justify-center py-10 px-4">
+            <motion.div
+                initial={{ opacity: 0, y: 20 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ duration: 0.5 }}
+                className="w-full max-w-[550px]"
+            >
+                <div className="bg-white dark:bg-slate-900 rounded-[2.5rem] sm:rounded-[40px] shadow-2xl border border-slate-50 dark:border-slate-800 p-6 sm:p-8 relative overflow-hidden group">
+                    <div className="absolute top-0 right-0 w-24 h-24 bg-primary/5 rounded-bl-[80px]" />
 
-            <div className="bg-white rounded-[40px] p-8 md:p-10 shadow-xl border border-slate-100 relative overflow-hidden group">
-                <div className="absolute top-0 right-0 w-32 h-32 bg-primary/5 rounded-bl-[100px] transition-all group-hover:w-40 group-hover:h-40" />
-
-                <div className="relative z-10">
-                    <div className="flex items-center gap-4 mb-8">
-                        <div className="w-14 h-14 bg-primary/10 rounded-2xl flex items-center justify-center text-primary">
-                            <ShieldCheckIcon className="w-8 h-8" />
+                    {/* Integrated Logo Section */}
+                    <div className="relative z-10 text-center space-y-1 mb-6">
+                        <div className="flex justify-center mb-2">
+                            <div className="p-2 bg-gradient-to-b from-secondary/10 to-white/0 dark:from-secondary/20 dark:to-transparent rounded-xl">
+                                <img
+                                    src="/images/logo.webp"
+                                    alt="Sajilo Swasthya"
+                                    className="h-10 w-auto object-contain drop-shadow-sm dark:brightness-110"
+                                />
+                            </div>
                         </div>
-                        <div>
-                            <h2 className="text-2xl font-black text-slate-900">Security</h2>
-                            <p className="text-[11px] font-black text-primary uppercase tracking-widest">Setup Authenticator</p>
+                        <div className="flex flex-col items-center">
+                            <div className="relative w-fit mx-auto">
+                                <img
+                                    src="/images/sajilo.webp"
+                                    alt="Sajilo"
+                                    className="h-12 w-auto object-contain translate-x-[-12px] dark:brightness-110"
+                                />
+                                <span className="absolute text-[12px] font-semibold text-secondary dark:text-secondary-light tracking-[0.05em] font-amita inline-block" style={{ bottom: '2px', right: '-16px' }}>
+                                    स्वास्थ्य
+                                </span>
+                            </div>
+                            <p className="text-slate-400 dark:text-slate-500 font-black text-[8px] uppercase tracking-[0.3em] mt-1">Security Onboarding</p>
                         </div>
-                    </div>
-
-                    <p className="text-slate-500 mb-8 leading-relaxed">
-                        Use Google Authenticator or Microsoft Authenticator to scan this code. This will be used for all future logins.
-                    </p>
-
-                    <div className="bg-slate-50 p-8 rounded-[40px] mb-8 flex justify-center group/qr border-2 border-transparent hover:border-primary/20 transition-all">
-                        <QRCodeSVG value={setupData.totpQRData} size={240} level="M" className="transition-transform duration-500 group-hover/qr:scale-105" />
                     </div>
 
                     <div className="space-y-6">
-                        <div className="p-5 bg-slate-50 rounded-[24px] border border-slate-100 flex items-center justify-between">
-                            <div>
-                                <p className="text-[10px] font-black text-slate-400 uppercase mb-1">Manual Secret Key</p>
-                                <code className="text-lg font-mono font-bold text-slate-700 tracking-wider">{setupData.totpSecretManual}</code>
-                            </div>
-                            <button
-                                onClick={() => copyToClipboard(setupData.totpSecretManual)}
-                                className="p-3 bg-white text-primary rounded-xl hover:bg-primary hover:text-white transition-all shadow-sm"
+                        {/* Two Column Grid for Desktop */}
+                        <div className="grid grid-cols-1 md:grid-cols-2 gap-6 items-center border-t border-slate-50 dark:border-slate-800/50 pt-6">
+                            {/* QR Code Section */}
+                            <motion.div
+                                whileHover={{ scale: 1.02 }}
+                                className="bg-slate-50 dark:bg-slate-800/30 p-4 rounded-3xl border border-slate-100 dark:border-slate-800 flex flex-col items-center gap-3"
                             >
-                                <ClipboardIcon className="w-5 h-5" />
-                            </button>
-                        </div>
+                                <div className="bg-white p-2 rounded-xl shadow-sm">
+                                    <QRCodeSVG 
+                                        value={setupData.totpQRData} 
+                                        size={150} 
+                                        level="H"
+                                        imageSettings={{
+                                            src: "/images/logo.webp",
+                                            x: undefined,
+                                            y: undefined,
+                                            height: 35,
+                                            width: 35,
+                                            excavate: true,
+                                        }}
+                                    />
+                                </div>
+                                <div className="flex items-center gap-2 px-3 py-1 bg-emerald-500/10 rounded-full border border-emerald-500/20">
+                                    <ShieldCheckIcon className="w-3 h-3 text-emerald-500" />
+                                    <span className="text-[9px] font-black text-emerald-500 uppercase tracking-widest">Scan QR</span>
+                                </div>
+                            </motion.div>
 
-                        <div>
-                            <label className="block text-[11px] font-black text-slate-400 uppercase tracking-widest mb-4 ml-1">Enter 6-digit verification code</label>
+                            {/* Manual Entry & Instructions */}
+                            <div className="space-y-4">
+                                <div className="space-y-1">
+                                    <h2 className="text-lg font-black text-slate-900 dark:text-white">Setup App</h2>
+                                    <p className="text-xs text-slate-500 dark:text-slate-400 font-medium leading-relaxed">
+                                        Scan the code or enter the key manually into your Authenticator app.
+                                    </p>
+                                </div>
+
+                                <div className="space-y-2">
+                                    <div className="flex items-center justify-between px-1">
+                                        <span className="text-[9px] font-black text-slate-400 dark:text-slate-500 uppercase tracking-widest">Secret Key</span>
+                                        <button
+                                            onClick={() => copyToClipboard(setupData.totpSecretManual)}
+                                            className="text-[10px] font-bold text-emerald-500 hover:text-emerald-600 hover:underline flex items-center gap-1 transition-colors"
+                                        >
+                                            <ClipboardIcon className="w-3 h-3" /> Copy
+                                        </button>
+                                    </div>
+                                    <div className="p-3 bg-slate-50 dark:bg-slate-800/30 rounded-xl border border-slate-100 dark:border-slate-800 text-center">
+                                        <code className="text-sm font-mono font-bold text-slate-700 dark:text-slate-300 tracking-widest uppercase">
+                                            {setupData.totpSecretManual}
+                                        </code>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                        {/* Verification Code Section */}
+                        <div className="space-y-3 pt-2 border-t border-slate-50 dark:border-slate-800/50">
+                            <label className="block text-[10px] font-black text-slate-400 dark:text-slate-500 uppercase tracking-widest text-center">Enter 6-Digit Code</label>
                             <input
                                 type="text"
                                 maxLength={6}
                                 value={verificationCode}
                                 onChange={(e) => setVerificationCode(e.target.value.replace(/\D/g, ''))}
-                                className="w-full h-20 bg-slate-50 border-2 border-slate-100 rounded-[24px] text-center text-4xl font-black tracking-[0.5em] focus:border-primary focus:ring-8 focus:ring-primary/5 transition-all outline-none"
+                                className="w-full h-14 bg-slate-50 dark:bg-slate-800 border-2 border-slate-100 dark:border-slate-800 rounded-2xl text-center text-2xl font-black tracking-[0.4em] focus:border-primary focus:ring-4 focus:ring-primary/5 transition-all outline-none text-slate-900 dark:text-white"
                                 placeholder="000000"
                             />
                         </div>
 
-                        <label className="flex items-center gap-4 p-5 bg-slate-50 rounded-[24px] border border-slate-100 cursor-pointer group/check">
-                            <input
-                                type="checkbox"
-                                checked={totpScanned}
-                                onChange={(e) => setTotpScanned(e.target.checked)}
-                                className="w-7 h-7 rounded-xl border-2 border-slate-300 text-primary focus:ring-primary/10 transition-all cursor-pointer"
-                            />
-                            <span className="text-sm font-bold text-slate-600 group-hover/check:text-slate-900 transition-colors">I've successfully added my account</span>
-                        </label>
+                        {/* Confirmation Checkbox */}
+                        <div className="px-1">
+                            <label className="flex items-center gap-3 p-4 bg-emerald-500/5 dark:bg-emerald-500/10 rounded-2xl border border-emerald-500/20 dark:border-emerald-500/20 cursor-pointer group/check transition-all hover:bg-emerald-500/10 dark:hover:bg-emerald-500/20">
+                                <input
+                                    type="checkbox"
+                                    checked={totpScanned}
+                                    onChange={(e) => setTotpScanned(e.target.checked)}
+                                    className="w-6 h-6 rounded-lg border-2 border-slate-300 dark:border-slate-600 text-primary focus:ring-primary transition-all cursor-pointer"
+                                />
+                                <div className="flex flex-col">
+                                    <span className="text-sm font-bold text-slate-700 dark:text-slate-100 group-hover:text-primary transition-colors">
+                                        I've Added the Account to Authenticator
+                                    </span>
+                                    <span className="text-[10px] text-slate-500 font-medium tracking-tight">Verify you see the 6-digit code in your app</span>
+                                </div>
+                            </label>
+                        </div>
+
+                        {/* Action Buttons */}
+                        <div className="space-y-3 pt-2">
+                            <button
+                                onClick={handleCompleteSetup}
+                                disabled={!canComplete || isSubmitting}
+                                className={`w-full h-14 rounded-2xl text-sm font-black flex items-center justify-center gap-2 transition-all duration-300 ${canComplete
+                                    ? 'bg-primary text-white shadow-lg shadow-primary/20 hover:bg-emerald-600 hover:shadow-emerald-500/20 hover:scale-[1.02] active:scale-95'
+                                    : 'bg-slate-200 dark:bg-slate-800 text-slate-400 dark:text-slate-600 cursor-not-allowed'
+                                    }`}
+                            >
+                                {isSubmitting ? 'Verifying Securely...' : 'Complete Secure Setup'}
+                                <ChevronRightIcon className={`w-5 h-5 ${isSubmitting ? 'animate-pulse' : ''}`} />
+                            </button>
+
+                            <div className="text-center">
+                                <button
+                                    onClick={async () => {
+                                        const confirmed = await confirm({
+                                            title: 'Skip for now?',
+                                            message: "You'll need to set this up later to share records.",
+                                            confirmText: 'Skip Setup',
+                                            type: 'warning'
+                                        });
+                                        if (confirmed) router.push('/dashboard');
+                                    }}
+                                    className="text-[10px] font-bold text-slate-400 hover:text-primary transition-colors underline underline-offset-4 uppercase tracking-widest"
+                                >
+                                    Setup Later
+                                </button>
+                            </div>
+                        </div>
                     </div>
                 </div>
-            </div>
-
-            {/* Complete Button */}
-            <div className="mt-12 flex flex-col items-center gap-6">
-                <button
-                    onClick={handleCompleteSetup}
-                    disabled={!canComplete || isSubmitting}
-                    className={`w-full max-w-md h-20 rounded-3xl text-xl font-black flex items-center justify-center gap-4 transition-all ${canComplete
-                        ? 'bg-primary text-white shadow-xl shadow-primary/25 hover:scale-[1.05] active:scale-95'
-                        : 'bg-slate-200 text-slate-400 cursor-not-allowed mx-auto'
-                        }`}
-                >
-                    {isSubmitting ? 'Finalizing Setup...' : 'Complete Setup & Dashboard'}
-                    <ChevronRightIcon className="w-7 h-7" />
-                </button>
-                {!canComplete && (
-                    <p className="text-slate-400 font-bold text-xs uppercase tracking-[0.2em] animate-pulse text-center">
-                        Please verify your security code to proceed
-                    </p>
-                )}
-            </div>
-
-            {/* Skip for now */}
-            <div className="text-center mt-8">
-                <button
-                    onClick={async () => {
-                        const confirmed = await confirm({
-                            title: 'Skip Security Setup?',
-                            message: "Are you sure? You won't be able to share records with doctors until setup is complete.",
-                            confirmText: 'Skip Setup',
-                            type: 'warning'
-                        });
-                        if (confirmed) {
-                            router.push('/dashboard');
-                        }
-                    }}
-                    className="text-sm font-bold text-slate-400 hover:text-slate-600 transition-colors underline underline-offset-4"
-                >
-                    Skip for now (Security Setup Required)
-                </button>
-            </div>
+            </motion.div>
         </div>
     );
 }

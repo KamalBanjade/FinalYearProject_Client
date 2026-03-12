@@ -2,6 +2,7 @@
 
 import React, { useEffect, useState, useMemo } from 'react';
 import { useRouter } from 'next/navigation';
+import { useAuthStore } from '@/store/authStore';
 import { patientApi, PatientProfileData, UpdatePatientProfileRequest, SmartDoctorSuggestionDTO, DoctorSuggestionItem } from '@/lib/api/patient';
 import { Button } from '@/components/ui/Button';
 import { Input } from '@/components/ui/Input';
@@ -29,6 +30,7 @@ import toast from 'react-hot-toast';
 import { format } from 'date-fns';
 import { motion, AnimatePresence } from 'framer-motion';
 import { MedicalLoader } from '@/components/ui/MedicalLoader';
+import { ProfilePictureUpload } from '@/components/profile/ProfilePictureUpload';
 
 // ── Helpers ───────────────────────────────────────────────────────────────────
 
@@ -104,6 +106,7 @@ export default function PatientProfilePage() {
         chronicConditions: ''
     });
     const router = useRouter();
+    const { checkAuth } = useAuthStore();
 
     const fetchData = async () => {
         try {
@@ -148,6 +151,28 @@ export default function PatientProfilePage() {
         }
     };
 
+    const handleImageUpload = async (file: File) => {
+        try {
+            await patientApi.uploadProfilePicture(file);
+            toast.success('Identity visual updated');
+            fetchData();
+            checkAuth(); // Sync global dashboard avatar
+        } catch (error) {
+            toast.error('Visual synchronization error');
+        }
+    };
+
+    const handleImageDelete = async () => {
+        try {
+            await patientApi.deleteProfilePicture();
+            toast.success('Identity visual removed');
+            fetchData();
+            checkAuth(); // Sync global dashboard avatar
+        } catch (error) {
+            toast.error('Visual removal error');
+        }
+    };
+
     const associatedDoctors = useMemo(() => {
         if (!suggestions) return [];
         const doctors: DoctorSuggestionItem[] = [];
@@ -186,12 +211,13 @@ export default function PatientProfilePage() {
             <div className={`flex flex-col md:flex-row items-center justify-between gap-8 border-b transition-all duration-700 pb-12 ${isEditing ? 'border-primary/20 bg-primary/5 rounded-[3rem] p-12 -mx-12' : 'border-slate-100 dark:border-slate-800'}`}>
                 <div className="flex flex-col md:flex-row items-center gap-8 text-center md:text-left">
                     <div className="relative group">
-                        <div className="w-24 h-24 bg-slate-900 dark:bg-white rounded-[2rem] flex items-center justify-center text-white dark:text-slate-900 text-3xl font-black shadow-2xl transition-transform group-hover:scale-105 duration-500">
-                            {profile?.firstName?.charAt(0)}{profile?.lastName?.charAt(0)}
-                        </div>
-                        <div className="absolute -bottom-1 -right-1 w-8 h-8 bg-primary rounded-xl border-4 border-white dark:border-slate-900 flex items-center justify-center shadow-lg">
-                            <CheckCircle2 size={16} className="text-white" />
-                        </div>
+                        <ProfilePictureUpload
+                            currentImageUrl={profile?.profilePictureUrl}
+                            onUpload={handleImageUpload}
+                            onDelete={handleImageDelete}
+                            firstName={profile?.firstName}
+                            lastName={profile?.lastName}
+                        />
                     </div>
                     <div className="space-y-1">
                         <div className="flex items-center gap-3 mb-1">

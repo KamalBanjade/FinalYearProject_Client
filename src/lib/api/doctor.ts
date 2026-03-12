@@ -34,6 +34,7 @@ export interface DoctorExtendedProfile {
     specialization: string;
     hospitalAffiliation?: string;
     contactNumber?: string;
+    profilePictureUrl?: string;
     biography?: string;
     yearsOfExperience?: number;
     consultationFee?: string;
@@ -110,6 +111,20 @@ export const doctorApi = {
 
     getPatientInfo: async (patientId: string) => {
         const response = await axiosInstance.get(`doctor/patients/${patientId}`);
+        return response.data;
+    },
+
+    uploadProfilePicture: async (file: File) => {
+        const formData = new FormData();
+        formData.append('file', file);
+        const response = await axiosInstance.post('doctor/profile/picture', formData, {
+            headers: { 'Content-Type': 'multipart/form-data' }
+        });
+        return response.data;
+    },
+
+    deleteProfilePicture: async () => {
+        const response = await axiosInstance.delete('doctor/profile/picture');
         return response.data;
     }
 };

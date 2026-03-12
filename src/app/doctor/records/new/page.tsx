@@ -13,6 +13,7 @@ import {
 import { UserGroupIcon, CalendarDaysIcon } from '@heroicons/react/24/solid';
 import { AddCustomFieldModal } from '@/components/doctor/AddCustomFieldModal';
 import { TemplateBrowserModal } from '@/components/doctor/TemplateBrowserModal';
+import { FormGrid } from '@/components/layout/ResponsiveGrid';
 import toast from 'react-hot-toast';
 import { healthRecordApi } from '@/lib/api/healthRecordApi';
 import { templatesApi, VisibilityLevel } from '@/lib/api/templatesApi';
@@ -535,7 +536,7 @@ export default function StructuredRecordEntry() {
             <span className="text-[10px] font-black uppercase tracking-widest text-rose-500 bg-rose-50 dark:bg-rose-900/20 px-2 py-1 rounded-lg">Always Required</span>
           </div>
           <div className="p-6">
-            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
+            <FormGrid columns={3}>
 
               {/* Blood Pressure — spans 2 cols */}
               <div className="sm:col-span-2 lg:col-span-2 relative flex items-center gap-3 p-4 rounded-2xl border border-gray-100 dark:border-gray-800 bg-gray-50/50 dark:bg-gray-900/30">
@@ -571,7 +572,7 @@ export default function StructuredRecordEntry() {
               </div>
 
               <VitalInput label="SpO₂" field="spO2" icon={Droplets} type="spo2" unit="%" value={baseVitals.spO2} onChange={handleVitalsChange} />
-            </div>
+            </FormGrid>
           </div>
         </div>
 
@@ -598,7 +599,7 @@ export default function StructuredRecordEntry() {
                   </div>
                     <div className="p-4 sm:p-6">
                     {section.fields.length > 0 ? (
-                      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 sm:gap-5 mb-6">
+                      <FormGrid columns={3} className="mb-6">
                         {section.fields.map(field => {
                           const value = templateData[`${section.section_name}_${field.field_name}`] || '';
                           const numValue = parseFloat(value);
@@ -656,7 +657,7 @@ export default function StructuredRecordEntry() {
                             </div>
                           );
                         })}
-                      </div>
+                      </FormGrid>
                     ) : (
                       <p className="text-sm text-gray-400 italic mb-4">No fields yet. Add some below.</p>
                     )}
@@ -727,9 +728,10 @@ export default function StructuredRecordEntry() {
             </div>
             <h2 className="font-bold text-gray-700 dark:text-gray-300 text-sm uppercase tracking-widest">Clinical Notes</h2>
           </div>
-          <div className="p-6 grid grid-cols-1 lg:grid-cols-2 gap-6">
-            <div>
-              <label className="text-[10px] font-black uppercase tracking-widest text-gray-400 block mb-2">Diagnosis</label>
+          <div className="p-6">
+            <FormGrid columns={2}>
+              <div>
+                <label className="text-[10px] font-black uppercase tracking-widest text-gray-400 block mb-2">Diagnosis</label>
               <textarea
                 rows={4}
                 className="w-full border border-gray-200 dark:border-gray-700 rounded-xl p-4 text-sm bg-gray-50 dark:bg-gray-800 focus:outline-none focus:ring-2 focus:ring-amber-500 transition resize-none placeholder:text-gray-400"
@@ -758,6 +760,7 @@ export default function StructuredRecordEntry() {
                 onChange={e => setDoctorNotes(e.target.value)}
               />
             </div>
+            </FormGrid>
           </div>
         </div>
 

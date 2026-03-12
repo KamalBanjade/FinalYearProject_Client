@@ -5,7 +5,8 @@ import { Input } from '@/components/ui/Input';
 import toast from 'react-hot-toast';
 import { patientApi } from '@/lib/api/patient';
 import { TrustedDevicesList } from '@/components/auth/TrustedDevicesList';
-import { useQuery } from '@tanstack/react-query';
+import { useQuery, useQueryClient } from '@tanstack/react-query';
+import { ProfilePictureUpload } from '@/components/profile/ProfilePictureUpload';
 
 interface PatientProfileData {
     bloodType: string;
@@ -18,6 +19,8 @@ interface PatientProfileData {
 
 export const PatientProfile: React.FC = () => {
     const [isSaving, setIsSaving] = useState(false);
+
+    const queryClient = useQueryClient();
 
     const { data: profileResponse, isLoading: isProfileLoading, error: queryError } = useQuery({
         queryKey: ['patient-profile'],
@@ -45,11 +48,22 @@ export const PatientProfile: React.FC = () => {
         try {
             await patientApi.updateProfile(data);
             toast.success('Profile updated successfully!');
+            queryClient.invalidateQueries({ queryKey: ['patient-profile'] });
         } catch (error: any) {
             toast.error(error.response?.data?.message || 'Failed to update profile.');
         } finally {
             setIsSaving(false);
         }
+    };
+
+    const handleImageUpload = async (file: File) => {
+        await patientApi.uploadProfilePicture(file);
+        queryClient.invalidateQueries({ queryKey: ['patient-profile'] });
+    };
+
+    const handleImageDelete = async () => {
+        await patientApi.deleteProfilePicture();
+        queryClient.invalidateQueries({ queryKey: ['patient-profile'] });
     };
 
     if (isProfileLoading) {
@@ -66,7 +80,19 @@ export const PatientProfile: React.FC = () => {
 
     return (
         <div className="bg-white/40 dark:bg-white/5 rounded-3xl p-4 md:p-8 border border-white/10 dark:border-white/5 shadow-sm relative overflow-hidden backdrop-blur-sm">
-            <h3 className="text-xl font-bold text-slate-900 dark:text-white mb-6">Medical Profile</h3>
+            <div className="flex flex-col md:flex-row md:items-center justify-between gap-6 mb-8">
+                <div>
+                    <h3 className="text-xl font-bold text-slate-900 dark:text-white">Medical Profile</h3>
+                    <p className="text-sm text-slate-500 dark:text-slate-400">Manage your personal and medical information</p>
+                </div>
+                <ProfilePictureUpload
+                    currentImageUrl={profileResponse?.data?.profilePictureUrl}
+                    onUpload={handleImageUpload}
+                    onDelete={handleImageDelete}
+                    firstName={profileResponse?.data?.firstName}
+                    lastName={profileResponse?.data?.lastName}
+                />
+            </div>
 
             <form onSubmit={handleSubmit(onSubmit)} className="space-y-4 relative z-10">
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">

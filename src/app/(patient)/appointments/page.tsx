@@ -28,6 +28,8 @@ import { useConfirm } from '@/context/ConfirmContext';
 import { formatLocalTime, normalizeUTC } from '@/lib/utils/dateUtils';
 import { motion, AnimatePresence } from 'framer-motion';
 import { MedicalLoader } from '@/components/ui/MedicalLoader';
+import { InsightCard } from '@/components/cards/InsightCard';
+import { PatientAppointmentCard } from '@/components/patient/PatientAppointmentCard';
 
 export default function PatientAppointmentsPage() {
     const queryClient = useQueryClient();
@@ -251,128 +253,6 @@ export default function PatientAppointmentsPage() {
 }
 
 // ── Components ─────────────────────────────────────────────────────────────
-
-const InsightCard = ({ title, value, icon: Icon, gradient }: { title: string; value: number; icon: any; gradient: string }) => (
-    <div className="bg-white dark:bg-slate-900 px-5 py-4 rounded-[2.5rem] border border-slate-200/60 dark:border-slate-800 shadow-premium group hover:border-primary/30 transition-all duration-500">
-        <div className="flex items-center justify-between">
-            <div className="space-y-1">
-                <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest leading-none">{title}</p>
-                <p className="text-4xl font-black text-slate-900 dark:text-white tracking-tighter">{value}</p>
-            </div>
-            <div className={`w-14 h-14 rounded-2xl bg-gradient-to-br ${gradient} flex items-center justify-center text-white shadow-lg transition-transform duration-500 group-hover:scale-110 group-hover:rotate-6`}>
-                <Icon className="w-6 h-6 stroke-[2.5px]" />
-            </div>
-        </div>
-    </div>
-);
-
-function PatientAppointmentCard({ appointment, isHistory, onCancel, onViewDetails }: { appointment: AppointmentDTO; isHistory: boolean; onCancel: () => void; onViewDetails: () => void }) {
-    const statusStyles: Record<string, any> = {
-        Confirmed: { bg: 'bg-emerald-500/10', text: 'text-emerald-500', label: 'Confirmed' },
-        Scheduled: { bg: 'bg-primary/10', text: 'text-primary', label: 'Scheduled' },
-        Pending: { bg: 'bg-amber-500/10', text: 'text-amber-500', label: 'Pending' },
-        Cancelled: { bg: 'bg-rose-500/10', text: 'text-rose-500', label: 'Terminated' },
-        Completed: { bg: 'bg-emerald-600', text: 'text-white', label: 'Completed' },
-        Overdue: { bg: 'bg-rose-600', text: 'text-white', label: 'Overdue' },
-    };
-
-    const status = statusStyles[appointment.status] || { bg: 'bg-slate-500/10', text: 'text-slate-500', label: appointment.status };
-
-    return (
-        <motion.div
-            whileHover={{ y: -4, scale: 1.005 }}
-            className={`group relative bg-white dark:bg-slate-800/80 rounded-[2.5rem] border border-slate-200 dark:border-slate-800/60 p-6 md:p-8 flex flex-col md:flex-row items-center gap-6 md:gap-10 hover:shadow-2xl hover:border-emerald-500/30 transition-all duration-500 overflow-hidden ${isHistory ? 'opacity-80 grayscale-[20%]' : ''}`}
-        >
-            <div className={`absolute left-0 top-0 bottom-0 w-1.5 ${appointment.status === 'Completed' || appointment.status === 'Overdue' ? status.bg : status.text.replace('text-', 'bg-')}`} />
-
-            <div className="flex flex-col items-center justify-center w-full md:w-36 shrink-0 py-6 bg-slate-50 dark:bg-slate-900/50 rounded-[2.5rem] border border-slate-100 dark:border-slate-800 group-hover:bg-emerald-500/5 transition-colors">
-                <span className="text-3xl font-black text-slate-900 dark:text-white tracking-tighter leading-none italic">
-                    {formatLocalTime(appointment.appointmentDate, 'h:mm')}
-                </span>
-                <span className="text-[10px] font-black text-slate-400 uppercase tracking-[0.3em] mt-2">
-                    {formatLocalTime(appointment.appointmentDate, 'a')}
-                </span>
-                <div className="h-px w-10 bg-slate-200 dark:bg-slate-700 my-4 group-hover:w-16 group-hover:bg-emerald-500/30 transition-all duration-500" />
-                <span className="text-[11px] font-black text-emerald-600 dark:text-emerald-400 uppercase tracking-widest">
-                    {formatLocalTime(appointment.appointmentDate, 'MMM dd')}
-                </span>
-            </div>
-
-            <div className="flex-1 min-w-0 space-y-4 md:space-y-6 text-center md:text-left">
-                <div className="space-y-2">
-                    <div className="flex flex-wrap items-center justify-center md:justify-start gap-4">
-                        <div className={`px-4 py-1.5 rounded-full text-[9px] font-black uppercase tracking-widest border border-transparent shadow-sm ${status.bg} ${status.text}`}>
-                            {status.label}
-                        </div>
-                        <div className="flex items-center gap-2 text-slate-400 dark:text-slate-500 uppercase tracking-[0.2em] font-black text-[9px]">
-                            <Stethoscope className="w-3.5 h-3.5" />
-                            {appointment.doctorDepartment}
-                        </div>
-                    </div>
-                    <h2 className="text-2xl font-black text-slate-800 dark:text-white tracking-tight truncate group-hover:text-emerald-600 transition-colors">
-                        {appointment.reasonForVisit || 'General Medical Consultation'}
-                    </h2>
-                    <div className="flex items-center justify-center md:justify-start gap-3">
-                        <div className="w-8 h-8 rounded-full bg-emerald-500/10 border border-emerald-500/20 flex items-center justify-center">
-                            <User className="w-4 h-4 text-emerald-600" />
-                        </div>
-                        <span className="text-sm font-black text-slate-600 dark:text-slate-300 uppercase tracking-tight">Physician: {appointment.doctorName}</span>
-                    </div>
-                </div>
-                <div className="flex flex-wrap items-center justify-center md:justify-start gap-5">
-                    <div className="flex items-center gap-2.5 px-3 py-1.5 bg-slate-50 dark:bg-slate-900/50 rounded-xl border border-slate-100 dark:border-slate-800">
-                        <Clock className="w-3.5 h-3.5 text-slate-400" />
-                        <span className="text-[10px] font-black text-slate-500 tracking-[0.1em] uppercase">{appointment.duration} Minutes</span>
-                    </div>
-                    {appointment.linkedRecordsCount > 0 && (
-                        <div className="flex items-center gap-2.5 px-3 py-1.5 bg-emerald-50 dark:bg-emerald-900/20 rounded-xl border border-emerald-100 dark:border-emerald-900/30">
-                            <FileText className="w-3.5 h-3.5 text-emerald-500" />
-                            <span className="text-[10px] font-black text-emerald-600 dark:text-emerald-400 uppercase tracking-widest">{appointment.linkedRecordsCount} Records Linked</span>
-                        </div>
-                    )}
-                </div>
-            </div>
-
-            <div className="flex flex-col sm:flex-row items-center gap-3 shrink-0 w-full md:w-auto mt-6 md:mt-0 relative z-10">
-                {!isHistory ? (
-                    <>
-                        <button
-                            onClick={onViewDetails}
-                            className="w-full sm:w-auto sm:px-8 h-12 rounded-2xl bg-slate-900 dark:bg-white dark:text-slate-900 text-white font-black text-[10px] uppercase tracking-widest shadow-xl shadow-black/10 transition-all hover:scale-[1.05] active:scale-95 flex items-center justify-center gap-2 group/btn cursor-pointer"
-                        >
-                            <Zap className="w-4 h-4 fill-current group-hover/btn:animate-pulse text-amber-400" />
-                            Full Insights
-                        </button>
-                        {appointment.canCancel && (
-                            <button
-                                onClick={onCancel}
-                                className="w-full sm:w-auto sm:px-8 h-12 flex items-center justify-center rounded-2xl bg-rose-50 dark:bg-rose-950/20 text-rose-500 border-2 border-rose-100 dark:border-rose-900/30 hover:bg-rose-500 hover:text-white hover:border-rose-500 transition-all active:scale-95 group/cancel cursor-pointer"
-                            >
-                                <XCircle className="w-4 h-4 mr-2 transition-transform group-hover/cancel:rotate-90" />
-                                <span className="font-black text-[10px] uppercase tracking-widest whitespace-nowrap">Cancel</span>
-                            </button>
-                        )}
-                    </>
-                ) : (
-                    <div className="flex flex-col sm:flex-row items-center gap-3 w-full md:w-auto">
-                        <Link href={`/appointments/new?doctorId=${appointment.doctorId}&reason=Follow-up for ${appointment.reasonForVisit}`} className="w-full sm:w-auto">
-                            <button className="w-full sm:px-8 h-12 rounded-2xl bg-gradient-to-r from-emerald-600 to-teal-500 text-white font-black text-[10px] uppercase tracking-widest shadow-lg shadow-emerald-500/20 group/rebook transition-all hover:scale-[1.05]">
-                                Re-Book
-                                <ArrowRight className="inline-block w-4 h-4 ml-2 group-hover/rebook:translate-x-1.5 transition-transform" />
-                            </button>
-                        </Link>
-                        <button
-                            onClick={onViewDetails}
-                            className="w-full sm:w-auto sm:px-6 h-12 rounded-2xl bg-white dark:bg-slate-800 border-2 border-slate-100 dark:border-slate-700 font-black text-[9px] uppercase tracking-widest text-slate-400 hover:text-slate-600 dark:hover:text-slate-300 transition-colors"
-                        >
-                            Summary
-                        </button>
-                    </div>
-                )}
-            </div>
-        </motion.div>
-    );
-}
 
 // ── Overlay Component ───────────────────────────────────────────────────────
 

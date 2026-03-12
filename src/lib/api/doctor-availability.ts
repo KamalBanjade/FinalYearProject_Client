@@ -1,3 +1,4 @@
+import axiosInstance from '../utils/axios';
 import { ApiResponse } from '../types';
 
 export interface DoctorAvailabilityDTO {
@@ -28,50 +29,31 @@ export interface BlockTimeRequest {
 
 export const doctorAvailabilityApi = {
   getSchedule: async (startDate: string, endDate: string): Promise<ApiResponse<DoctorAvailabilityDTO[]>> => {
-    const response = await fetch(`/api/doctor/availability/schedule?startDate=${startDate}&endDate=${endDate}`, {
-      headers: {
-        'Authorization': `Bearer ${localStorage.getItem('auth_token')}`
-      }
+    const response = await axiosInstance.get('doctor/availability/schedule', {
+      params: { startDate, endDate }
     });
-    return response.json();
+    return response.data;
   },
 
   setWorkingHours: async (data: SetWorkingHoursRequest): Promise<ApiResponse<any>> => {
-    const response = await fetch('/api/doctor/availability/working-hours', {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        'Authorization': `Bearer ${localStorage.getItem('auth_token')}`
-      },
-      body: JSON.stringify(data)
-    });
-    return response.json();
+    const response = await axiosInstance.post('doctor/availability/working-hours', data);
+    return response.data;
   },
 
   blockTime: async (data: BlockTimeRequest): Promise<ApiResponse<any>> => {
-    const response = await fetch('/api/doctor/availability/block', {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        'Authorization': `Bearer ${localStorage.getItem('auth_token')}`
-      },
-      body: JSON.stringify(data)
-    });
-    return response.json();
+    const response = await axiosInstance.post('doctor/availability/block', data);
+    return response.data;
   },
 
   unblockTime: async (id: string): Promise<ApiResponse<any>> => {
-    const response = await fetch(`/api/doctor/availability/${id}`, {
-      method: 'DELETE',
-      headers: {
-        'Authorization': `Bearer ${localStorage.getItem('auth_token')}`
-      }
-    });
-    return response.json();
+    const response = await axiosInstance.delete(`doctor/availability/${id}`);
+    return response.data;
   },
 
   getSlots: async (doctorId: string, date: string): Promise<ApiResponse<string[]>> => {
-    const response = await fetch(`/api/doctor/availability/slots/${doctorId}?date=${date}`);
-    return response.json();
+    const response = await axiosInstance.get(`doctor/availability/slots/${doctorId}`, {
+      params: { date }
+    });
+    return response.data;
   }
 };

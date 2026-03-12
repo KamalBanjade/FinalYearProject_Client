@@ -41,9 +41,91 @@ export interface AuditLogFilters {
     toDate?: string;
 }
 
+export interface RecentCriticalEventDTO {
+    id: string;
+    action: string;
+    details: string;
+    userName?: string;
+    userEmail?: string;
+    timestamp: string;
+    severity: string;
+}
+
+export interface TimeSeriesDataPointDTO {
+    label: string;
+    value: number;
+    value2: number;
+    value3: number;
+}
+
+export interface SystemStatisticsDTO {
+    totalUsers: number;
+    totalDoctors: number;
+    totalPatients: number;
+    totalAdmins: number;
+    activeUsers: number;
+    newUsersThisMonth: number;
+    totalRecordsUploaded: number;
+    totalRecordsDraft: number;
+    totalRecordsPending: number;
+    totalRecordsCertified: number;
+    totalRecordsEmergency: number;
+    totalRecordsArchived: number;
+    recordsUploadedThisMonth: number;
+    totalQRScans: number;
+    normalQRScans: number;
+    emergencyQRScans: number;
+    activeAccessSessions: number;
+    totalAppointments: number;
+    completedAppointments: number;
+    upcomingAppointments: number;
+    totalAuditLogs: number;
+    criticalEvents24h: number;
+    warningEvents24h: number;
+    recentCriticalEvents: RecentCriticalEventDTO[];
+    userGrowthTrend: TimeSeriesDataPointDTO[];
+    qrScanTrend: TimeSeriesDataPointDTO[];
+}
+
+export interface SecurityAlertDTO {
+    alertType: string;
+    title: string;
+    description: string;
+    severity: string; // Low, Medium, High, Critical
+    detectedAt: string;
+    relatedUserId?: string;
+    relatedUserEmail?: string;
+    relatedUserName?: string;
+    eventCount: number;
+    ipAddress?: string;
+}
+
 export const adminAuditLogsApi = {
     getAuditLogs: async (filters: AuditLogFilters): Promise<PaginatedAuditLogsDTO> => {
         const response = await axiosInstance.get('admin/audit-logs', { params: filters });
         return response.data.data;
+    },
+
+    getSystemStatistics: async (): Promise<SystemStatisticsDTO> => {
+        const response = await axiosInstance.get('admin/statistics');
+        return response.data.data;
+    },
+
+    getSecurityAlerts: async (): Promise<SecurityAlertDTO[]> => {
+        const response = await axiosInstance.get('admin/security-alerts');
+        return response.data.data;
+    },
+
+    applyRetentionPolicy: async (retentionDays: number): Promise<{ deletedCount: number; retentionDays: number }> => {
+        const response = await axiosInstance.post(`admin/apply-retention?retentionDays=${retentionDays}`);
+        return response.data.data;
+    },
+
+    exportLogs: async (filters?: Omit<AuditLogFilters, 'page' | 'pageSize'>): Promise<Blob> => {
+        const response = await axiosInstance.get('admin/export-logs', {
+            params: filters,
+            responseType: 'blob'
+        });
+        return response.data;
     }
 };

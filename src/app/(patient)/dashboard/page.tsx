@@ -9,18 +9,26 @@ import { medicalRecordsApi } from '@/lib/api/medicalRecords';
 import { useQuery } from '@tanstack/react-query';
 
 import { FadeIn, FadeInStagger } from '@/components/ui/FadeIn';
+import { PageLayout, Section } from '@/components/layout/PageLayout';
+import { ResponsiveGrid } from '@/components/layout/ResponsiveGrid';
+import { Card } from '@/components/ui/Card';
+import { Stack } from '@/components/ui/Stack';
+import { Button } from '@/components/ui/Button';
+import { H1, H2, H3, Text } from '@/components/ui/Typography';
 
 const StatCard = ({ title, value, icon: Icon, color }: any) => (
-    <FadeIn direction="down" distance={10}>
-        <div className="bg-white dark:bg-white/5 p-6 rounded-3xl shadow-premium dark:shadow-none border border-slate-200/60 dark:border-white/5 flex items-center space-x-4 h-full transition-all hover:scale-[1.02]">
-            <div className={`w-12 h-12 rounded-2xl flex items-center justify-center ${color} shadow-lg shadow-black/5`}>
-                <Icon className="w-6 h-6 text-white" />
-            </div>
-            <div>
-                <p className="text-slate-500 dark:text-slate-400 text-sm font-semibold tracking-tight">{title}</p>
-                <p className="text-2xl font-bold text-slate-900 dark:text-white">{value}</p>
-            </div>
-        </div>
+    <FadeIn direction="down" distance={10} className="h-full">
+        <Card padding="md" className="h-full hover:scale-[1.02] border-white/5 dark:border-white/5">
+            <Stack direction="row" align="center" spacing="sm">
+                <div className={`w-12 h-12 rounded-2xl flex items-center justify-center shrink-0 ${color} shadow-lg shadow-black/5`}>
+                    <Icon className="w-6 h-6 text-white" />
+                </div>
+                <Stack direction="col" spacing="xs" className="gap-0.5">
+                    <Text variant="muted" className="text-sm font-semibold tracking-tight">{title}</Text>
+                    <p className="text-2xl font-bold text-slate-900 dark:text-white">{value}</p>
+                </Stack>
+            </Stack>
+        </Card>
     </FadeIn>
 );
 
@@ -45,141 +53,149 @@ export default function PatientDashboard() {
     const recentRecords = allRecords.slice(0, 3);
 
     return (
-        <div className="max-w-7xl mx-auto px-4 md:px-8 pt-2 pb-12 space-y-8">
+        <PageLayout>
             {/* Setup Reminder Banner */}
             {user && !user.totpSetupCompleted && (
                 <FadeIn direction="down" delay={0.1}>
-                    <div className="bg-amber-50 border-l-4 border-amber-400 p-4 md:p-6 rounded-2xl shadow-sm">
-                        <div className="flex flex-col md:flex-row md:items-center gap-4">
-                            <div className="flex items-center gap-4">
-                                <div className="flex-shrink-0 bg-amber-100 p-2 rounded-xl">
-                                    <ExclamationTriangleIcon className="h-6 w-6 text-amber-600" />
+                    <Card className="bg-amber-50 border-l-4 border-amber-400 p-4 md:p-6 rounded-2xl shadow-sm dark:bg-amber-900/10">
+                        <Stack direction={{ base: 'col', md: 'row' } as any} align={{ base: 'start', md: 'center' } as any} spacing="md">
+                            <Stack direction="row" align="center" spacing="md" className="flex-1">
+                                <div className="flex-shrink-0 bg-amber-100 dark:bg-amber-900/30 p-2 rounded-xl">
+                                    <ExclamationTriangleIcon className="h-6 w-6 text-amber-600 dark:text-amber-500" />
                                 </div>
-                                <div className="flex-1">
-                                    <h3 className="text-[10px] font-black text-amber-800 uppercase tracking-[0.2em] opacity-80">Security Setup Incomplete</h3>
-                                    <p className="text-amber-700 font-bold text-sm mt-0.5 leading-tight">
+                                <Stack direction="col" spacing="xs" className="gap-0.5">
+                                    <Text variant="label" className="text-amber-800 dark:text-amber-500 opacity-80">Security Setup Incomplete</Text>
+                                    <Text className="text-amber-700 dark:text-amber-600 font-bold text-sm leading-tight">
                                         Complete two-factor authentication to secure your health data.
-                                    </p>
-                                </div>
-                            </div>
-                            <div className="md:ml-auto">
-                                <button
-                                    onClick={() => router.push('/complete-setup')}
-                                    className="w-full md:w-auto bg-amber-600 text-white px-6 py-2.5 rounded-xl font-bold hover:bg-amber-700 transition-colors shadow-lg shadow-amber-600/20 text-sm"
-                                >
-                                    Complete Setup Now
-                                </button>
-                            </div>
-                        </div>
-                    </div>
+                                    </Text>
+                                </Stack>
+                            </Stack>
+                            <Button
+                                variant="primary"
+                                onClick={() => router.push('/complete-setup')}
+                                className="w-full md:w-auto bg-amber-600 text-white hover:bg-amber-700 shadow-amber-600/20"
+                            >
+                                Complete Setup Now
+                            </Button>
+                        </Stack>
+                    </Card>
                 </FadeIn>
             )}
 
             {/* Dashboard Actions Toolbar */}
             <FadeIn direction="down" delay={0.2}>
-                <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 bg-white dark:bg-white/5 p-4 rounded-[2rem] border border-slate-200/60 dark:border-white/10 shadow-premium dark:shadow-none">
-                    <div className="flex items-center gap-3 px-4 py-2 md:py-0">
-                        <div className="w-2 h-2 bg-primary rounded-full animate-pulse" />
-                        <span className="text-[10px] font-black text-slate-500 uppercase tracking-[0.2em] opacity-60">Active Health Monitor</span>
-                    </div>
+                <Card padding="none" className="bg-white dark:bg-white/5 rounded-[2rem] border border-slate-200/60 dark:border-white/10 shadow-premium dark:shadow-none overflow-hidden">
+                    <Stack direction={{ base: 'col', md: 'row' } as any} align={{ base: 'stretch', md: 'center' } as any} justify="between" className="p-4">
+                        <Stack direction="row" align="center" spacing="sm" className="px-4 py-2 md:py-0">
+                            <div className="w-2 h-2 bg-primary rounded-full animate-pulse" />
+                            <Text variant="label" className="opacity-60">Active Health Monitor</Text>
+                        </Stack>
 
-                    <button
-                        onClick={() => router.push('/records/upload')}
-                        className="w-full md:w-auto justify-center bg-primary hover:bg-primary/90 text-white px-8 py-3.5 rounded-2xl font-bold shadow-xl shadow-primary/20 flex items-center space-x-2 transition-all active:scale-95 group"
-                    >
-                        <PlusIcon className="w-5 h-5 group-hover:rotate-90 transition-transform duration-300" />
-                        <span className="text-sm md:text-base">Upload New Medical Record</span>
-                    </button>
-                </div>
+                        <Button
+                            onClick={() => router.push('/records/upload')}
+                            className="w-full md:w-auto px-8 py-3.5 rounded-2xl shadow-xl shadow-primary/20 gap-2 group"
+                        >
+                            <PlusIcon className="w-5 h-5 group-hover:rotate-90 transition-transform duration-300" />
+                            <span>Upload New Medical Record</span>
+                        </Button>
+                    </Stack>
+                </Card>
             </FadeIn>
 
             {/* Stats */}
-            <FadeInStagger className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6" delay={0.3}>
-                <StatCard title="Total Records" value={stats.total} icon={DocumentDuplicateIcon} color="bg-blue-600" />
-                <StatCard title="Pending" value={stats.pending} icon={ClockIcon} color="bg-amber-500" />
-                <StatCard title="Certified" value={stats.certified} icon={ClipboardDocumentCheckIcon} color="bg-emerald-600" />
-                <StatCard title="Upcoming" value="—" icon={PlusIcon} color="bg-primary" />
-            </FadeInStagger>
+            <Section>
+                <FadeInStagger delay={0.3}>
+                    <ResponsiveGrid columns={4}>
+                        <StatCard title="Total Records" value={stats.total} icon={DocumentDuplicateIcon} color="bg-blue-600" />
+                        <StatCard title="Pending" value={stats.pending} icon={ClockIcon} color="bg-amber-500" />
+                        <StatCard title="Certified" value={stats.certified} icon={ClipboardDocumentCheckIcon} color="bg-emerald-600" />
+                        <StatCard title="Upcoming" value="—" icon={PlusIcon} color="bg-primary" />
+                    </ResponsiveGrid>
+                </FadeInStagger>
+            </Section>
 
             {/* Main content */}
-            <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
-                <div className="lg:col-span-2 space-y-8">
+            <ResponsiveGrid columns={3} gap="lg">
+                <Stack direction="col" spacing="lg" className="lg:col-span-2">
                     <FadeIn direction="down" delay={0.4}>
                         <PatientProfile />
                     </FadeIn>
 
-                    {/* Recent Records - live data */}
+                    {/* Recent Records */}
                     <FadeIn direction="down" delay={0.5}>
-                        <div className="bg-white/40 dark:bg-white/5 rounded-3xl p-8 border border-white/10 dark:border-white/5 shadow-sm backdrop-blur-sm">
-                            <div className="flex items-center justify-between mb-6">
-                                <h3 className="text-xl font-bold text-slate-900 dark:text-white">Recent Records</h3>
-                                <button
+                        <Card padding="lg" className="bg-white/40 dark:bg-white/5 rounded-3xl border border-white/10 dark:border-white/5 shadow-sm backdrop-blur-sm">
+                            <Stack direction="row" align="center" justify="between" className="mb-6">
+                                <H3>Recent Records</H3>
+                                <Button
+                                    variant="ghost"
                                     onClick={() => router.push('/records')}
-                                    className="text-indigo-600 dark:text-primary-light text-sm font-semibold flex items-center space-x-1 hover:underline"
+                                    className="text-indigo-600 dark:text-primary-light text-sm font-semibold gap-1 hover:underline p-0 h-auto"
                                 >
                                     <span>View all</span>
                                     <ArrowRightIcon className="w-4 h-4" />
-                                </button>
-                            </div>
-                            <div className="space-y-4">
-                                {recentRecords.length === 0 ? (
-                                    <div className="text-center py-8 text-slate-400">
-                                        <DocumentDuplicateIcon className="w-10 h-10 mx-auto mb-2 opacity-40" />
-                                        <p className="text-sm">
-                                            No records yet.{' '}
-                                            <button
-                                                onClick={() => router.push('/records/upload')}
-                                                className="text-indigo-600 dark:text-primary-light font-semibold hover:underline"
+                                </Button>
+                            </Stack>
+                            
+                            {recentRecords.length === 0 ? (
+                                <Stack align="center" justify="center" className="py-8 text-slate-400">
+                                    <DocumentDuplicateIcon className="w-10 h-10 mb-2 opacity-40" />
+                                    <Text variant="muted">
+                                        No records yet.{' '}
+                                        <button
+                                            onClick={() => router.push('/records/upload')}
+                                            className="text-indigo-600 dark:text-primary-light font-semibold hover:underline"
+                                        >
+                                            Upload one now.
+                                        </button>
+                                    </Text>
+                                </Stack>
+                            ) : (
+                                <FadeInStagger className="space-y-4">
+                                    {recentRecords.map((r) => (
+                                        <FadeIn key={r.id} direction="down" distance={10}>
+                                            <Card
+                                                padding="sm"
+                                                className="bg-slate-50 dark:bg-slate-800 border border-slate-100 dark:border-slate-700 hover:border-indigo-200 dark:hover:border-primary/30 transition-all cursor-pointer"
+                                                onClick={() => router.push('/records')}
                                             >
-                                                Upload one now.
-                                            </button>
-                                        </p>
-                                    </div>
-                                ) : (
-                                    <FadeInStagger className="space-y-4">
-                                        {recentRecords.map((r) => (
-                                            <FadeIn key={r.id} direction="down" distance={10}>
-                                                <div
-                                                    onClick={() => router.push('/records')}
-                                                    className="flex items-center justify-between p-4 rounded-2xl bg-slate-50 dark:bg-slate-800 border border-slate-100 dark:border-slate-700 hover:border-indigo-200 dark:hover:border-primary/30 transition-all cursor-pointer"
-                                                >
-                                                    <div className="flex items-center space-x-4">
+                                                <Stack direction="row" align="center" justify="between">
+                                                    <Stack direction="row" align="center" spacing="md">
                                                         <div className="w-10 h-10 bg-white dark:bg-slate-700 rounded-xl flex items-center justify-center shadow-sm">
                                                             <DocumentDuplicateIcon className="w-5 h-5 text-indigo-600 dark:text-primary-light" />
                                                         </div>
-                                                        <div>
-                                                            <p className="font-bold text-slate-900 dark:text-white text-sm truncate max-w-xs">{r.originalFileName}</p>
-                                                            <p className="text-xs text-slate-500 dark:text-slate-400">{r.recordType} • {new Date(r.uploadedAt).toLocaleDateString()}</p>
-                                                        </div>
-                                                    </div>
-                                                    <span className={`px-2.5 py-1 rounded-full text-[10px] font-bold uppercase tracking-wider ${r.isCertified ? 'bg-emerald-100 dark:bg-emerald-900/30 text-emerald-700 dark:text-emerald-400' : 'bg-amber-100 dark:bg-amber-900/30 text-amber-700 dark:text-amber-400'}`}>
+                                                        <Stack direction="col" spacing="xs" className="gap-0">
+                                                            <Text className="font-bold text-slate-900 dark:text-white text-sm truncate max-w-xs">{r.originalFileName}</Text>
+                                                            <Text variant="muted" className="text-xs">{r.recordType} • {new Date(r.uploadedAt).toLocaleDateString()}</Text>
+                                                        </Stack>
+                                                    </Stack>
+                                                    <div className={`px-2.5 py-1 rounded-full text-[10px] font-bold uppercase tracking-wider ${r.isCertified ? 'bg-emerald-100 dark:bg-emerald-900/30 text-emerald-700 dark:text-emerald-400' : 'bg-amber-100 dark:bg-amber-900/30 text-amber-700 dark:text-amber-400'}`}>
                                                         {r.isCertified ? 'Certified' : 'Pending'}
-                                                    </span>
-                                                </div>
-                                            </FadeIn>
-                                        ))}
-                                    </FadeInStagger>
-                                )}
-                            </div>
-                        </div>
+                                                    </div>
+                                                </Stack>
+                                            </Card>
+                                        </FadeIn>
+                                    ))}
+                                </FadeInStagger>
+                            )}
+                        </Card>
                     </FadeIn>
-                </div>
+                </Stack>
 
-                {/* QR Emergency - Phase 4 */}
+                {/* QR Emergency */}
                 <FadeIn direction="down" delay={0.6} className="h-full">
-                    <div className="bg-gradient-to-br from-indigo-600 to-violet-700 rounded-3xl p-8 text-white shadow-xl relative overflow-hidden h-fit">
+                    <Card padding="lg" className="bg-gradient-to-br from-indigo-600 to-violet-700 rounded-3xl text-white shadow-xl relative overflow-hidden h-fit border-none">
                         <span className="absolute top-6 right-6 px-3 py-1 bg-white/20 backdrop-blur-sm text-white text-xs font-bold rounded-full z-20">Phase 4</span>
-                        <div className="relative z-10 space-y-6">
-                            <h3 className="text-xl font-bold">Emergency Quick Access</h3>
-                            <p className="text-indigo-100 text-sm leading-relaxed">Download your emergency medical pass for quick identification by medical personnel.</p>
-                            <button className="w-full py-3 bg-white/10 opacity-50 cursor-not-allowed rounded-xl font-bold transition-all" title="Coming in Phase 4">
+                        <Stack spacing="lg" className="relative z-10">
+                            <H3 className="text-white">Emergency Quick Access</H3>
+                            <Text className="text-indigo-100 text-sm leading-relaxed">Download your emergency medical pass for quick identification by medical personnel.</Text>
+                            <Button variant="ghost" className="w-full bg-white/10 opacity-50 cursor-not-allowed text-white hover:bg-white/20" title="Coming in Phase 4">
                                 Generate QR Code
-                            </button>
-                        </div>
+                            </Button>
+                        </Stack>
                         <div className="absolute -bottom-6 -right-6 w-32 h-32 bg-white/10 rounded-full blur-2xl"></div>
-                    </div>
+                    </Card>
                 </FadeIn>
-            </div>
-        </div>
+            </ResponsiveGrid>
+        </PageLayout>
     );
 }

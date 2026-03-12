@@ -12,6 +12,7 @@ export interface User {
     address?: string;
     dateOfBirth?: string;
     bloodType?: string;
+    profilePictureUrl?: string;
 }
 
 export interface AuthResponse {
@@ -42,4 +43,5 @@ export interface AuthResponse {
     medicalAccessToken?: string;
     medicalAccessURL?: string;
     medicalAccessExpiresAt?: string;
+    profilePictureUrl?: string;
 }

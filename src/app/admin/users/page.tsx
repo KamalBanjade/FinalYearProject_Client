@@ -25,6 +25,12 @@ import {
     X
 } from 'lucide-react';
 import { toast } from 'react-hot-toast';
+import { PageLayout, Section } from '@/components/layout/PageLayout';
+import { Stack } from '@/components/ui/Stack';
+import { Button } from '@/components/ui/Button';
+import { H1, H2, H3, Text } from '@/components/ui/Typography';
+import { ResponsiveTable } from '@/components/data-display/ResponsiveTable';
+import { Card } from '@/components/ui/Card';
 
 interface UserOverview {
     id: string;
@@ -160,134 +166,134 @@ export default function AdminUsersPage() {
     };
 
     return (
-        <div className="p-4 sm:p-8 max-w-7xl mx-auto space-y-6 sm:space-y-8 animate-in fade-in duration-500">
-            {/* Unified Filter & Action Toolbar */}
-            <div className="flex flex-col lg:flex-row items-center gap-4 bg-white/50 dark:bg-slate-900/50 backdrop-blur-md p-3 sm:p-4 rounded-3xl border border-slate-100 dark:border-slate-800 shadow-sm">
-                <form onSubmit={handleSearch} className="relative flex-1 group w-full">
-                    <Search className="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400 group-focus-within:text-blue-500 transition-colors" />
-                    <input
-                        type="text"
-                        placeholder="Search by name, email, or identity..."
-                        value={searchTerm}
-                        onChange={(e) => setSearchTerm(e.target.value)}
-                        className="w-full pl-12 pr-4 py-3 bg-white dark:bg-slate-900 border border-slate-100 dark:border-slate-800 rounded-2xl text-sm font-bold focus:ring-4 focus:ring-blue-500/10 focus:border-blue-500 outline-none transition-all dark:text-white"
-                    />
-                </form>
+        <PageLayout>
+            <Section>
+                <Stack spacing="lg">
+                    {/* Unified Filter & Action Toolbar */}
+                    <Stack direction={{ base: 'col', lg: 'row' } as any} align="center" spacing="md" className="bg-white/50 dark:bg-slate-900/50 backdrop-blur-md p-4 rounded-3xl border border-slate-100 dark:border-slate-800 shadow-sm">
+                        <form onSubmit={handleSearch} className="relative flex-1 group w-full">
+                            <Search className="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400 group-focus-within:text-blue-500 transition-colors" />
+                            <input
+                                type="text"
+                                placeholder="Search by name, email, or identity..."
+                                value={searchTerm}
+                                onChange={(e) => setSearchTerm(e.target.value)}
+                                className="w-full pl-12 pr-4 py-3 bg-white dark:bg-slate-900 border border-slate-100 dark:border-slate-800 rounded-2xl text-sm font-bold focus:ring-4 focus:ring-blue-500/10 focus:border-blue-500 outline-none transition-all dark:text-white"
+                            />
+                        </form>
 
-                <div className="flex flex-wrap items-center gap-3 w-full lg:w-auto">
-                    <div className="flex items-center gap-2">
-                        <select
-                            value={roleFilter}
-                            onChange={(e) => { setRoleFilter(e.target.value); setPagination(p => ({ ...p, page: 1 })); }}
-                            className="px-4 py-3 bg-white dark:bg-slate-900 border border-slate-100 dark:border-slate-800 rounded-2xl focus:outline-none focus:ring-2 focus:ring-blue-500/20 text-slate-600 dark:text-slate-400 text-xs font-bold min-w-[140px] cursor-pointer"
-                        >
-                            <option value="">All Roles</option>
-                            <option value="Admin">Administrators</option>
-                            <option value="Doctor">Doctors</option>
-                            <option value="Patient">Patients</option>
-                        </select>
+                        <Stack direction={{ base: 'col', sm: 'row' } as any} align="center" spacing="md" className="w-full lg:w-auto">
+                            <Stack direction="row" spacing="sm" className="w-full sm:w-auto">
+                                <select
+                                    value={roleFilter}
+                                    onChange={(e) => { setRoleFilter(e.target.value); setPagination(p => ({ ...p, page: 1 })); }}
+                                    className="flex-1 px-4 py-3 bg-white dark:bg-slate-900 border border-slate-100 dark:border-slate-800 rounded-2xl focus:outline-none focus:ring-2 focus:ring-blue-500/20 text-slate-600 dark:text-slate-400 text-xs font-bold min-w-[140px] cursor-pointer"
+                                >
+                                    <option value="">All Roles</option>
+                                    <option value="Admin">Administrators</option>
+                                    <option value="Doctor">Doctors</option>
+                                    <option value="Patient">Patients</option>
+                                </select>
 
-                        <select
-                            value={statusFilter}
-                            onChange={(e) => { setStatusFilter(e.target.value); setPagination(p => ({ ...p, page: 1 })); }}
-                            className="px-4 py-3 bg-white dark:bg-slate-900 border border-slate-100 dark:border-slate-800 rounded-2xl focus:outline-none focus:ring-2 focus:ring-blue-500/20 text-slate-600 dark:text-slate-400 text-xs font-bold min-w-[140px] cursor-pointer"
-                        >
-                            <option value="">All Status</option>
-                            <option value="active">Active Only</option>
-                            <option value="inactive">Inactive Only</option>
-                        </select>
-                    </div>
+                                <select
+                                    value={statusFilter}
+                                    onChange={(e) => { setStatusFilter(e.target.value); setPagination(p => ({ ...p, page: 1 })); }}
+                                    className="flex-1 px-4 py-3 bg-white dark:bg-slate-900 border border-slate-100 dark:border-slate-800 rounded-2xl focus:outline-none focus:ring-2 focus:ring-blue-500/20 text-slate-600 dark:text-slate-400 text-xs font-bold min-w-[140px] cursor-pointer"
+                                >
+                                    <option value="">All Status</option>
+                                    <option value="active">Active Only</option>
+                                    <option value="inactive">Inactive Only</option>
+                                </select>
+                            </Stack>
 
-                    <div className="h-8 w-px bg-slate-100 dark:bg-slate-800 hidden lg:block" />
+                            <div className="h-8 w-px bg-slate-100 dark:bg-slate-800 hidden lg:block" />
 
-                    <button className="flex items-center gap-2 px-6 py-3 bg-blue-600 text-white rounded-2xl font-bold text-sm shadow-lg shadow-blue-500/20 hover:bg-blue-700 transition-all active:scale-95 group">
-                        <Plus className="w-4 h-4 group-hover:rotate-90 transition-transform duration-300" />
-                        <span>Add New User</span>
-                    </button>
-                </div>
-            </div>
+                            <Button
+                                onClick={() => { }}
+                                className="w-full lg:w-auto h-12 px-6 bg-blue-600 text-white rounded-2xl font-bold shadow-lg shadow-blue-500/20"
+                            >
+                                <Plus className="w-4 h-4 mr-2" />
+                                Add New User
+                            </Button>
+                        </Stack>
+                    </Stack>
 
-            {/* Table/List */}
-            <div className="bg-white rounded-3xl border border-gray-100 shadow-sm overflow-hidden">
-                {loading ? (
-                    <div className="flex flex-col items-center justify-center py-24 space-y-4">
-                        <Loader2 className="w-8 h-8 text-blue-600 animate-spin" />
-                        <p className="text-gray-400 font-light italic">Fetching users...</p>
-                    </div>
-                ) : users.length === 0 ? (
-                    <div className="text-center py-24">
-                        <UserCheck className="w-12 h-12 text-gray-200 mx-auto mb-4" />
-                        <p className="text-gray-500 font-light">No users found matching your criteria</p>
-                    </div>
-                ) : (
-                    <div className="overflow-x-auto">
-                        {/* Desktop Table View */}
-                        <table className="w-full text-left border-collapse hidden md:table">
-                            <thead>
-                                <tr className="bg-gray-50/50 border-b border-gray-100">
-                                    <th className="px-6 py-4 text-xs font-semibold text-gray-400 uppercase tracking-wider">User</th>
-                                    <th className="px-6 py-4 text-xs font-semibold text-gray-400 uppercase tracking-wider">Role</th>
-                                    <th className="px-6 py-4 text-xs font-semibold text-gray-400 uppercase tracking-wider">Status</th>
-                                    <th className="px-6 py-4 text-xs font-semibold text-gray-400 uppercase tracking-wider">Joined</th>
-                                    <th className="px-6 py-4 text-xs font-semibold text-gray-400 uppercase tracking-wider">Actions</th>
-                                </tr>
-                            </thead>
-                            <tbody className="divide-y divide-gray-50">
-                                {users.map((user) => (
-                                    <tr key={user.id} className="group hover:bg-blue-50/30 transition-colors">
-                                        <td className="px-6 py-4">
-                                            <div className="flex items-center gap-3">
-                                                <div className={`w-10 h-10 rounded-full flex items-center justify-center text-lg font-light ${user.role === 'Admin' ? 'bg-purple-100 text-purple-600' :
-                                                    user.role === 'Doctor' ? 'bg-blue-100 text-blue-600' : 'bg-green-100 text-green-600'
-                                                    }`}>
-                                                    {user.firstName[0]}{user.lastName[0]}
-                                                </div>
-                                                <div>
-                                                    <p className="text-sm font-medium text-gray-900">{user.firstName} {user.lastName}</p>
-                                                    <p className="text-xs text-gray-500 font-light">{user.email}</p>
-                                                </div>
+                    {/* Table Container */}
+                    <div>
+                        <ResponsiveTable
+                            loading={loading}
+                            data={users}
+                            keyExtractor={(user) => user.id}
+                            emptyState={
+                                <div className="text-center py-24">
+                                    <UserCheck className="w-12 h-12 text-gray-200 mx-auto mb-4" />
+                                    <Text variant="body" className="text-gray-500 font-light">No users found matching your criteria</Text>
+                                </div>
+                            }
+                            columns={[
+                                {
+                                    header: 'User',
+                                    accessor: (user) => (
+                                        <div className="flex items-center gap-3">
+                                            <div className={`w-9 h-9 rounded-xl flex items-center justify-center text-sm font-black ${user.role === 'Admin' ? 'bg-purple-50 dark:bg-purple-500/10 text-purple-600 dark:text-purple-400' :
+                                                user.role === 'Doctor' ? 'bg-blue-50 dark:bg-blue-500/10 text-blue-600 dark:text-blue-400' : 'bg-emerald-50 dark:bg-emerald-500/10 text-emerald-600 dark:text-emerald-400'
+                                                }`}>
+                                                {user.firstName[0]}{user.lastName[0]}
                                             </div>
-                                        </td>
-                                        <td className="px-6 py-4">
-                                            <span className={`inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-medium border ${getRoleBadgeColor(user.role)}`}>
-                                                {getRoleIcon(user.role)}
-                                                {user.role}
-                                            </span>
-                                        </td>
-                                        <td className="px-6 py-4">
+                                            <div>
+                                                <p className="text-sm font-bold text-slate-700 dark:text-slate-200">{user.firstName} {user.lastName}</p>
+                                                <p className="text-xs font-semibold text-slate-400 dark:text-slate-500">{user.email}</p>
+                                            </div>
+                                        </div>
+                                    )
+                                },
+                                {
+                                    header: 'Role',
+                                    accessor: (user) => (
+                                        <span className={`inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg text-[10px] font-black uppercase tracking-widest border ${getRoleBadgeColor(user.role)}`}>
+                                            {getRoleIcon(user.role)}
+                                            {user.role}
+                                        </span>
+                                    )
+                                },
+                                {
+                                    header: 'Status',
+                                    accessor: (user) => (
+                                        <button
+                                            onClick={() => handleToggleStatus(user)}
+                                            className={`inline-flex px-2 py-0.5 rounded text-[10px] font-black uppercase tracking-widest transition-all ${user.isActive
+                                                ? 'bg-emerald-50 dark:bg-emerald-500/10 text-emerald-600 dark:text-emerald-400'
+                                                : 'bg-slate-100 dark:bg-slate-800 text-slate-400 italic'
+                                                }`}
+                                        >
+                                            {user.isActive ? 'Active' : 'Inactive'}
+                                        </button>
+                                    )
+                                },
+                                {
+                                    header: 'Joined',
+                                    accessor: (user) => (
+                                        <span className="text-sm font-semibold text-slate-500 dark:text-slate-400">
+                                            {new Date(user.createdAt).toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' })}
+                                        </span>
+                                    )
+                                },
+                                {
+                                    header: 'Actions',
+                                    accessor: (user) => (
+                                        <div className="flex items-center gap-2">
                                             <button
-                                                onClick={() => handleToggleStatus(user)}
-                                                className={`flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-medium transition-all ${user.isActive
-                                                    ? 'bg-green-50 text-green-600 hover:bg-green-100'
-                                                    : 'bg-red-50 text-red-600 hover:bg-red-100'
-                                                    }`}
+                                                onClick={() => handleOpenEdit(user)}
+                                                className="p-2 text-gray-400 hover:text-blue-600 hover:bg-blue-50 rounded-lg transition-all"
                                             >
-                                                {user.isActive ? <CheckCircle2 className="w-3 h-3" /> : <XCircle className="w-3 h-3" />}
-                                                {user.isActive ? 'Active' : 'Inactive'}
+                                                <Edit2 className="w-4 h-4" />
                                             </button>
-                                        </td>
-                                        <td className="px-6 py-4 text-sm text-gray-500 font-light">
-                                            {new Date(user.createdAt).toLocaleDateString()}
-                                        </td>
-                                        <td className="px-6 py-4">
-                                            <div className="flex items-center gap-2">
-                                                <button
-                                                    onClick={() => handleOpenEdit(user)}
-                                                    className="p-2 text-gray-400 hover:text-blue-600 hover:bg-blue-50 rounded-lg transition-all"
-                                                >
-                                                    <Edit2 className="w-4 h-4" />
-                                                </button>
-                                            </div>
-                                        </td>
-                                    </tr>
-                                ))}
-                            </tbody>
-                        </table>
-
-                        {/* Mobile Card View */}
-                        <div className="md:hidden divide-y divide-gray-50 bg-white">
-                            {users.map((user) => (
-                                <div key={user.id} className="p-4 space-y-4">
+                                        </div>
+                                    )
+                                }
+                            ]}
+                            renderMobileCard={(user) => (
+                                <div className="p-4 space-y-4">
                                     <div className="flex items-start justify-between">
                                         <div className="flex items-center gap-3">
                                             <div className={`w-12 h-12 rounded-2xl flex items-center justify-center text-xl font-light ${user.role === 'Admin' ? 'bg-purple-100 text-purple-600 shadow-sm' :
@@ -336,36 +342,39 @@ export default function AdminUsersPage() {
                                         </div>
                                     </div>
                                 </div>
-                            ))}
+                            )}
+                        />
+
+                        <div className="px-6 py-4 flex flex-col sm:row items-center justify-between gap-4">
+                            <Text variant="label" className="text-xs text-gray-400 font-bold uppercase tracking-widest">
+                                Showing {(pagination.page - 1) * pagination.pageSize + 1} to {Math.min(pagination.page * pagination.pageSize, pagination.totalCount)} of {pagination.totalCount} users
+                            </Text>
+                            <Stack direction="row" spacing="sm">
+                                <Button
+                                    disabled={pagination.page <= 1}
+                                    variant="ghost"
+                                    size="sm"
+                                    onClick={() => setPagination(p => ({ ...p, page: p.page - 1 }))}
+                                    className="px-4 h-10 border border-gray-100 dark:border-slate-800 rounded-xl disabled:opacity-50"
+                                >
+                                    Previous
+                                </Button>
+                                <Button
+                                    disabled={pagination.page >= pagination.totalPages}
+                                    variant="ghost"
+                                    size="sm"
+                                    onClick={() => setPagination(p => ({ ...p, page: p.page + 1 }))}
+                                    className="px-4 h-10 border border-gray-100 dark:border-slate-800 rounded-xl disabled:opacity-50"
+                                >
+                                    Next
+                                </Button>
+                            </Stack>
                         </div>
                     </div>
-                )}
+                </Stack>
+            </Section>
 
-                {/* Pagination */}
-                <div className="px-6 py-4 border-t border-gray-50 flex items-center justify-between">
-                    <p className="text-xs text-gray-400 font-light">
-                        Showing {(pagination.page - 1) * pagination.pageSize + 1} to {Math.min(pagination.page * pagination.pageSize, pagination.totalCount)} of {pagination.totalCount} users
-                    </p>
-                    <div className="flex gap-2">
-                        <button
-                            disabled={pagination.page <= 1}
-                            onClick={() => setPagination(p => ({ ...p, page: p.page - 1 }))}
-                            className="px-3 py-1.5 border border-gray-100 rounded-lg text-xs font-medium text-gray-600 disabled:opacity-50 hover:bg-gray-50 transition-colors"
-                        >
-                            Previous
-                        </button>
-                        <button
-                            disabled={pagination.page >= pagination.totalPages}
-                            onClick={() => setPagination(p => ({ ...p, page: p.page + 1 }))}
-                            className="px-3 py-1.5 border border-gray-100 rounded-lg text-xs font-medium text-gray-600 disabled:opacity-50 hover:bg-gray-50 transition-colors"
-                        >
-                            Next
-                        </button>
-                    </div>
-                </div>
-            </div>
-
-            {/* Edit Modal */}
+            {/* Edit Modal (Standardized) */}
             <AnimatePresence>
                 {showEditModal && (
                     <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/40 backdrop-blur-sm">
@@ -457,6 +466,6 @@ export default function AdminUsersPage() {
                     </div>
                 )}
             </AnimatePresence>
-        </div>
+        </PageLayout>
     );
 }

@@ -13,8 +13,8 @@ const getDeviceFingerprint = async () => {
         return {
             browser: (result.components.vendor as any)?.value || 'Unknown',
             os: (result.components.platform as any)?.value || 'Unknown',
-            screenResolution: ((result.components.screenResolution as any)?.value) 
-                ? `${(result.components.screenResolution as any).value[0]}x${(result.components.screenResolution as any).value[1]}` 
+            screenResolution: ((result.components.screenResolution as any)?.value)
+                ? `${(result.components.screenResolution as any).value[0]}x${(result.components.screenResolution as any).value[1]}`
                 : 'Unknown',
             timezone: Intl.DateTimeFormat().resolvedOptions().timeZone || 'Unknown',
             language: navigator.language || 'Unknown'
@@ -46,6 +46,7 @@ interface AuthState {
     checkAuth: () => Promise<void>;
     clearError: () => void;
     getDashboardUrl: (user: User | null) => string;
+    handleExternalLogin: (data: any) => void;
 
     // Trusted Devices
     getUserDevices: () => Promise<any[]>;
@@ -107,12 +108,12 @@ export const useAuthStore = create<AuthState>()(
 
                             const authToken = data.token || (data as any).Token;
                             console.info(`[AuthStore Trace] Token captured: ${authToken ? 'YES' : 'NO'}`);
-                            
+
                             if (authToken) {
                                 const isHttp = window.location.protocol === 'http:';
-                                Cookies.set('auth_token', authToken, { 
-                                    expires: 7, 
-                                    secure: !isHttp, 
+                                Cookies.set('auth_token', authToken, {
+                                    expires: 7,
+                                    secure: !isHttp,
                                     sameSite: isHttp ? 'Lax' : 'None',
                                     path: '/'
                                 });
@@ -130,6 +131,7 @@ export const useAuthStore = create<AuthState>()(
                                     requiresPasswordChange: data.requiresPasswordChange,
                                     dateOfBirth: data.dateOfBirth,
                                     bloodType: data.bloodType,
+                                    profilePictureUrl: data.profilePictureUrl,
                                 },
                                 isAuthenticated: true,
                                 hasChecked: true,
@@ -189,9 +191,9 @@ export const useAuthStore = create<AuthState>()(
 
                             if (authToken) {
                                 const isHttp = window.location.protocol === 'http:';
-                                Cookies.set('auth_token', authToken, { 
-                                    expires: 7, 
-                                    secure: !isHttp, 
+                                Cookies.set('auth_token', authToken, {
+                                    expires: 7,
+                                    secure: !isHttp,
                                     sameSite: isHttp ? 'Lax' : 'None',
                                     path: '/'
                                 });
@@ -209,6 +211,7 @@ export const useAuthStore = create<AuthState>()(
                                     requiresPasswordChange: resData.requiresPasswordChange,
                                     dateOfBirth: resData.dateOfBirth,
                                     bloodType: resData.bloodType,
+                                    profilePictureUrl: resData.profilePictureUrl,
                                 },
                                 isAuthenticated: true,
                                 hasChecked: true,
@@ -299,7 +302,7 @@ export const useAuthStore = create<AuthState>()(
                     if (!currentState.user) {
                         set({ isLoading: true });
                     }
-                    
+
                     console.info(`[AuthStore Trace] session recovery: Auth=${currentState.isAuthenticated}, Token=${!!currentState.token}`);
 
                     try {
@@ -317,6 +320,7 @@ export const useAuthStore = create<AuthState>()(
                                 totpSetupCompleted: userData.totpSetupCompleted,
                                 dateOfBirth: userData.dateOfBirth,
                                 bloodType: userData.bloodType,
+                                profilePictureUrl: userData.profilePictureUrl,
                             },
                             isAuthenticated: true,
                             isLoading: false,
@@ -337,6 +341,43 @@ export const useAuthStore = create<AuthState>()(
                     }
                 },
 
+                handleExternalLogin: (data: any) => {
+                    const authToken = data.token || data.Token;
+                    
+                    if (authToken) {
+                        const isHttp = window.location.protocol === 'http:';
+                        Cookies.set('auth_token', authToken, {
+                            expires: 7,
+                            secure: !isHttp,
+                            sameSite: isHttp ? 'Lax' : 'None',
+                            path: '/'
+                        });
+                    }
+
+                    set({
+                        user: {
+                            id: data.userId || data.UserId,
+                            email: data.email || data.Email,
+                            firstName: data.firstName || data.FirstName,
+                            lastName: data.lastName || data.LastName,
+                            role: data.role || data.Role,
+                            twoFactorEnabled: data.twoFactorEnabled ?? false,
+                            totpSetupCompleted: data.totpSetupCompleted ?? false,
+                            requiresPasswordChange: data.requiresPasswordChange ?? false,
+                            dateOfBirth: data.dateOfBirth,
+                            bloodType: data.bloodType,
+                            profilePictureUrl: data.profilePictureUrl || data.ProfilePictureUrl,
+                        },
+                        isAuthenticated: true,
+                        hasChecked: true,
+                        requiresTwoFactor: false,
+                        isLoading: false,
+                        token: authToken || null,
+                    });
+
+                    window.location.href = get().getDashboardUrl(get().user);
+                },
+
                 getUserDevices: async () => {
                     try {
                         const response = await axiosInstance.get(`auth/trusted-devices`);
@@ -350,7 +391,7 @@ export const useAuthStore = create<AuthState>()(
                 revokeDevice: async (deviceId: string) => {
                     try {
                         await axiosInstance.delete(`auth/trusted-devices/${deviceId}`);
-                         const keysToRemove: string[] = [];
+                        const keysToRemove: string[] = [];
                         for (let i = 0; i < localStorage.length; i++) {
                             const key = localStorage.key(i);
                             if (key && key.startsWith('device_token')) {

@@ -15,6 +15,7 @@ export interface PatientProfileData {
     emergencyContactPhone: string;
     allergies: string;
     chronicConditions: string;
+    profilePictureUrl?: string;
 }
 
 export interface DoctorBasicInfo {
@@ -102,6 +103,20 @@ export const patientApi = {
 
     getDoctorById: async (doctorId: string): Promise<{ success: boolean; message: string; data: DoctorExtendedProfile }> => {
         const response = await axiosInstance.get(`patient/doctors/${doctorId}`);
+        return response.data;
+    },
+    
+    uploadProfilePicture: async (file: File) => {
+        const formData = new FormData();
+        formData.append('file', file);
+        const response = await axiosInstance.post('patient/profile/picture', formData, {
+            headers: { 'Content-Type': 'multipart/form-data' }
+        });
+        return response.data;
+    },
+
+    deleteProfilePicture: async () => {
+        const response = await axiosInstance.delete('patient/profile/picture');
         return response.data;
     },
 };
