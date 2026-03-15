@@ -2,7 +2,7 @@
 
 import React, { useState, useEffect } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
-import { doctorApi } from '@/lib/api/doctor';
+import { doctorApi } from '@/lib/api';
 import { Button } from '@/components/ui/Button';
 import { Input } from '@/components/ui/Input';
 import {

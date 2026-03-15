@@ -27,6 +27,7 @@ import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import * as z from 'zod';
 import { patientApi, EmergencySettingsDTO } from '@/lib/api/patient';
+import { EmergencySkeleton } from '@/components/ui/EmergencySkeleton';
 
 // ── Schema ────────────────────────────────────────────────────────────────
 const emergencySchema = z.object({
@@ -221,9 +222,7 @@ export default function EmergencySettingsPage() {
 
     if (loading) {
         return (
-            <div className="flex items-center justify-center min-h-[60vh]">
-                <Loader2 className="w-8 h-8 animate-spin text-indigo-600 dark:text-indigo-400" />
-            </div>
+            <EmergencySkeleton />
         );
     }
 

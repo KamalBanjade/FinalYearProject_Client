@@ -11,14 +11,15 @@ import { formatLocalTime } from '@/lib/utils/dateUtils';
 import {
     Shield, RefreshCw, AlertCircle, AlertTriangle,
     Zap, Clock, XCircle, User, Globe,
-    CheckCircle, ChevronDown, ChevronUp
+    CheckCircle, ChevronDown, ChevronUp, ActivitySquare
 } from 'lucide-react';
+import { SecuritySkeleton } from '@/components/ui/SecuritySkeleton';
 
 const ALERT_META: Record<string, { label: string; icon: React.ElementType; colorClass: string }> = {
-    BRUTE_FORCE:      { label: 'Brute Force Attempt',  icon: XCircle,       colorClass: 'rose' },
-    EMERGENCY_OVERUSE:{ label: 'Emergency QR Overuse', icon: Zap,           colorClass: 'amber' },
-    CRITICAL_EVENT:   { label: 'Critical System Event',icon: AlertCircle,   colorClass: 'rose' },
-    OFF_HOURS_ACCESS: { label: 'Off-Hours Access',     icon: Clock,         colorClass: 'blue' },
+    BRUTE_FORCE: { label: 'Brute Force Attempt', icon: XCircle, colorClass: 'rose' },
+    EMERGENCY_OVERUSE: { label: 'Emergency QR Overuse', icon: Zap, colorClass: 'amber' },
+    CRITICAL_EVENT: { label: 'Critical System Event', icon: AlertCircle, colorClass: 'rose' },
+    OFF_HOURS_ACCESS: { label: 'Off-Hours Access', icon: Clock, colorClass: 'blue' },
 };
 
 const severityOrder: Record<string, number> = { Critical: 0, High: 1, Medium: 2, Low: 3 };
@@ -30,18 +31,18 @@ function AlertCard({ alert }: { alert: SecurityAlertDTO }) {
 
     const c = meta.colorClass;
     const colorMap: Record<string, string> = {
-        rose:  'bg-rose-50  dark:bg-rose-900/20  border-rose-200  dark:border-rose-800  text-rose-700  dark:text-rose-400',
+        rose: 'bg-rose-50  dark:bg-rose-900/20  border-rose-200  dark:border-rose-800  text-rose-700  dark:text-rose-400',
         amber: 'bg-amber-50 dark:bg-amber-900/20 border-amber-200 dark:border-amber-800 text-amber-700 dark:text-amber-400',
-        blue:  'bg-blue-50  dark:bg-blue-900/20  border-blue-200  dark:border-blue-800  text-blue-700  dark:text-blue-400',
+        blue: 'bg-blue-50  dark:bg-blue-900/20  border-blue-200  dark:border-blue-800  text-blue-700  dark:text-blue-400',
         slate: 'bg-slate-50 dark:bg-slate-800    border-slate-200 dark:border-slate-700 text-slate-700 dark:text-slate-300',
     };
     const colorCls = colorMap[c] ?? colorMap.slate;
 
     const severityColors: Record<string, string> = {
         Critical: 'bg-rose-100 text-rose-700 dark:bg-rose-900/40 dark:text-rose-400',
-        High:     'bg-orange-100 text-orange-700 dark:bg-orange-900/40 dark:text-orange-400',
-        Medium:   'bg-amber-100 text-amber-700 dark:bg-amber-900/40 dark:text-amber-400',
-        Low:      'bg-blue-100 text-blue-700 dark:bg-blue-900/40 dark:text-blue-400',
+        High: 'bg-orange-100 text-orange-700 dark:bg-orange-900/40 dark:text-orange-400',
+        Medium: 'bg-amber-100 text-amber-700 dark:bg-amber-900/40 dark:text-amber-400',
+        Low: 'bg-emerald-100 text-emerald-700 dark:bg-emerald-900/40 dark:text-emerald-400',
     };
 
     return (
@@ -120,8 +121,70 @@ function AlertCard({ alert }: { alert: SecurityAlertDTO }) {
     );
 }
 
+// --- Health Score Component ---
+function SecurityHealthScore({ alerts }: { alerts: SecurityAlertDTO[] }) {
+    const scores = { Critical: 30, High: 15, Medium: 5, Low: 2 };
+    const totalDeduction = alerts.reduce((acc, a) => acc + (scores[a.severity as keyof typeof scores] || 0), 0);
+    const score = Math.max(0, 100 - totalDeduction);
+
+    let status = { label: 'Optimal', color: 'text-emerald-500', bg: 'bg-emerald-500', glow: 'shadow-emerald-500/20' };
+    if (score < 40) status = { label: 'Critical', color: 'text-rose-500', bg: 'bg-rose-500', glow: 'shadow-rose-500/20' };
+    else if (score < 70) status = { label: 'Warning', color: 'text-amber-500', bg: 'bg-amber-500', glow: 'shadow-amber-500/20' };
+    else if (score < 90) status = { label: 'Good', color: 'text-emerald-500', bg: 'bg-emerald-500', glow: 'shadow-emerald-500/20' };
+
+    return (
+        <Card className="p-8 relative overflow-hidden bg-white/40 dark:bg-slate-900/40 backdrop-blur-xl border-white/60 dark:border-slate-800/50 mb-8">
+            <div className="absolute top-0 right-0 w-64 h-64 bg-indigo-500/5 blur-[100px] -mr-32 -mt-32" />
+            <div className="flex flex-col md:flex-row items-center gap-10 relative z-10">
+                <div className="relative">
+                    <svg className="w-32 h-32 transform -rotate-90">
+                        <circle cx="64" cy="64" r="58" stroke="currentColor" strokeWidth="8" fill="transparent" className="text-slate-100 dark:text-slate-800" />
+                        <motion.circle
+                            initial={{ strokeDasharray: "365 365", strokeDashoffset: 365 }}
+                            animate={{ strokeDashoffset: 365 - (365 * score) / 100 }}
+                            transition={{ duration: 1.5, ease: "easeOut" }}
+                            cx="64" cy="64" r="58" stroke="currentColor" strokeWidth="8" fill="transparent"
+                            className={status.color} strokeLinecap="round"
+                        />
+                    </svg>
+                    <div className="absolute inset-0 flex flex-col items-center justify-center">
+                        <span className="text-3xl font-black text-slate-900 dark:text-white leading-none">{score}</span>
+                        <span className="text-[10px] font-black uppercase tracking-widest text-slate-400 mt-1">Score</span>
+                    </div>
+                </div>
+
+                <div className="flex-1 text-center md:text-left space-y-2">
+                    <div className="flex items-center justify-center md:justify-start gap-2">
+                        <div className={`w-2 h-2 rounded-full ${status.bg} animate-pulse ${status.glow}`} />
+                        <h2 className={`text-xl font-black uppercase tracking-tight ${status.color}`}>System Health: {status.label}</h2>
+                    </div>
+                    <p className="text-sm font-medium text-slate-500 dark:text-slate-400 max-w-md">
+                        {score === 100 ?
+                            "System is operating within ideal parameters. No threats or unusual activity patterns detected across the network." :
+                            status.label === 'Critical' ?
+                                "Multiple critical security events require immediate administrative intervention to prevent potential data breach or system compromise." :
+                                "System has recorded some unusual activity patterns. Professional review of the alerts below is recommended."
+                        }
+                    </p>
+                </div>
+
+                <div className="grid grid-cols-2 gap-4 shrink-0">
+                    <div className="p-4 rounded-2xl bg-white/60 dark:bg-slate-800/60 border border-white/80 dark:border-slate-700/50">
+                        <div className="text-[10px] font-black uppercase tracking-widest text-slate-400 mb-1">Active Alerts</div>
+                        <div className="text-2xl font-black text-slate-900 dark:text-white">{alerts.length}</div>
+                    </div>
+                    <div className="p-4 rounded-2xl bg-white/60 dark:bg-slate-800/60 border border-white/80 dark:border-slate-700/50">
+                        <div className="text-[10px] font-black uppercase tracking-widest text-slate-400 mb-1">Last Sync</div>
+                        <div className="text-sm font-black text-slate-900 dark:text-white uppercase tracking-tighter">Live</div>
+                    </div>
+                </div>
+            </div>
+        </Card>
+    );
+}
+
 export default function SecurityAlertsPage() {
-    const [alerts, setAlerts]   = useState<SecurityAlertDTO[]>([]);
+    const [alerts, setAlerts] = useState<SecurityAlertDTO[]>([]);
     const [loading, setLoading] = useState(true);
     const [filterSeverity, setFilterSeverity] = useState<string | null>(null);
 
@@ -148,94 +211,77 @@ export default function SecurityAlertsPage() {
 
     return (
         <PageLayout>
-            {/* Header */}
-            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-8">
-                <div>
-                    <h1 className="text-3xl font-black text-slate-900 dark:text-white tracking-tight">Security Monitoring</h1>
-                    <p className="text-sm text-slate-400 font-medium mt-1">Suspicious activity detection and security alerts</p>
-                </div>
-                <Button
-                    variant="ghost"
-                    onClick={fetchAlerts}
-                    className="h-11 px-4 border border-slate-200 dark:border-slate-700 rounded-xl font-bold text-sm flex items-center gap-2"
-                >
-                    <RefreshCw className={`w-4 h-4 ${loading ? 'animate-spin' : ''}`} />
-                    Refresh
-                </Button>
-            </div>
-
-            {/* Summary Cards */}
-            <div className="grid grid-cols-2 sm:grid-cols-4 gap-4 mb-8">
-                {(['Critical', 'High', 'Medium', 'Low'] as const).map(sev => {
-                    const colorMap: Record<string, string> = {
-                        Critical: 'border-rose-200 dark:border-rose-800 bg-rose-50 dark:bg-rose-900/20 text-rose-700 dark:text-rose-400',
-                        High:     'border-orange-200 dark:border-orange-800 bg-orange-50 dark:bg-orange-900/20 text-orange-700 dark:text-orange-400',
-                        Medium:   'border-amber-200 dark:border-amber-800 bg-amber-50 dark:bg-amber-900/20 text-amber-700 dark:text-amber-400',
-                        Low:      'border-blue-200 dark:border-blue-800 bg-blue-50 dark:bg-blue-900/20 text-blue-700 dark:text-blue-400',
-                    };
-                    const isActive = filterSeverity === sev;
-                    return (
-                        <button
-                            key={sev}
-                            onClick={() => setFilterSeverity(isActive ? null : sev)}
-                            className={`p-4 rounded-2xl border-2 text-left transition-all ${colorMap[sev]} ${isActive ? 'ring-2 ring-offset-2 ring-current' : 'border-opacity-50'}`}
-                        >
-                            <div className="text-3xl font-black">{counts[sev]}</div>
-                            <div className="text-[10px] font-black uppercase tracking-widest mt-1">{sev}</div>
-                        </button>
-                    );
-                })}
-            </div>
-
-            {/* Alerts List */}
             {loading ? (
-                <div className="flex items-center justify-center min-h-[30vh]">
-                    <div className="text-center space-y-4">
-                        <Shield className="w-10 h-10 text-indigo-400 animate-pulse mx-auto" />
-                        <p className="text-sm font-bold text-slate-400 uppercase tracking-widest">Scanning for threats…</p>
-                    </div>
-                </div>
-            ) : filtered.length === 0 ? (
-                <Card padding="lg">
-                    <div className="py-16 text-center space-y-4">
-                        <div className="w-20 h-20 rounded-3xl bg-green-50 dark:bg-green-900/20 flex items-center justify-center mx-auto">
-                            <CheckCircle className="w-10 h-10 text-green-500" />
-                        </div>
-                        <h3 className="text-lg font-black text-slate-800 dark:text-white">
-                            {filterSeverity ? `No ${filterSeverity} alerts` : 'No Security Alerts Detected'}
-                        </h3>
-                        <p className="text-sm text-slate-500">
-                            {filterSeverity
-                                ? 'Try selecting a different severity filter.'
-                                : 'The system looks clean. All activity patterns appear normal.'}
-                        </p>
-                        {filterSeverity && (
-                            <button
-                                onClick={() => setFilterSeverity(null)}
-                                className="text-indigo-600 text-sm font-black uppercase tracking-widest"
-                            >
-                                Show all alerts
-                            </button>
-                        )}
-                    </div>
-                </Card>
+                <SecuritySkeleton />
             ) : (
-                <div className="space-y-3">
-                    <div className="flex items-center justify-between mb-2 px-1">
-                        <span className="text-xs font-bold text-slate-400 uppercase tracking-widest">
-                            {filtered.length} alert{filtered.length !== 1 ? 's' : ''}
-                            {filterSeverity ? ` · ${filterSeverity}` : ''}
-                        </span>
-                        {filterSeverity && (
-                            <button onClick={() => setFilterSeverity(null)} className="text-xs text-indigo-600 font-black uppercase tracking-widest">
-                                Clear filter
-                            </button>
+                <>
+                    <SecurityHealthScore alerts={alerts} />
+
+                    {/* Summary Cards */}
+                    <div className="grid grid-cols-2 sm:grid-cols-4 gap-4 mb-8">
+                        {(['Critical', 'High', 'Medium', 'Low'] as const).map(sev => {
+                            const colorMap: Record<string, string> = {
+                                Critical: 'border-rose-200 dark:border-rose-800 bg-rose-50/50 dark:bg-rose-900/10 text-rose-700 dark:text-rose-400',
+                                High: 'border-orange-200 dark:border-orange-800 bg-orange-50/50 dark:bg-orange-900/10 text-orange-700 dark:text-orange-400',
+                                Medium: 'border-amber-200 dark:border-amber-800 bg-amber-50/50 dark:bg-amber-900/10 text-amber-700 dark:text-amber-400',
+                                Low: 'border-emerald-200 dark:border-emerald-800 bg-emerald-50/50 dark:bg-emerald-900/10 text-emerald-700 dark:text-emerald-400',
+                            };
+                            const isActive = filterSeverity === sev;
+                            return (
+                                <button
+                                    key={sev}
+                                    onClick={() => setFilterSeverity(isActive ? null : sev)}
+                                    className={`p-5 rounded-[1.5rem] border-2 text-left transition-all ${colorMap[sev]} ${isActive ? 'ring-4 ring-indigo-500/10 border-indigo-500' : 'border-opacity-30'}`}
+                                >
+                                    <div className="text-3xl font-black tracking-tighter">{counts[sev]}</div>
+                                    <div className="text-[10px] font-black uppercase tracking-widest mt-1 opacity-70">{sev} Alerts</div>
+                                </button>
+                            );
+                        })}
+                    </div>
+
+                    {/* Alerts List */}
+                    <div className="space-y-4">
+                        <div className="flex items-center justify-between mb-2 px-1">
+                            <div className="flex items-center gap-2">
+                                <ActivitySquare className="w-4 h-4 text-slate-400" />
+                                <span className="text-xs font-black text-slate-400 uppercase tracking-widest">
+                                    Detection Log — {filtered.length} Incident{filtered.length !== 1 ? 's' : ''}
+                                    {filterSeverity ? ` · ${filterSeverity}` : ''}
+                                </span>
+                            </div>
+                            {filterSeverity && (
+                                <button onClick={() => setFilterSeverity(null)} className="text-xs text-indigo-600 font-black uppercase tracking-widest flex items-center gap-1">
+                                    <XCircle className="w-3 h-3" /> Reset Filter
+                                </button>
+                            )}
+                        </div>
+
+                        {filtered.length === 0 ? (
+                            <Card padding="lg" className="bg-white/40 dark:bg-slate-900/40 border-white/60 dark:border-slate-800/50">
+                                <div className="py-16 text-center space-y-4">
+                                    <div className="w-20 h-20 rounded-3xl bg-emerald-50 dark:bg-emerald-900/20 flex items-center justify-center mx-auto shadow-inner">
+                                        <CheckCircle className="w-10 h-10 text-emerald-500" />
+                                    </div>
+                                    <div>
+                                        <h3 className="text-lg font-black text-slate-800 dark:text-white tracking-tight">
+                                            {filterSeverity ? `No ${filterSeverity.toLowerCase()} threats detected` : 'System Architecture Secure'}
+                                        </h3>
+                                        <p className="text-sm text-slate-500 font-medium">
+                                            The node monitoring service reports zero anomalies for this period.
+                                        </p>
+                                    </div>
+                                </div>
+                            </Card>
+                        ) : (
+                            <div className="space-y-3">
+                                {filtered.map((alert, i) => (
+                                    <AlertCard key={`${alert.alertType}-${alert.detectedAt}-${i}`} alert={alert} />
+                                ))}
+                            </div>
                         )}
                     </div>
-                    {filtered.map((alert, i) => (
-                        <AlertCard key={`${alert.alertType}-${alert.detectedAt}-${i}`} alert={alert} />
-                    ))}
-                </div>
+                </>
             )}
         </PageLayout>
     );

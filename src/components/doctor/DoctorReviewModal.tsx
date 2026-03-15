@@ -2,7 +2,9 @@
 
 import React, { useState } from 'react';
 import { X, CheckCircle, AlertCircle, FileText, Loader2, Search, User, File } from 'lucide-react';
-import { medicalRecordsApi, MedicalRecordResponseDTO } from '@/lib/api/medicalRecords';
+import { useQueryClient } from '@tanstack/react-query';
+import { doctorApi, medicalRecordsApi, MedicalRecordResponseDTO } from '@/lib/api';
+import { queryKeys } from '@/lib/queryKeys';
 import toast from 'react-hot-toast';
 import { FullScreenRecordModal } from '@/components/ui/FullScreenRecordModal';
 
@@ -13,6 +15,7 @@ interface DoctorReviewModalProps {
 }
 
 export const DoctorReviewModal = ({ record, onClose, onSuccess }: DoctorReviewModalProps) => {
+    const queryClient = useQueryClient();
     const [notes, setNotes] = useState('');
     const [loading, setLoading] = useState(false);
     const [previewLoading, setPreviewLoading] = useState(false);
@@ -42,8 +45,10 @@ export const DoctorReviewModal = ({ record, onClose, onSuccess }: DoctorReviewMo
     const handleCertify = async () => {
         setLoading(true);
         try {
-            const response = await medicalRecordsApi.certifyRecord(record.id, notes);
+            const response = await doctorApi.certifyRecord(record.id, notes);
             toast.success('Record certified successfully');
+            queryClient.invalidateQueries({ queryKey: queryKeys.doctor.pendingRecords.all() });
+            queryClient.invalidateQueries({ queryKey: queryKeys.doctor.dashboardStats() });
             onSuccess(response.data);
             onClose();
         } catch (err: any) {
@@ -60,8 +65,10 @@ export const DoctorReviewModal = ({ record, onClose, onSuccess }: DoctorReviewMo
         }
         setLoading(true);
         try {
-            const response = await medicalRecordsApi.rejectRecord(record.id, notes);
+            const response = await doctorApi.rejectRecord(record.id, notes);
             toast.success('Record rejected and returned to patient');
+            queryClient.invalidateQueries({ queryKey: queryKeys.doctor.pendingRecords.all() });
+            queryClient.invalidateQueries({ queryKey: queryKeys.doctor.dashboardStats() });
             onSuccess(response.data);
             onClose();
         } catch (err: any) {

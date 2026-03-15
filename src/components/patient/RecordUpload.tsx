@@ -1,7 +1,14 @@
 import React, { useState, useRef, useEffect } from 'react';
 import { UploadCloud, File as FileIcon, X, CheckCircle, AlertCircle, Sparkles, Calendar, Star, Clock, ChevronDown, User, Stethoscope } from 'lucide-react';
-import { medicalRecordsApi, UploadMedicalRecordDTO } from '@/lib/api/medicalRecords';
-import { patientApi, DoctorBasicInfo, DoctorSuggestionItem, SmartDoctorSuggestionDTO } from '@/lib/api/patient';
+import { useQueryClient } from '@tanstack/react-query';
+import { 
+    patientApi, 
+    DoctorBasicInfo, 
+    DoctorSuggestionItem, 
+    SmartDoctorSuggestionDTO, 
+} from '@/lib/api';
+import { medicalRecordsApi, MedicalRecordResponseDTO, UploadMedicalRecordDTO } from '@/lib/api/medicalRecords';
+import { queryKeys } from '@/lib/queryKeys';
 import { FormGrid } from '@/components/layout/ResponsiveGrid';
 import toast from 'react-hot-toast';
 
@@ -77,7 +84,7 @@ function SuggestionChip({
         >
             <div className={`w-11 h-11 rounded-xl flex items-center justify-center flex-shrink-0 font-black text-sm transition-all duration-500
                 ${isSelected ? 'bg-secondary text-white shadow-lg shadow-secondary/20 scale-105' : 'bg-slate-100/80 text-slate-500 dark:bg-slate-800/80 dark:text-slate-400 group-hover:bg-secondary/10 group-hover:text-secondary'}`}>
-                {suggestion.fullName.split(' ').find(w => w !== 'Dr.')?.charAt(0) ?? 'D'}
+                {suggestion.fullName.split(' ').find((w: string) => w !== 'Dr.')?.charAt(0) ?? 'D'}
             </div>
             <div className="min-w-0 flex-1 space-y-1">
                 <div className="flex items-center justify-between gap-2">
@@ -102,6 +109,7 @@ function SuggestionChip({
 
 
 export function RecordUpload({ onUploadSuccess, onRecordUploaded }: RecordUploadProps) {
+    const queryClient = useQueryClient();
     const [file, setFile] = useState<File | null>(null);
     const [filePreview, setFilePreview] = useState<string | null>(null);
     const [recordType, setRecordType] = useState<RecordType>(RecordType.LAB_REPORT);
@@ -280,6 +288,7 @@ export function RecordUpload({ onUploadSuccess, onRecordUploaded }: RecordUpload
             setUploadProgress(100);
             setSuccess(true);
             toast.success('Medical record uploaded and encrypted successfully!');
+            queryClient.invalidateQueries({ queryKey: queryKeys.patient.records.all() });
 
             // Post-upload: suggest setting primary doctor if not already set
             const hasPrimary = suggestions?.primaryDoctor !== null;
@@ -309,7 +318,7 @@ export function RecordUpload({ onUploadSuccess, onRecordUploaded }: RecordUpload
             setPrimarySetConfirmed(true);
             toast.success(`${primarySuggestion.doctorName} is now your primary doctor.`);
             // Refresh suggestions so next upload sees the primary
-            setSuggestions(prev => prev ? {
+            setSuggestions((prev: SmartDoctorSuggestionDTO | null) => prev ? {
                 ...prev, primaryDoctor: {
                     id: primarySuggestion.doctorId,
                     fullName: primarySuggestion.doctorName,

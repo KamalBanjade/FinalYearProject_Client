@@ -21,6 +21,7 @@ import {
     Activity,
     CalendarDays
 } from 'lucide-react';
+import { Skeleton } from '@/components/ui/Skeleton';
 import { isAfter, isBefore, subDays } from 'date-fns';
 import toast from 'react-hot-toast';
 import Link from 'next/link';
@@ -30,6 +31,7 @@ import { motion, AnimatePresence } from 'framer-motion';
 import { MedicalLoader } from '@/components/ui/MedicalLoader';
 import { InsightCard } from '@/components/cards/InsightCard';
 import { PatientAppointmentCard } from '@/components/patient/PatientAppointmentCard';
+import { AppointmentSkeleton } from '@/components/ui/AppointmentSkeleton';
 
 export default function PatientAppointmentsPage() {
     const queryClient = useQueryClient();
@@ -285,9 +287,13 @@ function AppointmentDetailsOverlay({ appointmentId, onClose }: { appointmentId: 
                 </button>
 
                 {isLoading ? (
-                    <div className="p-32 flex flex-col items-center justify-center">
-                        <MedicalLoader />
-                        <p className="text-[10px] font-black uppercase tracking-widest text-slate-400 mt-8 animate-pulse">Synchronizing Clinical Intelligence...</p>
+                    <div className="p-10 md:p-12 space-y-8">
+                        <Skeleton className="h-40 w-full rounded-[2.5rem]" />
+                        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                            <Skeleton className="h-32 w-full rounded-[2.5rem]" />
+                            <Skeleton className="h-32 w-full rounded-[2.5rem]" />
+                        </div>
+                        <Skeleton className="h-48 w-full rounded-[2.5rem]" />
                     </div>
                 ) : app ? (
                     <div className="flex flex-col h-full max-h-[85vh]">

@@ -1,7 +1,7 @@
 'use client';
 
 import React, { useEffect, useState } from 'react';
-import { doctorApi } from '@/lib/api/doctor';
+import { doctorApi } from '@/lib/api';
 import { medicalRecordsApi } from '@/lib/api/medicalRecords';
 import {
     FileText,
@@ -15,34 +15,22 @@ import { format } from 'date-fns';
 import toast from 'react-hot-toast';
 import { FullScreenRecordModal } from '@/components/ui/FullScreenRecordModal';
 import { ResponsiveTable } from '@/components/data-display/ResponsiveTable';
+import { useDoctorCertifiedRecords } from '@/hooks/useAdminQueries';
+
+import { MedicalRecordResponseDTO } from '@/lib/api/medicalRecords';
 
 export default function CertifiedRecordsPage() {
-    const [records, setRecords] = useState<any[]>([]);
-    const [loading, setLoading] = useState(true);
-    const [searchTerm, setSearchTerm] = useState('');
-    const [recordType, setRecordType] = useState('');
     const [previewUrl, setPreviewUrl] = useState<string | null>(null);
     const [loadingRecordId, setLoadingRecordId] = useState<string | null>(null);
+    const [searchTerm, setSearchTerm] = useState('');
+    const [recordType, setRecordType] = useState('');
 
-    const fetchRecords = async () => {
-        setLoading(true);
-        try {
-            const response = await doctorApi.getCertifiedRecords();
-            setRecords(response.data);
-        } catch (error) {
-            toast.error('Failed to load clinical certification history');
-        } finally {
-            setLoading(false);
-        }
-    };
+    const { data: recordsData, isLoading: loading } = useDoctorCertifiedRecords();
+    const records = (recordsData as MedicalRecordResponseDTO[]) || [];
 
-    useEffect(() => {
-        fetchRecords();
-    }, []);
-
-    const filteredRecords = records.filter(record => {
+    const filteredRecords = records.filter((record: MedicalRecordResponseDTO) => {
         const matchesSearch =
-            record.patientName.toLowerCase().includes(searchTerm.toLowerCase()) ||
+            record.patientName?.toLowerCase().includes(searchTerm.toLowerCase()) ||
             record.description?.toLowerCase().includes(searchTerm.toLowerCase()) ||
             record.originalFileName.toLowerCase().includes(searchTerm.toLowerCase());
         const matchesType = recordType === '' || record.recordType === recordType;
@@ -98,7 +86,7 @@ export default function CertifiedRecordsPage() {
             </div>
 
             {/* Table */}
-            <ResponsiveTable
+            <ResponsiveTable<MedicalRecordResponseDTO>
                 loading={loading}
                 data={filteredRecords}
                 keyExtractor={(r) => r.id}
@@ -110,7 +98,7 @@ export default function CertifiedRecordsPage() {
                 columns={[
                     {
                         header: 'Document',
-                        accessor: (r) => (
+                        accessor: (r: MedicalRecordResponseDTO) => (
                             <div className="flex items-center gap-3">
                                 <div className="w-9 h-9 rounded-xl bg-primary/10 dark:bg-slate-800 text-primary flex items-center justify-center flex-shrink-0">
                                     <FileText size={15} />
@@ -124,18 +112,20 @@ export default function CertifiedRecordsPage() {
                     },
                     {
                         header: 'Patient',
-                        accessor: (r) => (
+                        accessor: (r: MedicalRecordResponseDTO) => (
                             <div>
                                 <p className="text-sm font-bold text-slate-700 dark:text-slate-200 capitalize">{r.patientName}</p>
-                                <p className="text-xs font-semibold text-slate-400 dark:text-slate-500">ID: {r.patientId.substring(0, 8)}</p>
+                                <p className="text-xs font-semibold text-slate-400 dark:text-slate-500">ID: {r.patientId?.substring(0, 8)}</p>
                             </div>
                         )
                     },
                     {
                         header: 'Certified',
-                        accessor: (r) => (
+                        accessor: (r: MedicalRecordResponseDTO) => (
                             <div>
-                                <p className="text-sm font-semibold text-slate-500 dark:text-slate-400">{format(new Date(r.certifiedAt), 'MMM dd, yyyy')}</p>
+                                <p className="text-sm font-semibold text-slate-500 dark:text-slate-400">
+                                    {r.certifiedAt ? format(new Date(r.certifiedAt), 'MMM dd, yyyy') : 'N/A'}
+                                </p>
                                 <div className="flex items-center gap-1 mt-0.5">
                                     <ShieldCheck size={10} className="text-emerald-500" />
                                     <span className="text-[10px] font-black uppercase tracking-widest text-emerald-600 dark:text-emerald-400">Verified</span>
@@ -146,7 +136,7 @@ export default function CertifiedRecordsPage() {
                     {
                         header: 'Actions',
                         className: 'text-right',
-                        accessor: (r) => (
+                        accessor: (r: MedicalRecordResponseDTO) => (
                             <div className="flex justify-end gap-2">
                                 <button
                                     onClick={() => handlePreview(r.id)}
@@ -166,7 +156,7 @@ export default function CertifiedRecordsPage() {
                         )
                     }
                 ]}
-                renderMobileCard={(r) => (
+                renderMobileCard={(r: MedicalRecordResponseDTO) => (
                     <div className="p-5 space-y-4">
                         <div className="flex items-center gap-3">
                             <div className="w-10 h-10 bg-primary/10 text-primary rounded-xl flex items-center justify-center flex-shrink-0">
@@ -184,7 +174,9 @@ export default function CertifiedRecordsPage() {
                             </div>
                             <div className="p-3 bg-slate-50 dark:bg-slate-800/50 rounded-2xl border border-slate-100 dark:border-slate-700">
                                 <p className="text-[8px] font-black text-slate-400 uppercase tracking-widest mb-1">Certified</p>
-                                <p className="text-xs font-bold text-slate-700 dark:text-slate-200">{format(new Date(r.certifiedAt), 'MMM dd, yyyy')}</p>
+                                <p className="text-xs font-bold text-slate-700 dark:text-slate-200">
+                                    {r.certifiedAt ? format(new Date(r.certifiedAt), 'MMM dd, yyyy') : 'N/A'}
+                                </p>
                             </div>
                         </div>
                         <div className="flex gap-2">

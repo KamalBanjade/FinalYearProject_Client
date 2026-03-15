@@ -1,8 +1,9 @@
 'use client';
 
-import React, { useState, useEffect } from 'react';
-import { adminApi } from '@/lib/api/admin';
+import React, { useState } from 'react';
+import { useQueryClient } from '@tanstack/react-query';
 import { motion, AnimatePresence } from 'framer-motion';
+import { queryKeys } from '@/lib/queryKeys';
 import {
     Plus,
     Search,
@@ -32,22 +33,12 @@ import { H1, H2, H3, Text } from '@/components/ui/Typography';
 import { ResponsiveTable } from '@/components/data-display/ResponsiveTable';
 import { Card } from '@/components/ui/Card';
 
-interface UserOverview {
-    id: string;
-    email: string;
-    firstName: string;
-    lastName: string;
-    role: string;
-    isActive: boolean;
-    emailConfirmed: boolean;
-    createdAt: string;
-    lastLoginAt?: string;
-    phoneNumber?: string;
-}
+
+import { useAdminUsers } from '@/hooks/useAdminQueries';
+import { adminApi, UserOverview } from '@/lib/api';
 
 export default function AdminUsersPage() {
-    const [users, setUsers] = useState<UserOverview[]>([]);
-    const [loading, setLoading] = useState(true);
+    const queryClient = useQueryClient();
     const [searchTerm, setSearchTerm] = useState('');
     const [roleFilter, setRoleFilter] = useState<string>('');
     const [statusFilter, setStatusFilter] = useState<string>('');
@@ -57,9 +48,19 @@ export default function AdminUsersPage() {
     const [pagination, setPagination] = useState({
         page: 1,
         pageSize: 10,
-        totalCount: 0,
-        totalPages: 1
     });
+
+    const { data: usersData, isLoading: loading, refetch } = useAdminUsers({
+        page: pagination.page,
+        pageSize: pagination.pageSize,
+        searchTerm: searchTerm || undefined,
+        role: roleFilter || undefined,
+        isActive: statusFilter === 'active' ? true : statusFilter === 'inactive' ? false : undefined
+    });
+
+    const users = usersData?.data || [];
+    const totalCount = usersData?.pagination?.totalCount || 0;
+    const totalPages = usersData?.pagination?.totalPages || 1;
 
     // Form state for editing
     const [form, setForm] = useState({
@@ -69,40 +70,9 @@ export default function AdminUsersPage() {
         isActive: true
     });
 
-    useEffect(() => {
-        fetchUsers();
-    }, [pagination.page, roleFilter, statusFilter]);
-
-    const fetchUsers = async () => {
-        try {
-            setLoading(true);
-            const res = await adminApi.getUsers({
-                page: pagination.page,
-                pageSize: pagination.pageSize,
-                searchTerm: searchTerm,
-                role: roleFilter || undefined,
-                isActive: statusFilter === 'active' ? true : statusFilter === 'inactive' ? false : undefined
-            });
-
-            if (res.success) {
-                setUsers(res.data.users);
-                setPagination(prev => ({
-                    ...prev,
-                    totalCount: res.data.pagination.totalCount,
-                    totalPages: res.data.pagination.totalPages
-                }));
-            }
-        } catch (error) {
-            toast.error('Failed to load users');
-        } finally {
-            setLoading(false);
-        }
-    };
-
     const handleSearch = (e: React.FormEvent) => {
         e.preventDefault();
         setPagination(prev => ({ ...prev, page: 1 }));
-        fetchUsers();
     };
 
     const handleToggleStatus = async (user: UserOverview) => {
@@ -110,7 +80,7 @@ export default function AdminUsersPage() {
             const res = await adminApi.updateUserStatus(user.id, !user.isActive);
             if (res.success) {
                 toast.success(res.message);
-                setUsers(prev => prev.map(u => u.id === user.id ? { ...u, isActive: !u.isActive } : u));
+                queryClient.invalidateQueries({ queryKey: queryKeys.admin.users.all() });
             }
         } catch (error) {
             toast.error('Failed to update status');
@@ -137,7 +107,7 @@ export default function AdminUsersPage() {
             const res = await adminApi.updateUser(editingUser.id, form);
             if (res.success) {
                 toast.success('User updated');
-                fetchUsers();
+                queryClient.invalidateQueries({ queryKey: queryKeys.admin.users.all() });
                 setShowEditModal(false);
             }
         } catch (error: any) {
@@ -223,7 +193,7 @@ export default function AdminUsersPage() {
                         <ResponsiveTable
                             loading={loading}
                             data={users}
-                            keyExtractor={(user) => user.id}
+                            keyExtractor={(user: UserOverview) => user.id}
                             emptyState={
                                 <div className="text-center py-24">
                                     <UserCheck className="w-12 h-12 text-gray-200 mx-auto mb-4" />
@@ -347,7 +317,7 @@ export default function AdminUsersPage() {
 
                         <div className="px-6 py-4 flex flex-col sm:row items-center justify-between gap-4">
                             <Text variant="label" className="text-xs text-gray-400 font-bold uppercase tracking-widest">
-                                Showing {(pagination.page - 1) * pagination.pageSize + 1} to {Math.min(pagination.page * pagination.pageSize, pagination.totalCount)} of {pagination.totalCount} users
+                                Showing {(pagination.page - 1) * pagination.pageSize + 1} to {Math.min(pagination.page * pagination.pageSize, totalCount)} of {totalCount} users
                             </Text>
                             <Stack direction="row" spacing="sm">
                                 <Button
@@ -360,7 +330,7 @@ export default function AdminUsersPage() {
                                     Previous
                                 </Button>
                                 <Button
-                                    disabled={pagination.page >= pagination.totalPages}
+                                    disabled={pagination.page >= totalPages}
                                     variant="ghost"
                                     size="sm"
                                     onClick={() => setPagination(p => ({ ...p, page: p.page + 1 }))}

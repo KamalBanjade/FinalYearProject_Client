@@ -2,7 +2,7 @@
 
 import React, { useMemo, useState, Suspense } from 'react';
 import { useParams, useRouter, useSearchParams, usePathname } from 'next/navigation';
-import { doctorApi } from '@/lib/api/doctor';
+import { doctorApi } from '@/lib/api';
 import { medicalRecordsApi } from '@/lib/api/medicalRecords';
 import { 
     Loader2, User, Calendar, FileText, Plus, ChevronLeft, 

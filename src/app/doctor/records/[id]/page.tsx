@@ -13,6 +13,7 @@ import { motion } from 'framer-motion';
 import toast from 'react-hot-toast';
 import { formatDate } from '@/lib/utils/dateUtils';
 import { useQuery } from '@tanstack/react-query';
+import { RecordDetailSkeleton } from '@/components/ui/RecordDetailSkeleton';
 
 function RecordContent() {
     const params = useParams();
@@ -33,10 +34,7 @@ function RecordContent() {
 
     if (isLoading) {
         return (
-            <div className="flex-1 flex flex-col items-center justify-center p-12">
-                <Loader2 className="w-12 h-12 text-indigo-500 animate-spin" />
-                <p className="mt-4 text-sm font-black text-slate-400 uppercase tracking-widest">Retrieving Secure Record...</p>
-            </div>
+            <RecordDetailSkeleton />
         );
     }
 
@@ -242,12 +240,7 @@ function RecordContent() {
 
 export default function ConsultationDetailPage() {
     return (
-        <Suspense fallback={
-            <div className="flex-1 flex flex-col items-center justify-center p-12">
-                <Loader2 className="w-12 h-12 text-indigo-500 animate-spin" />
-                <p className="mt-4 text-sm font-black text-slate-400 uppercase tracking-widest">Retrieving Secure Record...</p>
-            </div>
-        }>
+        <Suspense fallback={<RecordDetailSkeleton />}>
             <RecordContent />
         </Suspense>
     );

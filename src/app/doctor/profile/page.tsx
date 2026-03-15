@@ -1,7 +1,14 @@
 'use client';
 
 import React, { useEffect, useState, useCallback } from 'react';
-import { doctorApi, DoctorExtendedProfile, UpdateDoctorExtendedProfileRequest, DoctorProfileSection, DoctorCertificationItem, DoctorCustomAttribute } from '@/lib/api/doctor';
+import { 
+    doctorApi, 
+    DoctorExtendedProfile, 
+    UpdateDoctorExtendedProfileRequest, 
+    DoctorProfileSection, 
+    DoctorCertificationItem, 
+    DoctorCustomAttribute 
+} from '@/lib/api';
 import { Button } from '@/components/ui/Button';
 import {
     User, Mail, Phone, Building2, Award, Stethoscope, Edit2, Edit3, Save, Plus, X,
@@ -13,6 +20,10 @@ import { motion, AnimatePresence } from 'framer-motion';
 import { MedicalLoader } from '@/components/ui/MedicalLoader';
 import { ProfilePictureUpload } from '@/components/profile/ProfilePictureUpload';
 import { SectionCard } from '@/components/ui/SectionCard';
+import { useDoctorProfile } from '@/hooks/useAdminQueries';
+import { useQueryClient } from '@tanstack/react-query';
+import { queryKeys } from '@/lib/queryKeys';
+import { ProfileSkeleton } from '@/components/profile/ProfileSkeleton';
 
 // ── Helpers ───────────────────────────────────────────────────────────────────
 
@@ -162,8 +173,10 @@ function TimelineSection({
 
 // ── Main Page ─────────────────────────────────────────────────────────────────
 export default function DoctorProfilePage() {
-    const [profile, setProfile] = useState<DoctorExtendedProfile | null>(null);
-    const [loading, setLoading] = useState(true);
+    const queryClient = useQueryClient();
+    const { data: profileRes, isLoading: queryLoading } = useDoctorProfile();
+    const profile = profileRes?.data;
+
     const [saving, setSaving] = useState(false);
     const [isEditing, setIsEditing] = useState(false);
 
@@ -186,34 +199,25 @@ export default function DoctorProfilePage() {
     const [newProc, setNewProc] = useState('');
     const [newLang, setNewLang] = useState('');
 
-    const loadProfile = useCallback(async () => {
-        try {
-            const res = await doctorApi.getProfile();
-            const p = res.data;
-            setProfile(p);
-            setBio(p.biography || '');
-            setYearsExp(p.yearsOfExperience?.toString() || '');
-            setContact(p.contactNumber || '');
-            setHospital(p.hospitalAffiliation || '');
-            setFee(p.consultationFee || '');
-            setHours(p.consultationHours || '');
-            setLocation(p.consultationLocation || '');
-            setAcceptsNew(p.acceptsNewPatients ?? true);
-            setEducation(p.education || []);
-            setExperience(p.experience || []);
-            setCertifications(p.professionalCertifications || []);
-            setAwards(p.awards || []);
-            setProcedures(p.procedures || []);
-            setLanguages(p.languages || []);
-            setCustomAttrs(p.customAttributes || []);
-        } catch {
-            toast.error('Failed to load profile');
-        } finally {
-            setLoading(false);
+    useEffect(() => {
+        if (profile && !isEditing) {
+            setBio(profile.biography || '');
+            setYearsExp(profile.yearsOfExperience?.toString() || '');
+            setContact(profile.contactNumber || '');
+            setHospital(profile.hospitalAffiliation || '');
+            setFee(profile.consultationFee || '');
+            setHours(profile.consultationHours || '');
+            setLocation(profile.consultationLocation || '');
+            setAcceptsNew(profile.acceptsNewPatients ?? true);
+            setEducation(profile.education || []);
+            setExperience(profile.experience || []);
+            setCertifications(profile.professionalCertifications || []);
+            setAwards(profile.awards || []);
+            setProcedures(profile.procedures || []);
+            setLanguages(profile.languages || []);
+            setCustomAttrs(profile.customAttributes || []);
         }
-    }, []);
-
-    useEffect(() => { loadProfile(); }, [loadProfile]);
+    }, [profile, isEditing]);
 
     const handleSave = async () => {
         setSaving(true);
@@ -235,8 +239,8 @@ export default function DoctorProfilePage() {
                 languages,
                 customAttributes: customAttrs,
             };
-            const res = await doctorApi.updateProfile(payload);
-            setProfile(res.data);
+            await doctorApi.updateProfile(payload);
+            queryClient.invalidateQueries({ queryKey: queryKeys.doctor.profile() });
             setIsEditing(false);
             toast.success('Profile updated successfully');
         } catch {
@@ -250,7 +254,7 @@ export default function DoctorProfilePage() {
         try {
             await doctorApi.uploadProfilePicture(file);
             toast.success('Clinical identity visual updated');
-            loadProfile();
+            queryClient.invalidateQueries({ queryKey: queryKeys.doctor.profile() });
         } catch (error) {
             toast.error('Visual synchronization error');
         }
@@ -260,7 +264,7 @@ export default function DoctorProfilePage() {
         try {
             await doctorApi.deleteProfilePicture();
             toast.success('Clinical identity visual removed');
-            loadProfile();
+            queryClient.invalidateQueries({ queryKey: queryKeys.doctor.profile() });
         } catch (error) {
             toast.error('Visual removal error');
         }
@@ -295,13 +299,8 @@ export default function DoctorProfilePage() {
         const next = [...arr]; next[i] = { ...next[i], [field]: val }; set(next);
     };
 
-    if (loading) {
-        return (
-            <div className="flex flex-col items-center justify-center min-h-[70vh] gap-6">
-                <MedicalLoader />
-                <p className="text-[10px] font-black text-slate-400 uppercase tracking-[0.4em] animate-pulse">Loading Clinical Identity...</p>
-            </div>
-        );
+    if (queryLoading || !profile) {
+        return <ProfileSkeleton />;
     }
 
     if (!profile) return null;

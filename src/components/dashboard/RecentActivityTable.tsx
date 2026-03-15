@@ -1,10 +1,10 @@
 'use client';
 
-import { useState, useEffect } from 'react';
-import { User, FileText, Shield, Activity, ArrowRight } from 'lucide-react';
-import { adminAuditLogsApi, AuditLogResponseDTO, AuditSeverity } from '@/lib/api/adminAuditLogs';
-import { formatLocalTime } from '@/lib/utils/dateUtils';
 import { useRouter } from 'next/navigation';
+import { useQuery } from '@tanstack/react-query';
+import { User, FileText, Shield, Activity, ArrowRight } from 'lucide-react';
+import { AuditLogResponseDTO, AuditSeverity } from '@/lib/api/adminAuditLogs';
+import { formatLocalTime } from '@/lib/utils/dateUtils';
 
 type LogType = 'user' | 'record' | 'security' | 'system';
 
@@ -30,17 +30,15 @@ const severityBadge: Record<AuditSeverity, string> = {
     [AuditSeverity.Critical]: 'bg-red-50 text-red-700 dark:bg-red-500/10 dark:text-red-400',
 };
 
+import { useAuditLogs } from '@/hooks/useAdminQueries';
+
 export function RecentActivityTable() {
-    const [logs, setLogs] = useState<AuditLogResponseDTO[]>([]);
-    const [loading, setLoading] = useState(true);
     const router = useRouter();
 
-    useEffect(() => {
-        adminAuditLogsApi.getAuditLogs({ page: 1, pageSize: 8 })
-            .then(res => setLogs(res.logs))
-            .catch(() => {})
-            .finally(() => setLoading(false));
-    }, []);
+    const { data, isLoading } = useAuditLogs(1);
+
+    const logs = data?.logs || [];
+    const loading = isLoading;
 
     return (
         <div className="bg-white/50 dark:bg-slate-900/40 backdrop-blur-2xl border border-slate-200/50 dark:border-slate-800/50 rounded-[2.5rem] sm:rounded-[3rem] overflow-hidden shadow-xl shadow-slate-200/20 dark:shadow-black/30">
@@ -83,7 +81,7 @@ export function RecentActivityTable() {
                             <tr>
                                 <td colSpan={5} className="px-5 py-8 text-center text-sm text-muted">No activity found.</td>
                             </tr>
-                        ) : logs.map(log => {
+                        ) : logs.map((log: AuditLogResponseDTO) => {
                             const type = classifyLog(log.action);
                             const cfg = typeConfig[type];
                             const IconComponent = cfg.icon;

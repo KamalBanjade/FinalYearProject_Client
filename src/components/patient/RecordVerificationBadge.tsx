@@ -259,18 +259,22 @@ export const RecordVerificationBadge: React.FC<RecordVerificationBadgeProps> = (
             <button
                 onClick={handleVerify}
                 disabled={loading}
-                className={`inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-bold transition-all border shadow-sm
+                className={`inline-flex items-center justify-center gap-1.5 px-2.5 py-1 rounded-full text-[10px] font-black uppercase tracking-tight transition-all border shadow-sm
                     ${result
                         ? (result.isValid
                             ? 'bg-emerald-50 dark:bg-emerald-900/20 text-emerald-700 dark:text-emerald-400 border-emerald-200 dark:border-emerald-800/50 hover:bg-emerald-100 dark:hover:bg-emerald-900/30'
                             : 'bg-red-50 dark:bg-red-900/20 text-red-700 dark:text-red-400 border-red-200 dark:border-red-800/50')
-                        : 'bg-indigo-50 dark:bg-indigo-900/20 text-indigo-700 dark:text-indigo-400 border-indigo-200 dark:border-indigo-800/50 hover:bg-indigo-100 dark:hover:bg-indigo-900/30'
+                        : 'bg-slate-800 text-white border-slate-700 hover:bg-slate-900 shadow-lg'
                     }`}
             >
-                {loading ? <RefreshCw size={14} className="animate-spin" /> :
-                    result ? (result.isValid ? <ShieldCheck size={14} /> : <ShieldAlert size={14} />) :
-                        <ShieldCheck size={14} />}
-                {loading ? 'Verifying…' : result ? (result.isValid ? 'Verified ✓' : 'Tampered!') : 'Verify Integrity'}
+                <div className="flex items-center justify-center shrink-0">
+                    {loading ? <RefreshCw size={12} className="animate-spin" /> :
+                        result ? (result.isValid ? <ShieldCheck size={12} /> : <ShieldAlert size={12} />) :
+                            <ShieldCheck size={12} />}
+                </div>
+                <span className="leading-none pt-[1px]">
+                    {loading ? 'Verifying...' : result ? (result.isValid ? 'Certified Authentic' : 'Tampered!') : 'Certified'}
+                </span>
             </button>
 
             {showDetails && result && (

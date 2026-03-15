@@ -3,7 +3,7 @@
 import React, { useState, useRef, useEffect, useCallback } from 'react';
 import { createPortal } from 'react-dom';
 import Link from 'next/link';
-import { usePathname } from 'next/navigation';
+import { usePathname, useRouter } from 'next/navigation';
 import { useAuthStore } from '@/store/authStore';
 import { ThemeToggle } from '@/components/theme/ThemeToggle';
 import { BottomNav } from '@/components/dashboard/BottomNav';
@@ -43,9 +43,18 @@ interface SidebarItemProps {
   isCollapsed: boolean;
 }
 
+import { usePrefetchRoute } from '@/hooks/usePrefetchOnHover';
+
 const SidebarItem = ({ icon: Icon, label, href, isActive, isCollapsed }: SidebarItemProps) => {
+  const prefetch = usePrefetchRoute(href);
+
   return (
-    <Link href={href} className="group relative block">
+    <Link 
+        href={href} 
+        prefetch={true} 
+        onMouseEnter={prefetch}
+        className="group relative block"
+    >
             <div
         className={`
                     relative flex items-center transition-all duration-300 ease-[cubic-bezier(0.4,0,0.2,1)]
@@ -106,6 +115,7 @@ const SectionLabel = ({ label, isCollapsed }: {label: string;isCollapsed: boolea
 export const DashboardLayout = ({ children, role }: {children: React.ReactNode;role: string;}) => {
   const { user, logout } = useAuthStore();
   const pathname = usePathname();
+  const router = useRouter();
   const [isCollapsed, setIsCollapsed] = useState(false);
 
   const patientItems = [
@@ -207,9 +217,9 @@ export const DashboardLayout = ({ children, role }: {children: React.ReactNode;r
                                 <SectionLabel label={section} isCollapsed={isCollapsed} />
                                 <div className="flex flex-col gap-0.5">
                                     {sectionItems.map((item) => {
-                   const isActive = pathname === item.href || (item.href !== '/' && pathname.startsWith(item.href + '/'));
-                   return <SidebarItem key={item.href} {...item} isActive={isActive} isCollapsed={isCollapsed} />;
-                 })}
+                                        const isActive = activeItem?.href === item.href;
+                                        return <SidebarItem key={item.href} {...item} isActive={isActive} isCollapsed={isCollapsed} />;
+                                    })}
                                 </div>
                             </div>
             )}

@@ -13,14 +13,17 @@ import toast from 'react-hot-toast';
 import { motion } from 'framer-motion';
 import { useRouter, useSearchParams, usePathname } from 'next/navigation';
 import { ResponsiveTable } from '@/components/data-display/ResponsiveTable';
+import { Skeleton } from '@/components/ui/Skeleton';
+import { DirectorySkeleton } from '@/components/ui/DirectorySkeleton';
 
 // --- Stat Card ---
-const StatCard = ({ icon: Icon, label, value, trend, colorClass }: {
+const StatCard = ({ icon: Icon, label, value, trend, colorClass, isLoading = false }: {
     icon: React.ComponentType<{ className?: string; size?: number }>;
     label: string;
     value: string | number;
     trend?: string;
     colorClass: string;
+    isLoading?: boolean;
 }) => {
     const colorStyles: Record<string, string> = {
         primary: 'text-primary bg-primary/10 border-primary/20 shadow-primary/10 group-hover:bg-primary group-hover:text-white',
@@ -36,7 +39,7 @@ const StatCard = ({ icon: Icon, label, value, trend, colorClass }: {
                 <div className={`w-12 h-12 rounded-2xl flex items-center justify-center transition-all duration-500 border ${style}`}>
                     <Icon size={22} className="transition-transform group-hover:scale-110" />
                 </div>
-                {trend && (
+                {trend && !isLoading && (
                     <div className="flex items-center gap-1.5 px-2 py-1 rounded-lg bg-emerald-50 dark:bg-emerald-400/10 border border-emerald-100 dark:border-emerald-400/20 text-[10px] font-black text-emerald-600 dark:text-emerald-400 uppercase tracking-tight">
                         <span className="w-1 h-1 rounded-full bg-emerald-500 animate-pulse" />
                         {trend}
@@ -44,7 +47,11 @@ const StatCard = ({ icon: Icon, label, value, trend, colorClass }: {
                 )}
             </div>
             <div className="mt-6 space-y-1">
-                <p className="text-3xl font-black text-slate-900 dark:text-white tracking-tighter leading-none">{value}</p>
+                {isLoading ? (
+                    <Skeleton className="h-8 w-20 rounded-lg mb-2" />
+                ) : (
+                    <p className="text-3xl font-black text-slate-900 dark:text-white tracking-tighter leading-none">{value}</p>
+                )}
                 <div className="flex items-center gap-2">
                     <p className="text-[10px] font-black text-slate-400 dark:text-slate-500 uppercase tracking-[0.2em]">{label}</p>
                     <div className="h-px flex-1 bg-slate-100 dark:bg-slate-800 group-hover:bg-primary/20 transition-colors" />
@@ -154,10 +161,10 @@ function PatientsContent() {
 
             {/* Stats */}
             <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
-                <StatCard icon={User} label="Total Patients" value={patients.length} colorClass="primary" />
-                <StatCard icon={FileText} label="Shared Records" value={totalRecords} trend="+12%" colorClass="indigo" />
-                <StatCard icon={Calendar} label="Active This Week" value={recentPatients} colorClass="emerald" />
-                <StatCard icon={AlertTriangle} label="High Activity" value={patients.filter(p => (p.sharedRecordsCount || 0) > 5).length} colorClass="orange" />
+                <StatCard icon={User} label="Total Patients" value={patients.length} colorClass="primary" isLoading={isLoading} />
+                <StatCard icon={FileText} label="Shared Records" value={totalRecords} trend="+12%" colorClass="indigo" isLoading={isLoading} />
+                <StatCard icon={Calendar} label="Active This Week" value={recentPatients} colorClass="emerald" isLoading={isLoading} />
+                <StatCard icon={AlertTriangle} label="High Activity" value={patients.filter(p => (p.sharedRecordsCount || 0) > 5).length} colorClass="orange" isLoading={isLoading} />
             </div>
 
             {/* Table */}
@@ -279,15 +286,7 @@ function PatientsContent() {
 
 export default function DoctorPatientsPage() {
     return (
-        <Suspense fallback={
-            <div className="flex-1 flex flex-col items-center justify-center p-12">
-                <div className="relative w-16 h-16">
-                    <div className="absolute inset-0 rounded-2xl border-4 border-primary/10" />
-                    <div className="absolute inset-0 rounded-2xl border-4 border-t-primary animate-spin" />
-                </div>
-                <p className="mt-8 text-[10px] font-bold text-slate-400 uppercase tracking-[0.3em] animate-pulse">Syncing Directory...</p>
-            </div>
-        }>
+        <Suspense fallback={<DirectorySkeleton />}>
             <PatientsContent />
         </Suspense>
     );

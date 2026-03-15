@@ -1,36 +1,32 @@
 'use client';
 
 import React, { useState, Suspense } from 'react';
-import { medicalRecordsApi, MedicalRecordResponseDTO } from '@/lib/api/medicalRecords';
+import { MedicalRecordResponseDTO } from '@/lib/api';
 import { DoctorReviewModal } from '@/components/doctor/DoctorReviewModal';
 import {
     ClipboardDocumentCheckIcon,
     MagnifyingGlassIcon,
-    FunnelIcon,
     DocumentTextIcon,
     UserIcon
 } from '@heroicons/react/24/outline';
 import { ChevronRight } from 'lucide-react';
-import { useQuery } from '@tanstack/react-query';
+import { useDoctorPendingRecords } from '@/hooks/useAdminQueries';
 import { ResponsiveTable } from '@/components/data-display/ResponsiveTable';
+import { DirectorySkeleton } from '@/components/ui/DirectorySkeleton';
 
 function PendingRecordsContent() {
     const [selectedRecord, setSelectedRecord] = useState<MedicalRecordResponseDTO | null>(null);
     const [searchQuery, setSearchQuery] = useState('');
 
-    const { data: recordsRes, isLoading, refetch } = useQuery({
-        queryKey: ['doctor', 'records', 'pending'],
-        queryFn: () => medicalRecordsApi.getPendingRecords(),
-        staleTime: 1000 * 60 * 5,
-    });
+    const { data: recordsRes, isLoading } = useDoctorPendingRecords();
 
-    const records = recordsRes?.data || [];
+    const records = (recordsRes as any) || [];
 
     const handleReviewSuccess = () => {
-        refetch();
+        // Invalidation is now handled inside the modal component
     };
 
-    const filteredRecords = records.filter(r =>
+    const filteredRecords = records.filter((r: MedicalRecordResponseDTO) =>
         r.originalFileName.toLowerCase().includes(searchQuery.toLowerCase()) ||
         r.patientName?.toLowerCase().includes(searchQuery.toLowerCase())
     );
@@ -56,11 +52,10 @@ function PendingRecordsContent() {
                 </div>
             </div>
 
-            {/* Table */}
             <ResponsiveTable
                 loading={isLoading}
                 data={filteredRecords}
-                keyExtractor={(r) => r.id}
+                keyExtractor={(r: MedicalRecordResponseDTO) => r.id}
                 emptyState={
                     <div className="px-8 py-20 flex flex-col items-center gap-4">
                         <div className="w-16 h-16 bg-slate-50 dark:bg-slate-800/60 rounded-3xl flex items-center justify-center">
@@ -173,12 +168,7 @@ function PendingRecordsContent() {
 
 export default function PendingRecordsPage() {
     return (
-        <Suspense fallback={
-            <div className="p-20 flex flex-col items-center justify-center text-slate-400">
-                <div className="w-12 h-12 border-4 border-indigo-500/20 border-t-indigo-500 rounded-full animate-spin mb-4"></div>
-                <p className="font-bold text-sm uppercase tracking-widest animate-pulse">Hydrating Queue...</p>
-            </div>
-        }>
+        <Suspense fallback={<DirectorySkeleton />}>
             <PendingRecordsContent />
         </Suspense>
     );

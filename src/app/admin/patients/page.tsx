@@ -1,7 +1,9 @@
 'use client';
 
-import React, { useState, useEffect } from 'react';
-import { adminApi } from '@/lib/api/admin';
+import React, { useState } from 'react';
+import { useAdminPatients } from '@/hooks/useAdminQueries';
+import { useQueryClient } from '@tanstack/react-query';
+import { adminApi } from '@/lib/api';
 import {
     Search,
     User,
@@ -34,52 +36,28 @@ interface UserOverview {
     phoneNumber?: string;
 }
 
+
 export default function AdminPatientsPage() {
-    const [patients, setPatients] = useState<UserOverview[]>([]);
-    const [loading, setLoading] = useState(true);
+    const queryClient = useQueryClient();
     const [searchTerm, setSearchTerm] = useState('');
     const [statusFilter, setStatusFilter] = useState<string>('');
-    const [pagination, setPagination] = useState({
+    const [page, setPage] = useState(1);
+
+    const activeIsActive = statusFilter === 'active' ? true : statusFilter === 'inactive' ? false : undefined;
+
+    const { data: patientsRes, isLoading, isPlaceholderData } = useAdminPatients(page, searchTerm, activeIsActive);
+
+    const patients = patientsRes?.data || [];
+    const pagination = patientsRes?.pagination || {
         page: 1,
         pageSize: 10,
         totalCount: 0,
         totalPages: 1
-    });
-
-    useEffect(() => {
-        fetchPatients();
-    }, [pagination.page, statusFilter]);
-
-    const fetchPatients = async () => {
-        try {
-            setLoading(true);
-            const res = await adminApi.getUsers({
-                page: pagination.page,
-                pageSize: pagination.pageSize,
-                searchTerm: searchTerm,
-                role: 'Patient',
-                isActive: statusFilter === 'active' ? true : statusFilter === 'inactive' ? false : undefined
-            });
-
-            if (res.success) {
-                setPatients(res.data.users);
-                setPagination(prev => ({
-                    ...prev,
-                    totalCount: res.data.pagination.totalCount,
-                    totalPages: res.data.pagination.totalPages
-                }));
-            }
-        } catch (error) {
-            toast.error('Failed to load patient directory');
-        } finally {
-            setLoading(false);
-        }
     };
 
     const handleSearch = (e: React.FormEvent) => {
         e.preventDefault();
-        setPagination(prev => ({ ...prev, page: 1 }));
-        fetchPatients();
+        setPage(1);
     };
 
     const handleToggleStatus = async (user: UserOverview) => {
@@ -87,7 +65,7 @@ export default function AdminPatientsPage() {
             const res = await adminApi.updateUserStatus(user.id, !user.isActive);
             if (res.success) {
                 toast.success(res.message);
-                setPatients(prev => prev.map(u => u.id === user.id ? { ...u, isActive: !u.isActive } : u));
+                queryClient.invalidateQueries({ queryKey: ['admin', 'patients'] });
             }
         } catch (error) {
             toast.error('Failed to update status');
@@ -114,7 +92,7 @@ export default function AdminPatientsPage() {
                         <Stack direction={{ base: 'col', sm: 'row' } as any} align="center" spacing="md" className="w-full lg:w-auto">
                             <select
                                 value={statusFilter}
-                                onChange={(e) => { setStatusFilter(e.target.value); setPagination(p => ({ ...p, page: 1 })); }}
+                                onChange={(e) => { setStatusFilter(e.target.value); setPage(1); }}
                                 className="w-full sm:w-48 px-4 py-3 bg-white dark:bg-slate-900 border border-slate-100 dark:border-slate-800 rounded-2xl focus:outline-none focus:ring-2 focus:ring-emerald-500/20 text-slate-600 dark:text-slate-400 text-xs font-bold cursor-pointer"
                             >
                                 <option value="">All Status</option>
@@ -133,7 +111,7 @@ export default function AdminPatientsPage() {
                     {/* Table Container */}
                     <div>
                         <ResponsiveTable
-                            loading={loading}
+                            loading={isLoading || isPlaceholderData}
                             data={patients}
                             keyExtractor={(p) => p.id}
                             emptyState={
@@ -273,25 +251,25 @@ export default function AdminPatientsPage() {
                         />
 
                         {/* Pagination */}
-                        <div className="px-6 py-4 flex flex-col sm:row items-center justify-between gap-4">
+                        <div className="px-6 py-4 flex flex-col sm:flex-row items-center justify-between gap-4">
                             <Text variant="label" className="text-xs text-gray-400 font-bold uppercase tracking-widest">
-                                Showing {(pagination.page - 1) * pagination.pageSize + 1} to {Math.min(pagination.page * pagination.pageSize, pagination.totalCount)} of {pagination.totalCount} patients
+                                Showing {(page - 1) * pagination.pageSize + 1} to {Math.min(page * pagination.pageSize, pagination.totalCount)} of {pagination.totalCount} patients
                             </Text>
                             <Stack direction="row" spacing="sm">
                                 <Button
-                                    disabled={pagination.page <= 1}
+                                    disabled={page <= 1}
                                     variant="ghost"
                                     size="sm"
-                                    onClick={() => setPagination(p => ({ ...p, page: p.page - 1 }))}
+                                    onClick={() => setPage(p => p - 1)}
                                     className="px-4 h-10 border border-gray-100 dark:border-slate-800 rounded-xl disabled:opacity-50 shadow-sm"
                                 >
                                     Previous
                                 </Button>
                                 <Button
-                                    disabled={pagination.page >= pagination.totalPages}
+                                    disabled={page >= pagination.totalPages}
                                     variant="ghost"
                                     size="sm"
-                                    onClick={() => setPagination(p => ({ ...p, page: p.page + 1 }))}
+                                    onClick={() => setPage(p => p + 1)}
                                     className="px-4 h-10 border border-gray-100 dark:border-slate-800 rounded-xl disabled:opacity-50 shadow-sm"
                                 >
                                     Next

@@ -92,39 +92,92 @@ export interface UpdateDoctorProfileRequest {
     contactNumber?: string;
 }
 
+// ── Statistics & Dashboard ────────────────────────────────────────────────
+export interface DoctorStatistics {
+    totalAssignedPatients: number;
+    pendingRecordReviews: number;
+    totalCertifiedRecords: number;
+    todayAppointments: number;
+    upcomingAppointments: number;
+    patientTrustScore: number;
+    totalClinicalActions24h: number;
+    appointmentTrend: Array<{ label: string; value: number }>;
+    recordStatusDistribution: Array<{ label: string; value: number }>;
+    patientGenderDistribution: Array<{ label: string; value: number }>;
+    patientAgeGroups: Array<{ label: string; value: number }>;
+    recordTypeDistribution: Array<{ label: string; value: number }>;
+    appointmentReasonDistribution: Array<{ label: string; value: number }>;
+    weeklyAvailability: AvailabilitySlot[];
+    averageCertificationTimeHours: number;
+    recentActions: ClinicalActivity[];
+}
+
+export interface AvailabilitySlot {
+    day: string;
+    timeRange: string;
+    isAvailable: boolean;
+    status?: string;
+}
+
+export interface DoctorDashboardStats {
+    todayAppointments: number;
+    pendingRecords: number;
+    weekAppointments: number;
+    monthPatients: number;
+    recentScans: number;
+    completionRate: number;
+}
+
+export interface RecordGrowthTrend {
+    label: string;
+    value: number;
+    value2: number;
+    value3: number;
+    value4: number;
+}
+
+export interface PatientVolumeTrend {
+    date: string;
+    patientCount: number;
+}
+
+export interface TemplateUsage {
+    templateId: string;
+    templateName: string;
+    usageCount: number;
+}
+
+export interface RecentScan {
+    id: string;
+    patientId: string;
+    patientName: string;
+    scannedAt: string;
+    isEmergency: boolean;
+    totpVerified: boolean;
+}
+
+export interface DaySchedule {
+    date: string;
+    count: number;
+    scheduled: number;
+    completed: number;
+    cancelled: number;
+}
+
+export interface WeekSchedule {
+    weekStart: string;
+    days: DaySchedule[];
+}
+
+export interface ClinicalActivity {
+    id: string;
+    action: string;
+    details: string;
+    patientName?: string;
+    timestamp: string;
+    type: string;
+}
+
 // ── API Functions ──────────────────────────────────────────────────────────
-export const doctorApi = {
-    getProfile: async (): Promise<{ data: DoctorExtendedProfile }> => {
-        const response = await axiosInstance.get('doctor/profile');
-        return response.data;
-    },
 
-    updateProfile: async (data: UpdateDoctorExtendedProfileRequest): Promise<{ data: DoctorExtendedProfile }> => {
-        const response = await axiosInstance.put('doctor/profile', data);
-        return response.data;
-    },
-
-    getCertifiedRecords: async () => {
-        const response = await axiosInstance.get('doctor/certified-records');
-        return response.data;
-    },
-
-    getPatientInfo: async (patientId: string) => {
-        const response = await axiosInstance.get(`doctor/patients/${patientId}`);
-        return response.data;
-    },
-
-    uploadProfilePicture: async (file: File) => {
-        const formData = new FormData();
-        formData.append('file', file);
-        const response = await axiosInstance.post('doctor/profile/picture', formData, {
-            headers: { 'Content-Type': 'multipart/form-data' }
-        });
-        return response.data;
-    },
-
-    deleteProfilePicture: async () => {
-        const response = await axiosInstance.delete('doctor/profile/picture');
-        return response.data;
-    }
-};
+// doctorApi moved to lib/api.ts

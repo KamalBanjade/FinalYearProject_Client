@@ -27,9 +27,11 @@ export interface MedicalRecordResponseDTO {
     uploadedBy?: string;
     patientName?: string;
     assignedDoctorName?: string;
+    assignedDoctorId?: string;
     assignedDepartment?: string;
     isCertified: boolean;
     certifiedBy?: string;
+    certifiedById?: string;
     certifiedAt?: string;
     version: number;
     canDownload: boolean;

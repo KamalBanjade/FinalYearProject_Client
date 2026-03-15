@@ -1,4 +1,5 @@
 import React, { useState } from 'react';
+import { useMutation, useQueryClient } from '@tanstack/react-query';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import * as z from 'zod';
@@ -47,6 +48,51 @@ export const InviteDoctorModal: React.FC<InviteDoctorModalProps> = ({ isOpen, on
     const [departments, setDepartments] = useState<DeptEntity[]>([]);
     const [isFetchingDepts, setIsFetchingDepts] = useState(false);
     const [invitationResult, setInvitationResult] = useState<{ email: string; tempPass: string; invitationSent: boolean; message: string } | null>(null);
+
+    const queryClient = useQueryClient();
+
+    const mutation = useMutation({
+        mutationFn: (data: InviteDoctorFormData) => inviteDoctor(data),
+        onMutate: async () => {
+            // Cancel any outgoing refetches so they don't overwrite our optimistic update
+            await queryClient.cancelQueries({ queryKey: ['admin', 'statistics'] });
+
+            // Snapshot the previous value
+            const previousStats = queryClient.getQueryData(['admin', 'statistics']);
+
+            // Optimistically update to the new value
+            queryClient.setQueryData(['admin', 'statistics'], (old: any) => {
+                if (!old) return old;
+                return {
+                    ...old,
+                    totalDoctors: (old.totalDoctors || 0) + 1,
+                    totalUsers: (old.totalUsers || 0) + 1,
+                };
+            });
+
+            // Return a context object with the snapshotted value
+            return { previousStats };
+        },
+        onError: (err, newDoctor, context: any) => {
+            // Roll back if mutation fails
+            if (context?.previousStats) {
+                queryClient.setQueryData(['admin', 'statistics'], context.previousStats);
+            }
+        },
+        onSuccess: (response) => {
+            toast.success('Doctor invited successfully!');
+            setInvitationResult({
+                email: response.data.email,
+                tempPass: response.data.temporaryPassword,
+                invitationSent: response.data.invitationSent,
+                message: response.data.message
+            });
+        },
+        onSettled: () => {
+            // Always refetch after error or success to sync with server
+            queryClient.invalidateQueries({ queryKey: ['admin', 'statistics'] });
+        },
+    });
 
     React.useEffect(() => {
         if (isOpen) {
@@ -121,21 +167,7 @@ export const InviteDoctorModal: React.FC<InviteDoctorModalProps> = ({ isOpen, on
     };
 
     const onSubmit = async (data: InviteDoctorFormData) => {
-        setIsLoading(true);
-        try {
-            const response = await inviteDoctor(data);
-            toast.success('Doctor invited successfully!');
-            setInvitationResult({
-                email: response.data.email,
-                tempPass: response.data.temporaryPassword,
-                invitationSent: response.data.invitationSent,
-                message: response.data.message
-            });
-        } catch (error: any) {
-            toast.error(error.message || 'Failed to invite doctor.');
-        } finally {
-            setIsLoading(false);
-        }
+        mutation.mutate(data);
     };
 
     return (
@@ -409,7 +441,7 @@ export const InviteDoctorModal: React.FC<InviteDoctorModalProps> = ({ isOpen, on
                                     <Button
                                         type="submit"
                                         className="flex-1 h-14 bg-indigo-600 text-white rounded-2xl font-black text-[10px] uppercase tracking-[0.2em] shadow-xl shadow-indigo-500/20 hover:scale-[1.02] transition-transform cursor-pointer"
-                                        isLoading={isLoading}
+                                        isLoading={mutation.isPending}
                                     >
                                         Send Invitation
                                     </Button>

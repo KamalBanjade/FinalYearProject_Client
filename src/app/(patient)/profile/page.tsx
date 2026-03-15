@@ -29,7 +29,10 @@ import {
 import toast from 'react-hot-toast';
 import { format } from 'date-fns';
 import { motion, AnimatePresence } from 'framer-motion';
-import { MedicalLoader } from '@/components/ui/MedicalLoader';
+import { ProfileSkeleton } from '@/components/profile/ProfileSkeleton';
+import { usePatientProfile, usePatientDoctorSuggestions } from '@/hooks/useAdminQueries';
+import { useQueryClient } from '@tanstack/react-query';
+import { queryKeys } from '@/lib/queryKeys';
 import { ProfilePictureUpload } from '@/components/profile/ProfilePictureUpload';
 
 // ── Helpers ───────────────────────────────────────────────────────────────────
@@ -92,9 +95,16 @@ function SectionCard({ icon, title, children, accent = 'primary', action }: {
 }
 
 export default function PatientProfilePage() {
-    const [profile, setProfile] = useState<PatientProfileData | null>(null);
-    const [suggestions, setSuggestions] = useState<SmartDoctorSuggestionDTO | null>(null);
-    const [loading, setLoading] = useState(true);
+    const queryClient = useQueryClient();
+    const router = useRouter();
+    const { checkAuth } = useAuthStore();
+
+    const { data: profileRes, isLoading: loadingProfile } = usePatientProfile();
+    const { data: suggestionsRes, isLoading: loadingSuggestions } = usePatientDoctorSuggestions();
+
+    const profile = profileRes?.data;
+    const suggestions = suggestionsRes?.data;
+
     const [saving, setSaving] = useState(false);
     const [isEditing, setIsEditing] = useState(false);
     const [formData, setFormData] = useState<UpdatePatientProfileRequest>({
@@ -105,37 +115,19 @@ export default function PatientProfilePage() {
         allergies: '',
         chronicConditions: ''
     });
-    const router = useRouter();
-    const { checkAuth } = useAuthStore();
-
-    const fetchData = async () => {
-        try {
-            const [profileRes, suggestionsRes] = await Promise.all([
-                patientApi.getProfile(),
-                patientApi.getSmartDoctorSuggestions()
-            ]);
-
-            setProfile(profileRes.data);
-            setSuggestions(suggestionsRes.data);
-
-            setFormData({
-                bloodType: profileRes.data.bloodType || '',
-                address: profileRes.data.address || '',
-                emergencyContactName: profileRes.data.emergencyContactName || '',
-                emergencyContactPhone: profileRes.data.emergencyContactPhone || '',
-                allergies: profileRes.data.allergies || '',
-                chronicConditions: profileRes.data.chronicConditions || ''
-            });
-        } catch (error) {
-            toast.error('Identity synchronization failed');
-        } finally {
-            setLoading(false);
-        }
-    };
 
     useEffect(() => {
-        fetchData();
-    }, []);
+        if (profile) {
+            setFormData({
+                bloodType: profile.bloodType || '',
+                address: profile.address || '',
+                emergencyContactName: profile.emergencyContactName || '',
+                emergencyContactPhone: profile.emergencyContactPhone || '',
+                allergies: profile.allergies || '',
+                chronicConditions: profile.chronicConditions || ''
+            });
+        }
+    }, [profile]);
 
     const handleSave = async () => {
         setSaving(true);
@@ -143,7 +135,7 @@ export default function PatientProfilePage() {
             await patientApi.updateProfile(formData);
             toast.success('Identity profile updated');
             setIsEditing(false);
-            fetchData();
+            queryClient.invalidateQueries({ queryKey: queryKeys.patient.profile() });
         } catch (error) {
             toast.error('Network synchronization error');
         } finally {
@@ -155,7 +147,7 @@ export default function PatientProfilePage() {
         try {
             await patientApi.uploadProfilePicture(file);
             toast.success('Identity visual updated');
-            fetchData();
+            queryClient.invalidateQueries({ queryKey: queryKeys.patient.profile() });
             checkAuth(); // Sync global dashboard avatar
         } catch (error) {
             toast.error('Visual synchronization error');
@@ -166,7 +158,7 @@ export default function PatientProfilePage() {
         try {
             await patientApi.deleteProfilePicture();
             toast.success('Identity visual removed');
-            fetchData();
+            queryClient.invalidateQueries({ queryKey: queryKeys.patient.profile() });
             checkAuth(); // Sync global dashboard avatar
         } catch (error) {
             toast.error('Visual removal error');
@@ -195,13 +187,8 @@ export default function PatientProfilePage() {
         return doctors;
     }, [suggestions]);
 
-    if (loading) {
-        return (
-            <div className="flex flex-col items-center justify-center min-h-[60vh] gap-6">
-                <MedicalLoader />
-                <p className="text-[10px] font-black text-slate-400 uppercase tracking-[0.4em] animate-pulse">Synchronizing Identity...</p>
-            </div>
-        );
+    if (loadingProfile || loadingSuggestions) {
+        return <ProfileSkeleton />;
     }
 
     return (
@@ -385,8 +372,12 @@ export default function PatientProfilePage() {
                                     >
                                         <div className="absolute top-0 right-0 w-24 h-24 bg-violet-500/5 rounded-full blur-2xl -mr-12 -mt-12 opacity-0 group-hover:opacity-100 transition-opacity" />
                                         <div className="flex items-center gap-5 relative z-10">
-                                            <div className="w-12 h-12 bg-slate-900 dark:bg-white rounded-xl flex items-center justify-center text-white dark:text-slate-900 text-lg font-black shadow-xl group-hover:bg-violet-500 group-hover:text-white transition-all duration-500">
-                                                {doc.fullName.split(' Dr. ')[1]?.charAt(0) || doc.fullName.charAt(0)}
+                                            <div className="w-12 h-12 bg-slate-900 dark:bg-white rounded-xl flex items-center justify-center text-white dark:text-slate-900 text-lg font-black shadow-xl group-hover:bg-violet-500 group-hover:text-white transition-all duration-500 overflow-hidden">
+                                                {doc.profilePictureUrl ? (
+                                                    <img src={doc.profilePictureUrl} alt={doc.fullName} className="w-full h-full object-cover" />
+                                                ) : (
+                                                    <>{doc.fullName.split(' Dr. ')[1]?.charAt(0) || doc.fullName.charAt(0)}</>
+                                                )}
                                             </div>
                                             <div className="flex-1 min-w-0">
                                                 <p className="text-xs font-black text-slate-900 dark:text-white truncate font-sans">{doc.fullName}</p>
@@ -432,7 +423,7 @@ export default function PatientProfilePage() {
                             </div>
                             <div className="flex items-center gap-3">
                                 <button 
-                                    onClick={() => { setIsEditing(false); fetchData(); }}
+                                    onClick={() => { setIsEditing(false); queryClient.invalidateQueries({ queryKey: queryKeys.patient.profile() }); }}
                                     className="px-6 py-4 rounded-2xl text-[10px] font-black text-white/60 dark:text-slate-900/60 uppercase tracking-widest hover:text-white dark:hover:text-slate-900 transition-colors"
                                 >
                                     Discard

@@ -31,12 +31,10 @@ import {
     XCircle
 } from 'lucide-react';
 
+import { useQuery } from '@tanstack/react-query';
+
 export default function AuditLogsPage() {
-    const [logs, setLogs] = useState<AuditLogResponseDTO[]>([]);
-    const [loading, setLoading] = useState(true);
-    const [pagination, setPagination] = useState({ totalCount: 0, totalPages: 0, page: 1, pageSize: 15 });
     const [selectedLog, setSelectedLog] = useState<AuditLogResponseDTO | null>(null);
-    const [showFilters, setShowFilters] = useState(false);
     const [exporting, setExporting] = useState(false);
 
     // Filter states
@@ -49,28 +47,29 @@ export default function AuditLogsPage() {
         toDate: ''
     });
 
-    const fetchLogs = async (filterOverride?: AuditLogFilters) => {
-        setLoading(true);
-        try {
-            const data = await adminAuditLogsApi.getAuditLogs(filterOverride || filters);
-            setLogs(data.logs);
-            setPagination({
-                totalCount: data.totalCount,
-                totalPages: data.totalPages,
-                page: data.page,
-                pageSize: data.pageSize
-            });
-        } catch (error) {
-            console.error('Failed to fetch audit logs', error);
-            toast.error('Could not load audit logs');
-        } finally {
-            setLoading(false);
-        }
-    };
+    const { data, isLoading: loading, refetch } = useQuery({
+        queryKey: ['audit-logs', filters],
+        queryFn: () => adminAuditLogsApi.getAuditLogs(filters),
+        placeholderData: (previousData) => previousData,
+        staleTime: 30000, // 30 seconds
+    });
 
+    // Listen for Escape key to close modal
     useEffect(() => {
-        fetchLogs();
-    }, [filters.page, filters.pageSize, filters.severity]); // Re-fetch on pagination or severity change quickly
+        const handleEsc = (e: KeyboardEvent) => {
+            if (e.key === 'Escape') setSelectedLog(null);
+        };
+        window.addEventListener('keydown', handleEsc);
+        return () => window.removeEventListener('keydown', handleEsc);
+    }, []);
+
+    const logs = data?.logs || [];
+    const pagination = {
+        totalCount: data?.totalCount || 0,
+        totalPages: data?.totalPages || 0,
+        page: data?.page || 1,
+        pageSize: data?.pageSize || 15
+    };
 
     const handleExportCsv = async () => {
         setExporting(true);
@@ -97,9 +96,7 @@ export default function AuditLogsPage() {
 
     const handleSearchSubmit = (e: React.FormEvent) => {
         e.preventDefault();
-        const updatedFilters = { ...filters, page: 1 };
-        setFilters(updatedFilters);
-        fetchLogs(updatedFilters);
+        setFilters(f => ({ ...f, page: 1 }));
     };
 
     const resetFilters = () => {
@@ -111,7 +108,6 @@ export default function AuditLogsPage() {
             fromDate: '',
             toDate: ''
         });
-        fetchLogs();
     };
 
     const getSeverityStyles = (severity: AuditSeverity) => {
@@ -139,9 +135,9 @@ export default function AuditLogsPage() {
                 };
             default:
                 return {
-                    bg: 'bg-blue-100 dark:bg-blue-900/30',
-                    text: 'text-blue-700 dark:text-blue-400',
-                    border: 'border-blue-200 dark:border-blue-800/50',
+                    bg: 'bg-emerald-100 dark:bg-emerald-900/30',
+                    text: 'text-emerald-700 dark:text-emerald-400',
+                    border: 'border-emerald-200 dark:border-emerald-800/50',
                     icon: Info
                 };
         }
@@ -159,269 +155,241 @@ export default function AuditLogsPage() {
 
     return (
         <PageLayout>
-            <Stack direction={{ base: 'col', lg: 'row' } as any} align={{ base: 'stretch', lg: 'end' } as any} justify="between" spacing="lg" className="mb-8">
-                <div className="flex-1 max-w-2xl">
-                    <form onSubmit={handleSearchSubmit} className="relative group w-full">
-                        <Search className="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-slate-400 group-focus-within:text-indigo-500 transition-colors" />
-                        <input
-                            type="text"
-                            placeholder="Search by User, action, or details..."
-                            className="w-full pl-12 pr-4 h-14 bg-white dark:bg-slate-900 border border-slate-100 dark:border-slate-800 rounded-2xl text-sm font-bold focus:ring-4 focus:ring-indigo-500/10 focus:border-indigo-500 outline-none transition-all dark:text-white shadow-sm"
-                            value={filters.searchTerm}
-                            onChange={(e) => setFilters(f => ({ ...f, searchTerm: e.target.value }))}
-                        />
-                    </form>
-                </div>
+            <div className="space-y-6">
+                {/* Horizontal Filter Bar */}
+                <motion.div 
+                    initial={{ opacity: 0, y: -10 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    className="bg-white/70 dark:bg-slate-900/40 backdrop-blur-xl border border-slate-200/60 dark:border-slate-800/60 rounded-[2rem] p-4 lg:p-6 shadow-xl shadow-slate-200/20 dark:shadow-black/20"
+                >
+                    <div className="flex flex-col lg:flex-row lg:items-center gap-6">
+                        <div className="flex-1 space-y-3">
+                            <label className="text-[10px] font-black uppercase tracking-[0.2em] text-slate-400 ml-2">Severity Filters</label>
+                            <div className="flex flex-wrap gap-2">
+                                {[
+                                    { label: 'Critical', val: AuditSeverity.Critical, color: 'hover:bg-rose-50 dark:hover:bg-rose-900/20 text-rose-600 border-rose-100 dark:border-rose-900/30' },
+                                    { label: 'Error', val: AuditSeverity.Error, color: 'hover:bg-orange-50 dark:hover:bg-orange-900/20 text-orange-600 border-orange-100 dark:border-orange-900/30' },
+                                    { label: 'Warning', val: AuditSeverity.Warning, color: 'hover:bg-amber-50 dark:hover:bg-amber-900/20 text-amber-600 border-amber-100 dark:border-amber-900/30' },
+                                    { label: 'Info', val: AuditSeverity.Info, color: 'hover:bg-emerald-50 dark:hover:bg-emerald-900/20 text-emerald-600 border-emerald-100 dark:border-emerald-900/30' },
+                                ].map((s) => (
+                                    <button
+                                        key={s.label}
+                                        type="button"
+                                        onClick={() => setFilters(f => ({ ...f, severity: f.severity === s.val ? undefined : s.val, page: 1 }))}
+                                        className={`px-4 py-2.5 rounded-full text-xs font-bold transition-all border-2 flex items-center gap-2 ${filters.severity === s.val 
+                                            ? 'bg-slate-900 dark:bg-white text-white dark:text-slate-900 border-slate-900 dark:border-white shadow-lg' 
+                                            : `bg-white dark:bg-slate-800/50 ${s.color} border-slate-100 dark:border-slate-700`}`}
+                                    >
+                                        <div className={`w-1.5 h-1.5 rounded-full ${filters.severity === s.val ? 'bg-current' : 'bg-current opacity-40'}`} />
+                                        {s.label}
+                                    </button>
+                                ))}
+                            </div>
+                        </div>
 
-                <Stack direction="row" spacing="md" align="center">
-                    <Button
-                        variant="ghost"
-                        onClick={() => fetchLogs()}
-                        className="p-4 bg-white dark:bg-slate-900 rounded-2xl border border-slate-100 dark:border-slate-800 shadow-sm h-14 w-14 flex items-center justify-center p-0"
-                        title="Refresh Logs"
-                    >
-                        <RefreshCw className={`w-5 h-5 ${loading ? 'animate-spin' : ''}`} />
-                    </Button>
-                    <Button
-                        variant="ghost"
-                        onClick={handleExportCsv}
-                        disabled={exporting}
-                        className="px-6 h-14 bg-white dark:bg-slate-900 rounded-2xl font-bold flex items-center space-x-2 border border-slate-100 dark:border-slate-800 shadow-sm disabled:opacity-50"
-                    >
-                        <Download className={`w-5 h-5 ${exporting ? 'animate-bounce' : ''}`} />
-                        <span className="hidden sm:inline">{exporting ? 'Exporting...' : 'Export CSV'}</span>
-                    </Button>
-                    <Button
-                        className="px-6 h-14 bg-indigo-600 text-white rounded-2xl font-bold shadow-lg shadow-indigo-200 dark:shadow-none"
-                    >
-                        <Fingerprint className="w-5 h-5" />
-                        <span>Real-time Feed</span>
-                    </Button>
-                </Stack>
-            </Stack>
+                        <div className="lg:w-px h-10 bg-slate-100 dark:bg-slate-800 hidden lg:block" />
 
-            <div className="grid grid-cols-1 xl:grid-cols-4 gap-8">
-                <aside className="xl:col-span-1">
-                    <Card padding="lg" className="sticky top-8">
-                        <Stack direction="row" align="center" justify="between" className="mb-6">
-                            <H3>Filters</H3>
-                            <button onClick={resetFilters} className="text-xs font-bold text-indigo-600 dark:text-indigo-400 uppercase tracking-wider hover:underline">Reset All</button>
-                        </Stack>
-
-                        <form onSubmit={handleSearchSubmit} className="space-y-8">
-                            <Stack spacing="sm">
-                                <Text variant="label" className="text-[10px] font-black uppercase tracking-widest text-slate-400">Severity Level</Text>
-                                <div className="grid grid-cols-2 gap-2">
-                                    {[
-                                        { label: 'Critical', val: AuditSeverity.Critical, color: 'bg-rose-50 dark:bg-rose-900/20 text-rose-600' },
-                                        { label: 'Error', val: AuditSeverity.Error, color: 'bg-orange-50 dark:bg-orange-900/20 text-orange-600' },
-                                        { label: 'Warning', val: AuditSeverity.Warning, color: 'bg-amber-50 dark:bg-amber-900/20 text-amber-600' },
-                                        { label: 'Info', val: AuditSeverity.Info, color: 'bg-blue-50 dark:bg-blue-900/20 text-blue-600' },
-                                    ].map((s) => (
-                                        <button
-                                            key={s.label}
-                                            type="button"
-                                            onClick={() => setFilters(f => ({ ...f, severity: f.severity === s.val ? undefined : s.val, page: 1 }))}
-                                            className={`py-3 px-4 rounded-xl text-xs font-bold transition-all border-2 ${filters.severity === s.val ? 'border-slate-900 dark:border-white' : 'border-transparent'} ${s.color}`}
-                                        >
-                                            {s.label}
-                                        </button>
-                                    ))}
+                        <div className="space-y-3">
+                            <label className="text-[10px] font-black uppercase tracking-[0.2em] text-slate-400 ml-2">Date Range</label>
+                            <div className="flex items-center gap-3">
+                                <div className="relative">
+                                    <Calendar className="absolute left-3 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-slate-400 pointer-events-none" />
+                                    <input
+                                        type="date"
+                                        className="pl-9 pr-4 py-2.5 bg-slate-50 dark:bg-slate-800/50 border border-slate-100 dark:border-slate-700 rounded-full text-xs font-bold focus:ring-2 focus:ring-indigo-500 outline-none dark:text-white transition-all w-44"
+                                        value={filters.fromDate}
+                                        onChange={(e) => setFilters(f => ({ ...f, fromDate: e.target.value, page: 1 }))}
+                                    />
                                 </div>
-                            </Stack>
+                                <div className="w-2 h-px bg-slate-300 dark:bg-slate-600" />
+                                <div className="relative">
+                                    <Calendar className="absolute left-3 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-slate-400 pointer-events-none" />
+                                    <input
+                                        type="date"
+                                        className="pl-9 pr-4 py-2.5 bg-slate-50 dark:bg-slate-800/50 border border-slate-100 dark:border-slate-700 rounded-full text-xs font-bold focus:ring-2 focus:ring-indigo-500 outline-none dark:text-white transition-all w-44"
+                                        value={filters.toDate}
+                                        onChange={(e) => setFilters(f => ({ ...f, toDate: e.target.value, page: 1 }))}
+                                    />
+                                </div>
+                            </div>
+                        </div>
 
-                            <Stack spacing="sm" className="pt-6 border-t border-slate-100 dark:border-slate-800">
-                                <Text variant="label" className="text-[10px] font-black uppercase tracking-widest text-slate-400">Time Range</Text>
-                                <Stack spacing="md">
-                                    <Stack spacing="xs">
-                                        <span className="text-[10px] font-bold text-slate-500 ml-1 uppercase">From</span>
-                                        <input
-                                            type="date"
-                                            className="w-full p-4 bg-slate-50 dark:bg-slate-800 border-none rounded-2xl text-sm font-bold focus:ring-2 focus:ring-indigo-500 outline-none dark:text-white"
-                                            value={filters.fromDate}
-                                            onChange={(e) => setFilters(f => ({ ...f, fromDate: e.target.value, page: 1 }))}
-                                        />
-                                    </Stack>
-                                    <Stack spacing="xs">
-                                        <span className="text-[10px] font-bold text-slate-500 ml-1 uppercase">To</span>
-                                        <input
-                                            type="date"
-                                            className="w-full p-4 bg-slate-50 dark:bg-slate-800 border-none rounded-2xl text-sm font-bold focus:ring-2 focus:ring-indigo-500 outline-none dark:text-white"
-                                            value={filters.toDate}
-                                            onChange={(e) => setFilters(f => ({ ...f, toDate: e.target.value, page: 1 }))}
-                                        />
-                                    </Stack>
-                                </Stack>
-                            </Stack>
-
-                            <Button
-                                type="submit"
-                                className="w-full py-4 bg-slate-900 dark:bg-white dark:text-slate-900 text-white rounded-2xl font-black text-xs uppercase tracking-widest"
+                        <div className="flex items-end lg:pb-1">
+                            <button 
+                                onClick={resetFilters} 
+                                className="px-4 py-2.5 rounded-full text-xs font-black text-slate-500 hover:text-rose-600 hover:bg-rose-50 dark:hover:bg-rose-900/20 transition-all uppercase tracking-widest flex items-center gap-2"
                             >
-                                <Filter className="w-5 h-5 mr-2" />
-                                Apply Filters
-                            </Button>
-                        </form>
-                    </Card>
-                </aside>
+                                <X className="w-4 h-4" />
+                                Reset
+                            </button>
+                        </div>
+                    </div>
+                </motion.div>
 
-                <div className="xl:col-span-3">
-                    <Section>
-                        <div>
-                            <ResponsiveTable
-                                loading={loading}
-                                data={logs}
-                                keyExtractor={(log) => log.id}
-                                emptyState={
-                                    <div className="max-w-xs mx-auto py-20 text-center space-y-4">
-                                        <div className="w-16 h-16 bg-slate-50 dark:bg-slate-800 rounded-3xl flex items-center justify-center mx-auto text-slate-300">
-                                            <Search className="w-8 h-8" />
-                                        </div>
-                                        <Text variant="body" className="text-slate-500 font-bold uppercase tracking-widest text-xs">No matching logs found</Text>
-                                        <button onClick={resetFilters} className="text-indigo-600 font-black text-sm uppercase">Clear search</button>
+                {/* Main Table Content */}
+                <Section className="p-0 overflow-hidden shadow-2xl shadow-indigo-100/50 dark:shadow-none border-none rounded-[2.5rem]">
+                    <div className="bg-white/60 dark:bg-slate-900/40 backdrop-blur-md">
+                        <ResponsiveTable
+                            loading={loading}
+                            data={logs}
+                            keyExtractor={(log) => log.id}
+                            emptyState={
+                                <div className="max-w-xs mx-auto py-32 text-center space-y-6">
+                                    <div className="w-24 h-24 bg-indigo-50 dark:bg-slate-800/50 rounded-[2.5rem] flex items-center justify-center mx-auto text-indigo-200">
+                                        <Filter className="w-10 h-10" />
                                     </div>
-                                }
-                                columns={[
-                                    {
-                                        header: 'Timestamp',
-                                        accessor: (log) => (
-                                            <Stack spacing="xs">
+                                    <div className="space-y-2">
+                                        <Text variant="body" className="text-slate-900 dark:text-white font-black uppercase tracking-[0.2em] text-[10px]">No Matching Records</Text>
+                                        <Text variant="body" className="text-slate-400 text-xs font-medium">Try adjusting your filters or search term to see more logs.</Text>
+                                    </div>
+                                    <Button onClick={resetFilters} variant="outline" className="rounded-2xl font-black text-[10px] uppercase tracking-widest px-8">Clear all filters</Button>
+                                </div>
+                            }
+                            columns={[
+                                {
+                                    header: 'Event Timeline',
+                                    accessor: (log) => (
+                                        <Stack spacing="xs">
+                                            <div className="flex items-center gap-2">
+                                                <div className={`w-2 h-2 rounded-full ${getSeverityStyles(log.severity).text.split(' ')[0]} animate-pulse`} />
                                                 <Text className="text-sm font-black text-slate-900 dark:text-white">{formatLocalTime(log.timestamp, 'MMM dd, yyyy')}</Text>
-                                                <Text className="text-xs font-bold text-slate-400">{formatLocalTime(log.timestamp, 'HH:mm:ss')}</Text>
-                                            </Stack>
-                                        )
-                                    },
-                                    {
-                                        header: 'User Context',
-                                        accessor: (log) => (
-                                            <Stack direction="row" align="center" spacing="md">
-                                                <div className={`w-10 h-10 rounded-xl ${log.userName === 'System' ? 'bg-indigo-100 text-indigo-600' : 'bg-slate-100 dark:bg-slate-800 text-slate-500'} flex items-center justify-center font-black text-xs`}>
-                                                    {log.userName?.substring(0, 2).toUpperCase()}
-                                                </div>
-                                                <Stack spacing="xs">
-                                                    <Text className="text-sm font-black text-slate-800 dark:text-slate-200">{log.userName || 'Anonymous'}</Text>
-                                                    <Text className="text-[10px] font-bold text-slate-400 lowercase">{log.userEmail || 'no-email'}</Text>
-                                                </Stack>
-                                            </Stack>
-                                        )
-                                    },
-                                    {
-                                        header: 'Action',
-                                        accessor: (log) => (
-                                            <Stack spacing="xs">
-                                                <Text className="text-sm font-black text-indigo-600 dark:text-indigo-400">{log.action}</Text>
-                                                <Text className="text-[11px] font-medium text-slate-500 dark:text-slate-400 line-clamp-1 max-w-[200px]">{log.details}</Text>
-                                            </Stack>
-                                        )
-                                    },
-                                    {
-                                        header: 'Severity',
-                                        className: 'text-center',
-                                        accessor: (log) => {
-                                            const sev = getSeverityStyles(log.severity);
-                                            const SevIcon = sev.icon;
-                                            return (
-                                                <div className={`inline-flex items-center space-x-1.5 px-3 py-1.5 rounded-full border ${sev.bg} ${sev.text} ${sev.border}`}>
-                                                    <SevIcon className="w-3.5 h-3.5" />
-                                                    <span className="text-[10px] font-black uppercase tracking-wider">{log.severityLabel}</span>
-                                                </div>
-                                            );
-                                        }
-                                    },
-                                    {
-                                        header: 'Action',
-                                        className: 'text-right',
-                                        accessor: (log) => (
-                                            <Button
-                                                variant="ghost"
-                                                onClick={() => setSelectedLog(log)}
-                                                className="p-3 bg-white dark:bg-slate-700 text-slate-400 dark:text-slate-300 hover:text-indigo-600 dark:hover:text-white hover:bg-indigo-50 dark:hover:bg-indigo-600 rounded-xl transition-all border border-slate-100 dark:border-slate-600 shadow-sm p-0 flex items-center justify-center"
-                                            >
-                                                <Eye className="w-5 h-5" />
-                                            </Button>
-                                        )
-                                    }
-                                ]}
-                                renderMobileCard={(log) => {
-                                    const sev = getSeverityStyles(log.severity);
-                                    const SevIcon = sev.icon;
-                                    return (
-                                        <div className="p-5 space-y-4">
-                                            <div className="flex items-center justify-between">
-                                                <Stack direction="row" align="center" spacing="md">
-                                                    <div className={`w-10 h-10 rounded-xl ${log.userName === 'System' ? 'bg-indigo-100 text-indigo-600' : 'bg-slate-100 dark:bg-slate-800 text-slate-500'} flex items-center justify-center font-black text-xs`}>
-                                                        {log.userName?.substring(0, 2).toUpperCase()}
-                                                    </div>
-                                                    <Stack spacing="xs">
-                                                        <Text className="text-sm font-black text-slate-800 dark:text-slate-200">{log.userName}</Text>
-                                                        <Text className="text-[10px] font-bold text-slate-400">{formatLocalTime(log.timestamp, 'MMM dd, HH:mm')}</Text>
-                                                    </Stack>
-                                                </Stack>
-                                                <div className={`inline-flex items-center space-x-1.5 px-2.5 py-1 rounded-full border ${sev.bg} ${sev.text} ${sev.border}`}>
-                                                    <SevIcon className="w-3 h-3" />
-                                                    <span className="text-[9px] font-black uppercase tracking-wider">{log.severityLabel}</span>
-                                                </div>
+                                            </div>
+                                            <Text className="text-[10px] font-bold text-slate-400 ml-4 uppercase tracking-widest">{formatLocalTime(log.timestamp, 'HH:mm:ss')}</Text>
+                                        </Stack>
+                                    )
+                                },
+                                {
+                                    header: 'Identity',
+                                    accessor: (log) => (
+                                        <Stack direction="row" align="center" spacing="md">
+                                            <div className={`w-11 h-11 rounded-[1.2rem] ${log.userName === 'System' ? 'bg-indigo-600 text-white shadow-lg shadow-indigo-500/20' : 'bg-gradient-to-br from-slate-100 to-slate-200/50 dark:from-slate-800 dark:to-slate-900/50 text-slate-500'} flex items-center justify-center font-black text-[10px] transition-all hover:scale-110 active:scale-95 border border-white/50 dark:border-slate-700/50`}>
+                                                {log.userName?.substring(0, 2).toUpperCase()}
                                             </div>
                                             <Stack spacing="xs">
-                                                <Text className="text-sm font-black text-indigo-600">{log.action}</Text>
-                                                <Text className="text-xs text-slate-500 line-clamp-2">{log.details}</Text>
+                                                <Text className="text-sm font-black text-slate-900 dark:text-white leading-tight">{log.userName || 'Anonymous'}</Text>
+                                                <div className="flex items-center gap-1.5 opacity-60">
+                                                    <Fingerprint className="w-3 h-3" />
+                                                    <Text className="text-[10px] font-black lowercase tracking-wide">{log.userEmail || 'system.core'}</Text>
+                                                </div>
                                             </Stack>
-                                            <Button
-                                                variant="ghost"
-                                                onClick={() => setSelectedLog(log)}
-                                                className="w-full py-3 bg-slate-50 dark:bg-slate-800 text-slate-400 font-bold text-[10px] uppercase tracking-widest rounded-xl"
-                                            >
-                                                View Technical Details
-                                            </Button>
+                                        </Stack>
+                                    )
+                                },
+                                {
+                                    header: 'Operation',
+                                    accessor: (log) => (
+                                        <Stack spacing="xs">
+                                            <Text className="text-sm font-black text-slate-900 dark:text-white tracking-tight leading-none">{log.action}</Text>
+                                            <Text className="text-[10px] font-black text-slate-400 uppercase tracking-widest mt-1 opacity-60">Action Logic Trace</Text>
+                                        </Stack>
+                                    )
+                                },
+                                {
+                                    header: 'Criticality',
+                                    className: 'text-center',
+                                    accessor: (log) => {
+                                        const sev = getSeverityStyles(log.severity);
+                                        const SevIcon = sev.icon;
+                                        return (
+                                            <div className={`inline-flex items-center space-x-2 px-3.5 py-1.5 rounded-full border-2 transition-all hover:scale-105 ${sev.bg} ${sev.text} ${sev.border} shadow-sm`}>
+                                                <SevIcon className="w-3 h-3" />
+                                                <span className="text-[9px] font-black uppercase tracking-[0.15em]">{log.severityLabel}</span>
+                                            </div>
+                                        );
+                                    }
+                                },
+                                {
+                                    header: 'Details',
+                                    className: 'text-right',
+                                    accessor: (log) => (
+                                        <button
+                                            onClick={() => setSelectedLog(log)}
+                                            className="group relative p-3 bg-white dark:bg-slate-800/80 text-slate-400 dark:text-slate-300 hover:text-indigo-600 dark:hover:text-white hover:bg-indigo-50 dark:hover:bg-indigo-600 rounded-2xl transition-all border border-slate-100 dark:border-slate-700 shadow-sm hover:shadow-lg active:scale-95"
+                                        >
+                                            <Eye className="w-5 h-5 transition-transform group-hover:scale-110" />
+                                        </button>
+                                    )
+                                }
+                            ]}
+                            renderMobileCard={(log) => (
+                                <div className="p-6 space-y-5 bg-white dark:bg-slate-900/50 rounded-3xl border border-slate-100 dark:border-slate-800 mb-4 mx-2">
+                                    <div className="flex items-center justify-between">
+                                        <div className="flex items-center gap-3">
+                                            <div className={`w-10 h-10 rounded-xl ${log.userName === 'System' ? 'bg-indigo-600 text-white' : 'bg-slate-100 dark:bg-slate-800 text-slate-500'} flex items-center justify-center font-black text-xs`}>
+                                                {log.userName?.substring(0, 2).toUpperCase()}
+                                            </div>
+                                            <Stack spacing="xs">
+                                                <Text className="text-sm font-black text-slate-900 dark:text-white">{log.userName}</Text>
+                                                <Text className="text-[10px] font-bold text-slate-400">{formatLocalTime(log.timestamp, 'MMM dd, HH:mm')}</Text>
+                                            </Stack>
                                         </div>
-                                    );
-                                }}
-                            />
+                                        <div className={`px-3 py-1 rounded-full border ${getSeverityStyles(log.severity).bg} ${getSeverityStyles(log.severity).text} ${getSeverityStyles(log.severity).border} text-[9px] font-black uppercase`}>
+                                            {log.severityLabel}
+                                        </div>
+                                    </div>
+                                    <Stack spacing="xs">
+                                        <Text className="text-sm font-black text-indigo-600">{log.action}</Text>
+                                        <Text className="text-xs text-slate-500 dark:text-slate-400 line-clamp-2 leading-relaxed">{log.details}</Text>
+                                    </Stack>
+                                    <Button
+                                        variant="ghost"
+                                        onClick={() => setSelectedLog(log)}
+                                        className="w-full py-4 bg-slate-50 dark:bg-slate-800 text-slate-600 dark:text-slate-300 font-black text-[10px] uppercase tracking-widest rounded-2xl border border-slate-100 dark:border-slate-700"
+                                    >
+                                        Inspect Technical Trace
+                                    </Button>
+                                </div>
+                            )}
+                        />
 
-                            <div className="p-6 bg-slate-50/50 dark:bg-slate-800/50 border-t border-slate-100 dark:border-slate-800 flex flex-col sm:flex-row items-center justify-between gap-4">
-                                <div className="flex items-center space-x-3">
-                                    <Text variant="label" className="text-xs font-bold text-slate-400">Entries per page:</Text>
+                        <div className="p-8 flex flex-col sm:flex-row items-center justify-between gap-6 border-t border-slate-100/50 dark:border-slate-800/50">
+                            <div className="flex items-center space-x-4">
+                                <Text variant="label" className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Rows per view</Text>
+                                <div className="relative group">
                                     <select
-                                        className="bg-transparent border-none text-xs font-black text-slate-900 dark:text-white focus:ring-0 cursor-pointer"
+                                        className="appearance-none bg-slate-50 dark:bg-slate-800/50 border border-slate-100 dark:border-slate-700 px-6 py-2 rounded-full text-[11px] font-black text-slate-900 dark:text-white focus:ring-2 focus:ring-indigo-500 outline-none cursor-pointer pr-10"
                                         value={filters.pageSize}
                                         onChange={(e) => setFilters(f => ({ ...f, pageSize: Number(e.target.value), page: 1 }))}
                                     >
                                         {[15, 30, 50, 100].map(size => <option key={size} value={size}>{size}</option>)}
                                     </select>
+                                    <div className="absolute right-4 top-1/2 -translate-y-1/2 pointer-events-none text-slate-400">
+                                        <Filter className="w-3 h-3" />
+                                    </div>
                                 </div>
-
-                                <Stack direction="row" align="center" spacing="lg">
-                                    <span className="text-xs font-bold text-slate-500 uppercase tracking-widest">
-                                        Page <span className="text-slate-900 dark:text-white">{pagination.page}</span> of {pagination.totalPages || 1}
-                                    </span>
-                                    <Stack direction="row" spacing="xs">
-                                        <Button
-                                            disabled={pagination.page <= 1}
-                                            variant="ghost"
-                                            size="sm"
-                                            onClick={() => setFilters(f => ({ ...f, page: f.page! - 1 }))}
-                                            className="p-2 border border-slate-200 dark:border-slate-700 rounded-xl disabled:opacity-30 p-0 flex items-center justify-center h-10 w-10"
-                                        >
-                                            <ChevronLeft className="w-5 h-5" />
-                                        </Button>
-                                        <Button
-                                            disabled={pagination.page >= pagination.totalPages}
-                                            variant="ghost"
-                                            size="sm"
-                                            onClick={() => setFilters(f => ({ ...f, page: f.page! + 1 }))}
-                                            className="p-2 border border-slate-200 dark:border-slate-700 rounded-xl disabled:opacity-30 p-0 flex items-center justify-center h-10 w-10"
-                                        >
-                                            <ChevronRight className="w-5 h-5" />
-                                        </Button>
-                                    </Stack>
-                                </Stack>
                             </div>
+
+                            <Stack direction="row" align="center" spacing="xl">
+                                <div className="text-[11px] font-black text-slate-400 uppercase tracking-[0.2em] flex items-center gap-3">
+                                    Page <span className="text-indigo-600 dark:text-indigo-400 text-sm">{pagination.page}</span> 
+                                    <div className="w-px h-3 bg-slate-200 dark:bg-slate-700" />
+                                    Total <span className="text-slate-900 dark:text-white text-sm">{pagination.totalPages || 1}</span>
+                                </div>
+                                <Stack direction="row" spacing="md">
+                                    <Button
+                                        disabled={pagination.page <= 1}
+                                        variant="ghost"
+                                        onClick={() => setFilters(f => ({ ...f, page: f.page! - 1 }))}
+                                        className="h-11 w-11 p-0 border border-slate-100 dark:border-slate-800 rounded-2xl disabled:opacity-30 hover:bg-white hover:shadow-lg transition-all"
+                                    >
+                                        <ChevronLeft className="w-5 h-5 text-slate-600" />
+                                    </Button>
+                                    <Button
+                                        disabled={pagination.page >= pagination.totalPages}
+                                        variant="ghost"
+                                        onClick={() => setFilters(f => ({ ...f, page: f.page! + 1 }))}
+                                        className="h-11 w-11 p-0 border border-slate-100 dark:border-slate-800 rounded-2xl disabled:opacity-30 hover:bg-white hover:shadow-lg transition-all"
+                                    >
+                                        <ChevronRight className="w-5 h-5 text-slate-600" />
+                                    </Button>
+                                </Stack>
+                            </Stack>
                         </div>
-                    </Section>
-                </div>
+                    </div>
+                </Section>
             </div>
 
-            {/* Review Modal */}
+            {/* Review Modal - Redesigned for Premium Look */}
             <AnimatePresence>
                 {selectedLog && (
                     <div className="fixed inset-0 z-[100] flex justify-end">
@@ -430,128 +398,161 @@ export default function AuditLogsPage() {
                             animate={{ opacity: 1 }}
                             exit={{ opacity: 0 }}
                             onClick={() => setSelectedLog(null)}
-                            className="absolute inset-0 bg-slate-900/40 backdrop-blur-sm shadow-2xl"
+                            className="absolute inset-0 bg-slate-900/60 backdrop-blur-md"
                         />
                         <motion.div
-                            initial={{ x: '100%' }}
-                            animate={{ x: 0 }}
-                            exit={{ x: '100%' }}
-                            transition={{ type: 'spring', damping: 25, stiffness: 200 }}
-                            className="relative w-full max-w-2xl bg-white dark:bg-slate-900 shadow-[-20px_0_50px_rgba(0,0,0,0.1)] p-0 h-full overflow-y-auto"
+                            initial={{ x: '100%', filter: 'blur(10px)' }}
+                            animate={{ x: 0, filter: 'blur(0px)' }}
+                            exit={{ x: '100%', filter: 'blur(10px)' }}
+                            transition={{ type: 'spring', damping: 30, stiffness: 250 }}
+                            className="relative w-full max-w-2xl bg-slate-50 dark:bg-[#0c0e12] shadow-[-20px_0_80px_rgba(0,0,0,0.3)] h-full overflow-hidden flex flex-col"
                         >
-                            {/* Slide-over Header */}
-                            <div className="p-8 border-b border-slate-100 dark:border-slate-800 flex items-center justify-between sticky top-0 bg-white/80 dark:bg-slate-900/80 backdrop-blur-md z-10">
-                                <div>
-                                    <h2 className="text-2xl font-black text-slate-900 dark:text-white tracking-tight">Audit log Entry</h2>
-                                    <p className="text-xs font-bold text-indigo-600 uppercase tracking-widest mt-1">Details & Technical Context</p>
+                            {/* Slide-over Premium Header */}
+                            <div className="relative p-8 pb-10 overflow-hidden">
+                                <div className="absolute top-[-20%] right-[-10%] w-[300px] h-[300px] bg-indigo-500/10 rounded-full blur-[100px] pointer-events-none" />
+                                <div className="absolute bottom-[-10%] left-[-5%] w-[150px] h-[150px] bg-blue-500/5 rounded-full blur-[60px] pointer-events-none" />
+                                
+                                <div className="relative z-10 flex items-center justify-between mb-8">
+                                    <div className="flex items-center gap-3">
+                                        <div className="w-12 h-12 bg-white dark:bg-slate-800 rounded-2xl shadow-xl flex items-center justify-center">
+                                            <Fingerprint className="w-6 h-6 text-indigo-600" />
+                                        </div>
+                                        <div>
+                                            <h2 className="text-2xl font-black text-slate-900 dark:text-white tracking-tight leading-none">Record Inspector</h2>
+                                            <p className="text-[10px] font-black text-slate-400 uppercase tracking-[0.25em] mt-2">Log Reference: {selectedLog.id.substring(0, 8)}</p>
+                                        </div>
+                                    </div>
+                                    <button 
+                                        onClick={() => setSelectedLog(null)} 
+                                        className="w-12 h-12 flex items-center justify-center bg-white hover:bg-slate-50 dark:bg-slate-800 dark:hover:bg-slate-700 rounded-2xl shadow-sm transition-all active:scale-90"
+                                    >
+                                        <X className="w-6 h-6 text-slate-400" />
+                                    </button>
                                 </div>
-                                <button onClick={() => setSelectedLog(null)} className="p-3 hover:bg-slate-50 dark:hover:bg-slate-800 rounded-2xl transition-all">
-                                    <X className="w-6 h-6 text-slate-400" />
-                                </button>
+
+                                {/* Dynamic Status Banner */}
+                                <div className={`p-1.5 rounded-[1.5rem] bg-white dark:bg-slate-900/80 border border-slate-200/50 dark:border-slate-800/50 shadow-lg flex items-center gap-4 transition-all`}>
+                                    <div className={`h-12 px-6 rounded-[1.2rem] flex items-center gap-3 ${getSeverityStyles(selectedLog.severity).bg} ${getSeverityStyles(selectedLog.severity).text} border ${getSeverityStyles(selectedLog.severity).border}`}>
+                                        {React.createElement(getSeverityStyles(selectedLog.severity).icon, { className: "w-5 h-5" })}
+                                        <span className="text-xs font-black uppercase tracking-[0.15em]">{selectedLog.severityLabel} Level</span>
+                                    </div>
+                                    <div className="flex-1 pr-4">
+                                        <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Operation Context</p>
+                                        <p className="text-sm font-bold text-slate-800 dark:text-white mt-0.5 truncate">{selectedLog.action}</p>
+                                    </div>
+                                </div>
                             </div>
 
-                            <div className="p-8 space-y-10 pb-20">
-                                {/* Large Severity Badge */}
-                                <div className={`p-6 rounded-[2rem] border-2 flex items-center space-x-6 ${getSeverityStyles(selectedLog.severity).bg} ${getSeverityStyles(selectedLog.severity).text} ${getSeverityStyles(selectedLog.severity).border}`}>
-                                    {React.createElement(getSeverityStyles(selectedLog.severity).icon, { className: "w-12 h-12" })}
-                                    <div>
-                                        <h3 className="text-xl font-black uppercase tracking-tight">{selectedLog.severityLabel} EVENT</h3>
-                                        <p className="text-sm font-medium opacity-80">This event was recorded by the system core module.</p>
+                            <div className="flex-1 overflow-y-auto px-8 pb-32 space-y-8 scrollbar-hide">
+                                {/* Metadata Clusters */}
+                                <div className="grid grid-cols-2 gap-4">
+                                    <div className="bg-white dark:bg-slate-900/50 border border-slate-200/50 dark:border-slate-800/50 p-5 rounded-[2rem] shadow-sm">
+                                        <div className="flex items-center gap-2 mb-3 text-slate-400">
+                                            <Calendar className="w-3.5 h-3.5" />
+                                            <span className="text-[9px] font-black uppercase tracking-widest">Occurred On</span>
+                                        </div>
+                                        <p className="text-sm font-black text-slate-900 dark:text-white">{formatLocalTime(selectedLog.timestamp, 'MMMM dd, yyyy')}</p>
+                                        <p className="text-[11px] font-bold text-slate-400 mt-1">{formatLocalTime(selectedLog.timestamp, 'EEEE')}</p>
+                                    </div>
+                                    <div className="bg-white dark:bg-slate-900/50 border border-slate-200/50 dark:border-slate-800/50 p-5 rounded-[2rem] shadow-sm">
+                                        <div className="flex items-center gap-2 mb-3 text-slate-400">
+                                            <Clock className="w-3.5 h-3.5" />
+                                            <span className="text-[9px] font-black uppercase tracking-widest">Precise Time</span>
+                                        </div>
+                                        <p className="text-sm font-black text-slate-900 dark:text-white">{formatLocalTime(selectedLog.timestamp, 'HH:mm:ss')}</p>
+                                        <p className="text-[11px] font-bold text-slate-400 mt-1">{formatLocalTime(selectedLog.timestamp, 'SSS')} Milliseconds</p>
                                     </div>
                                 </div>
 
-                                {/* Main Details Grid */}
-                                <div className="grid grid-cols-2 gap-8">
-                                    <div className="space-y-2">
-                                        <label className="text-[10px] font-black uppercase tracking-widest text-slate-400 flex items-center gap-1.5">
-                                            <Calendar className="w-3 h-3" />
-                                            Event Date
-                                        </label>
-                                        <div className="p-4 bg-slate-50 dark:bg-slate-800 rounded-2xl font-bold text-sm dark:text-white">
-                                            {formatLocalTime(selectedLog.timestamp, 'EEEE, MMMM dd, yyyy')}
-                                        </div>
-                                    </div>
-                                    <div className="space-y-2">
-                                        <label className="text-[10px] font-black uppercase tracking-widest text-slate-400 flex items-center gap-1.5">
-                                            <Clock className="w-3 h-3" />
-                                            Time (Local)
-                                        </label>
-                                        <div className="p-4 bg-slate-50 dark:bg-slate-800 rounded-2xl font-bold text-sm dark:text-white">
-                                            {formatLocalTime(selectedLog.timestamp, 'HH:mm:ss.SSS')}
-                                        </div>
-                                    </div>
-                                </div>
-
-                                {/* User & Network Section */}
-                                <div className="space-y-6">
-                                    <h4 className="text-lg font-black text-slate-800 dark:text-white flex items-center gap-2">
-                                        <Fingerprint className="w-5 h-5 text-indigo-600" />
-                                        User & Network Identity
+                                <div className="bg-white dark:bg-slate-900/50 border border-slate-200/50 dark:border-slate-800/50 p-6 rounded-[2.5rem] shadow-sm space-y-6">
+                                    <h4 className="text-[10px] font-black text-slate-400 uppercase tracking-[0.2em] flex items-center gap-2">
+                                        <div className="w-1 h-3 bg-indigo-500 rounded-full" />
+                                        Identity & Source
                                     </h4>
-                                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                                        <div className="p-6 bg-slate-50 dark:bg-slate-800 rounded-[1.5rem] space-y-3">
-                                            <div className="flex items-center gap-2 text-[10px] font-black uppercase text-slate-400">
-                                                <Globe className="w-3 h-3" />
-                                                IP Address
-                                            </div>
-                                            <p className="text-xl font-black text-slate-900 dark:text-white">{selectedLog.ipAddress}</p>
-                                        </div>
-                                        <div className="p-6 bg-slate-50 dark:bg-slate-800 rounded-[1.5rem] space-y-3">
-                                            <div className="flex items-center gap-2 text-[10px] font-black uppercase text-slate-400">
-                                                <Info className="w-3 h-3" />
-                                                User Account
-                                            </div>
-                                            <div className="flex items-center space-x-2">
-                                                <div className="w-8 h-8 rounded-lg bg-indigo-500 flex items-center justify-center text-white text-[10px] font-black">
-                                                    US
+                                    
+                                    <div className="flex flex-col sm:flex-row gap-6">
+                                        <div className="flex-1 space-y-1.5">
+                                            <span className="text-[9px] font-black text-slate-400 uppercase tracking-widest ml-1">User Context</span>
+                                            <div className="p-3.5 bg-slate-50 dark:bg-slate-800/40 rounded-2xl flex items-center gap-3">
+                                                <div className="w-8 h-8 rounded-xl bg-gradient-to-tr from-indigo-500 to-blue-600 flex items-center justify-center text-[10px] font-black text-white shadow-lg">
+                                                    {selectedLog.userName?.substring(0, 2).toUpperCase()}
                                                 </div>
-                                                <span className="text-sm font-black dark:text-white">{selectedLog.userName}</span>
+                                                <div className="min-w-0">
+                                                    <p className="text-xs font-black text-slate-800 dark:text-white truncate">{selectedLog.userName}</p>
+                                                    <p className="text-[9px] font-bold text-slate-400 truncate tracking-tight">{selectedLog.userEmail || 'system.internal'}</p>
+                                                </div>
+                                            </div>
+                                        </div>
+                                        <div className="flex-1 space-y-1.5">
+                                            <span className="text-[9px] font-black text-slate-400 uppercase tracking-widest ml-1">Source Interface</span>
+                                            <div className="p-3.5 bg-slate-50 dark:bg-slate-800/40 rounded-2xl flex items-center gap-3">
+                                                <div className="w-8 h-8 rounded-xl bg-slate-100 dark:bg-slate-700 flex items-center justify-center">
+                                                    <Globe className="w-4 h-4 text-slate-500 dark:text-slate-300" />
+                                                </div>
+                                                <div className="min-w-0">
+                                                    <p className="text-xs font-black text-slate-800 dark:text-white truncate">{selectedLog.ipAddress}</p>
+                                                    <p className="text-[9px] font-bold text-slate-400 uppercase tracking-widest">Network Identity</p>
+                                                </div>
                                             </div>
                                         </div>
                                     </div>
 
-                                    <div className="p-6 bg-slate-50 dark:bg-slate-800 rounded-[1.5rem] space-y-3">
-                                        <div className="flex items-center gap-2 text-[10px] font-black uppercase text-slate-400">
-                                            <Smartphone className="w-3 h-3" />
-                                            Technical User Agent
+                                    <div className="space-y-2 pt-2">
+                                        <span className="text-[9px] font-black text-slate-400 uppercase tracking-widest ml-1">Client Agent</span>
+                                        <div className="p-4 bg-slate-50 dark:bg-slate-800/40 rounded-2xl">
+                                            <p className="text-[11px] font-medium leading-relaxed text-slate-500 dark:text-slate-400 italic break-all">
+                                                {selectedLog.userAgent}
+                                            </p>
                                         </div>
-                                        <p className="text-xs font-bold leading-relaxed text-slate-600 dark:text-slate-400 break-all">{selectedLog.userAgent}</p>
                                     </div>
                                 </div>
 
-                                {/* Activity Content */}
                                 <div className="space-y-4">
-                                    <h4 className="text-lg font-black text-slate-800 dark:text-white flex items-center gap-2">
-                                        <RefreshCw className="w-5 h-5 text-indigo-600" />
-                                        Activity Metadata
+                                    <h4 className="text-[10px] font-black text-slate-400 uppercase tracking-[0.2em] flex items-center gap-2 px-1">
+                                        <div className="w-1 h-3 bg-emerald-500 rounded-full" />
+                                        Data Payload
                                     </h4>
-                                    <div className="space-y-2">
-                                        <label className="text-[10px] font-black uppercase tracking-widest text-slate-400">Action Performed</label>
-                                        <div className="p-4 bg-indigo-50 dark:bg-indigo-900/20 text-indigo-700 dark:text-indigo-300 rounded-2xl font-black text-sm">
-                                            {selectedLog.action}
-                                        </div>
-                                    </div>
-                                    <div className="space-y-2">
-                                        <label className="text-[10px] font-black uppercase tracking-widest text-slate-400">Detailed Payload Context</label>
-                                        <div className="p-6 bg-slate-900 dark:bg-black rounded-3xl font-mono text-xs text-emerald-400 overflow-x-auto whitespace-pre-wrap leading-relaxed shadow-inner">
-                                            {selectedLog.details}
+                                    
+                                    <div className="group relative">
+                                        <div className="absolute -inset-0.5 bg-gradient-to-br from-emerald-500/20 to-blue-500/0 rounded-3xl blur opacity-0 group-hover:opacity-100 transition duration-500" />
+                                        <div className="relative bg-[#1a1c23] dark:bg-black p-8 rounded-[2rem] shadow-2xl overflow-hidden border border-white/5">
+                                            {/* Code-style accents */}
+                                            <div className="flex items-center gap-2 mb-6 opacity-30">
+                                                <div className="w-2.5 h-2.5 rounded-full bg-rose-500" />
+                                                <div className="w-2.5 h-2.5 rounded-full bg-amber-500" />
+                                                <div className="w-2.5 h-2.5 rounded-full bg-emerald-500" />
+                                                <div className="flex-1" />
+                                                <span className="text-[8px] font-black uppercase text-white tracking-widest">Structured Activity Data</span>
+                                            </div>
+                                            
+                                            <pre className="text-xs font-mono text-emerald-400/90 whitespace-pre-wrap leading-relaxed break-words max-h-[400px] overflow-y-auto custom-scrollbar">
+                                                {selectedLog.details}
+                                            </pre>
+                                            
+                                            {/* Interactive background effect */}
+                                            <div className="absolute top-0 right-0 w-[200px] h-[200px] bg-emerald-500/5 rounded-full blur-[80px] pointer-events-none" />
                                         </div>
                                     </div>
                                 </div>
 
                                 {selectedLog.entityType && (
-                                    <div className="grid grid-cols-2 gap-4 pt-6 border-t border-slate-100 dark:border-slate-800">
-                                        <div className="space-y-1">
-                                            <span className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Entity Type</span>
-                                            <p className="font-bold text-sm text-slate-800 dark:text-white">{selectedLog.entityType}</p>
+                                    <div className="flex items-center gap-4 bg-indigo-50 dark:bg-indigo-950/20 p-5 rounded-3xl border border-indigo-100/50 dark:border-indigo-900/30">
+                                        <div className="w-10 h-10 bg-white dark:bg-indigo-900/40 rounded-xl flex items-center justify-center shadow-md">
+                                            <RefreshCw className="w-5 h-5 text-indigo-500" />
                                         </div>
-                                        <div className="space-y-1">
-                                            <span className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Entity reference ID</span>
-                                            <p className="font-mono text-[11px] text-slate-800 dark:text-white break-all">{selectedLog.entityId}</p>
+                                        <div className="flex-1">
+                                            <div className="flex items-baseline gap-2">
+                                                <span className="text-[8px] font-black text-indigo-400 dark:text-indigo-600 uppercase tracking-widest">Entity</span>
+                                                <p className="font-black text-xs text-indigo-900 dark:text-indigo-200 uppercase">{selectedLog.entityType}</p>
+                                            </div>
+                                            <p className="font-mono text-[10px] text-indigo-600/70 dark:text-indigo-400/70 truncate mt-0.5">Ref: {selectedLog.entityId}</p>
                                         </div>
                                     </div>
                                 )}
                             </div>
+
+                            {/* Modal Footer Shadow */}
+                            <div className="absolute bottom-0 inset-x-0 h-24 bg-gradient-to-t from-slate-50 dark:from-[#0c0e12] to-transparent pointer-events-none" />
                         </motion.div>
                     </div>
                 )}

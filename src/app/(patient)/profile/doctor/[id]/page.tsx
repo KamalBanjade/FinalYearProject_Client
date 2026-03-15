@@ -3,7 +3,7 @@
 import React, { useEffect, useState } from 'react';
 import { useParams, useRouter } from 'next/navigation';
 import { patientApi } from '@/lib/api/patient';
-import { DoctorExtendedProfile } from '@/lib/api/doctor';
+import { DoctorExtendedProfile } from '@/lib/api';
 import {
     Mail, Phone, Award, Building2, ArrowLeft, ShieldCheck, CheckCircle2,
     Stethoscope, GraduationCap, Briefcase, Star, Globe, Activity, Clock,
@@ -11,7 +11,8 @@ import {
 } from 'lucide-react';
 import toast from 'react-hot-toast';
 import { motion } from 'framer-motion';
-import { MedicalLoader } from '@/components/ui/MedicalLoader';
+import { usePatientDoctorDetail } from '@/hooks/useAdminQueries';
+import { ProfileSkeleton } from '@/components/profile/ProfileSkeleton';
 
 // ── Helpers ───────────────────────────────────────────────────────────────────
 
@@ -83,32 +84,20 @@ export default function PatientDoctorProfilePage() {
     const router = useRouter();
     const doctorId = params.id as string;
 
-    const [doctor, setDoctor] = useState<DoctorExtendedProfile | null>(null);
-    const [loading, setLoading] = useState(true);
+    const { data: doctorRes, isLoading, isError } = usePatientDoctorDetail(doctorId);
+    const doctor = doctorRes?.data;
 
     useEffect(() => {
-        const fetchDoctor = async () => {
-            try {
-                const res = await patientApi.getDoctorById(doctorId);
-                setDoctor(res.data);
-            } catch {
-                toast.error('Could not retrieve doctor profile');
-                router.push('/profile');
-            } finally {
-                setLoading(false);
-            }
-        };
-        if (doctorId) fetchDoctor();
-    }, [doctorId, router]);
+        if (isError) {
+            toast.error('Could not retrieve doctor profile');
+            router.push('/profile');
+        }
+    }, [isError, router]);
 
-    if (loading) {
-        return (
-            <div className="flex flex-col items-center justify-center min-h-[70vh] gap-6">
-                <MedicalLoader />
-                <p className="text-[10px] font-black text-slate-400 uppercase tracking-[0.4em] animate-pulse">Verifying Clinical Credentials...</p>
-            </div>
-        );
+    if (isLoading) {
+        return <ProfileSkeleton />;
     }
+    
     if (!doctor) return null;
 
     return (
@@ -119,7 +108,15 @@ export default function PatientDoctorProfilePage() {
                 <div className="relative">
                     <div className="w-48 h-48 bg-slate-900 dark:bg-white rounded-[4rem] flex items-center justify-center text-white dark:text-slate-900 text-7xl font-black shadow-[0_30px_60px_-15px_rgba(0,0,0,0.5)] transition-all duration-700 group-hover/hero:scale-105 group-hover/hero:-rotate-3 relative z-10 overflow-hidden">
                         <div className="absolute inset-0 bg-gradient-to-br from-primary/20 to-transparent opacity-0 group-hover/hero:opacity-100 transition-opacity duration-700" />
-                        {doctor.firstName.charAt(0)}{doctor.lastName.charAt(0)}
+                        {doctor.profilePictureUrl ? (
+                            <img 
+                                src={doctor.profilePictureUrl} 
+                                alt={`Dr. ${doctor.firstName} ${doctor.lastName}`} 
+                                className="w-full h-full object-cover"
+                            />
+                        ) : (
+                            <>{doctor.firstName.charAt(0)}{doctor.lastName.charAt(0)}</>
+                        )}
                     </div>
                     {/* Floating Decorative Elements */}
                     <div className="absolute -top-4 -left-4 w-24 h-24 bg-primary/20 rounded-full blur-3xl animate-pulse" />

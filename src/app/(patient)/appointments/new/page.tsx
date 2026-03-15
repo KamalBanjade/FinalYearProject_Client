@@ -245,8 +245,16 @@ export default function BookAppointmentPage() {
                                         exit={{ opacity: 0, scale: 0.95 }}
                                         className="p-6 bg-emerald-50/40 dark:bg-emerald-500/5 rounded-[2.5rem] border border-emerald-100/50 dark:border-emerald-500/10 flex items-center gap-5 transition-all group-hover:bg-emerald-50/80 dark:group-hover:!bg-emerald-500/10 group-hover:border-emerald-200/50 shadow-sm"
                                     >
-                                        <div className="w-16 h-16 bg-gradient-to-br from-emerald-500 to-teal-600 rounded-[1.5rem] flex items-center justify-center text-white text-2xl font-black shadow-lg shadow-emerald-200 dark:shadow-none">
-                                            {('fullName' in (selectedDoctor || {}) ? (selectedDoctor as DoctorSuggestionItem).fullName?.split(' ').pop()?.[0] : (selectedDoctor as DoctorBasicInfo)?.firstName?.[0]) || 'D'}
+                                        <div className="w-16 h-16 bg-gradient-to-br from-emerald-500 to-teal-600 rounded-[1.5rem] flex items-center justify-center text-white text-2xl font-black shadow-lg shadow-emerald-200 dark:shadow-none overflow-hidden">
+                                            {selectedDoctor?.profilePictureUrl ? (
+                                                <img 
+                                                    src={selectedDoctor.profilePictureUrl} 
+                                                    alt="Doctor" 
+                                                    className="w-full h-full object-cover"
+                                                />
+                                            ) : (
+                                                ('fullName' in (selectedDoctor || {}) ? (selectedDoctor as DoctorSuggestionItem).fullName?.split(' ').pop()?.[0] : (selectedDoctor as DoctorBasicInfo)?.firstName?.[0]) || 'D'
+                                            )}
                                         </div>
                                         <div className="flex-1 min-w-0">
                                             <div className="flex items-center gap-2 mb-1">
@@ -288,9 +296,18 @@ export default function BookAppointmentPage() {
                                                         key={d.id}
                                                         type="button"
                                                         onClick={() => { setSelectedDoctorId(d.id); setIsChangingDoctor(false); }}
-                                                        className="w-full flex items-center justify-between p-4 rounded-2xl bg-slate-50/50 dark:bg-slate-800/40 border border-transparent hover:border-emerald-100 dark:hover:border-emerald-900/40 hover:bg-white dark:hover:bg-slate-800 transition-all text-left"
+                                                        className="w-full flex items-center gap-4 p-4 rounded-2xl bg-slate-50/50 dark:bg-slate-800/40 border border-transparent hover:border-emerald-100 dark:hover:border-emerald-900/40 hover:bg-white dark:hover:bg-slate-800 transition-all text-left"
                                                     >
-                                                        <span className="text-xs font-black text-slate-800 dark:text-slate-200 uppercase tracking-tight">Dr. {d.firstName} {d.lastName}</span>
+                                                        <div className="w-8 h-8 rounded-xl bg-emerald-500/10 flex items-center justify-center text-emerald-600 text-[10px] font-black overflow-hidden shrink-0">
+                                                            {d.profilePictureUrl ? (
+                                                                <img src={d.profilePictureUrl} alt="" className="w-full h-full object-cover" />
+                                                            ) : (
+                                                                `${d.firstName[0]}${d.lastName[0]}`
+                                                            )}
+                                                        </div>
+                                                        <div className="flex-1 min-w-0">
+                                                            <span className="text-xs font-black text-slate-800 dark:text-slate-200 uppercase tracking-tight">Dr. {d.firstName} {d.lastName}</span>
+                                                        </div>
                                                         <ChevronRight className="w-3.5 h-3.5 text-slate-300" />
                                                     </button>
                                                 ))
@@ -304,8 +321,12 @@ export default function BookAppointmentPage() {
                                                             onClick={() => { setSelectedDoctorId(d.id); setIsChangingDoctor(false); }}
                                                             className="w-full flex items-center gap-4 p-4 rounded-2xl bg-slate-100/50 dark:bg-slate-800/40 border border-transparent hover:border-emerald-100 dark:hover:border-emerald-900/40 hover:bg-white dark:hover:bg-slate-800 transition-all text-left"
                                                         >
-                                                            <div className="w-8 h-8 rounded-xl bg-emerald-500/10 flex items-center justify-center text-emerald-600 text-[10px] font-black">
-                                                                {d.fullName.split(' ').pop()?.[0]}
+                                                            <div className="w-8 h-8 rounded-xl bg-emerald-500/10 flex items-center justify-center text-emerald-600 text-[10px] font-black overflow-hidden shrink-0">
+                                                                {d.profilePictureUrl ? (
+                                                                    <img src={d.profilePictureUrl} alt="" className="w-full h-full object-cover" />
+                                                                ) : (
+                                                                    d.fullName.split(' ').pop()?.[0]
+                                                                )}
                                                             </div>
                                                             <div className="flex-1 min-w-0">
                                                                 <p className="text-[11px] font-black text-slate-800 dark:text-slate-200 uppercase truncate">{d.fullName}</p>

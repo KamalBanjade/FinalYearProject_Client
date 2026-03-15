@@ -7,16 +7,16 @@ function getLocalIp() {
   for (const name of Object.keys(interfaces)) {
     const lowerName = name.toLowerCase();
     // Strict filters to avoid virtual/non-Wi-Fi adapters on Windows
-    if (lowerName.includes('veth') || 
-        lowerName.includes('docker') || 
-        lowerName.includes('vmware') ||
-        lowerName.includes('virtualbox') ||
-        lowerName.includes('bluetooth') ||
-        lowerName.includes('tunnel') ||
-        lowerName.includes('zerotier') ||
-        lowerName.includes('tap') ||
-        lowerName.includes('multiplexor') ||
-        lowerName.includes('vbox')) continue;
+    if (lowerName.includes('veth') ||
+      lowerName.includes('docker') ||
+      lowerName.includes('vmware') ||
+      lowerName.includes('virtualbox') ||
+      lowerName.includes('bluetooth') ||
+      lowerName.includes('tunnel') ||
+      lowerName.includes('zerotier') ||
+      lowerName.includes('tap') ||
+      lowerName.includes('multiplexor') ||
+      lowerName.includes('vbox')) continue;
 
     for (const iface of interfaces[name] || []) {
       if (iface.family === 'IPv4' && !iface.internal) {
@@ -54,6 +54,7 @@ const nextConfig: NextConfig = {
       },
     ];
   },
+  output: "standalone",
   serverExternalPackages: [],
 };
 

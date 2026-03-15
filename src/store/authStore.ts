@@ -52,6 +52,8 @@ interface AuthState {
     getUserDevices: () => Promise<any[]>;
     revokeDevice: (deviceId: string) => Promise<void>;
     revokeAllDevices: () => Promise<void>;
+    changePassword: (data: any) => Promise<void>;
+    deleteAccount: () => Promise<void>;
 }
 
 export const useAuthStore = create<AuthState>()(
@@ -421,6 +423,36 @@ export const useAuthStore = create<AuthState>()(
                         keysToRemove.forEach(k => localStorage.removeItem(k));
                     } catch (err: any) {
                         const message = err.response?.data?.message || 'Failed to revoke all devices.';
+                        throw new Error(message);
+                    }
+                },
+
+                changePassword: async (data: any) => {
+                    try {
+                        await axiosInstance.post('auth/change-password', data);
+                    } catch (err: any) {
+                        const message = err.response?.data?.message || 'Failed to change password.';
+                        throw new Error(message);
+                    }
+                },
+
+                deleteAccount: async () => {
+                    try {
+                        await axiosInstance.delete('auth/account');
+                        set({
+                            user: null,
+                            isAuthenticated: false,
+                            token: null,
+                        });
+                        const isHttp = window.location.protocol === 'http:';
+                        Cookies.remove('auth_token', {
+                            secure: !isHttp,
+                            sameSite: isHttp ? 'Lax' : 'None',
+                            path: '/'
+                        });
+                        window.location.href = '/login';
+                    } catch (err: any) {
+                        const message = err.response?.data?.message || 'Failed to delete account.';
                         throw new Error(message);
                     }
                 },

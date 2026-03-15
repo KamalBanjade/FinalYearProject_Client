@@ -9,8 +9,8 @@ import { Button } from '@/components/ui/Button';
 import { Input } from '@/components/ui/Input';
 import { Doctor, UpdateDoctorRequest } from '@/types/admin';
 import { departmentApi, Department as DeptEntity } from '@/lib/api/department';
-import { adminApi } from '@/lib/api/admin';
-import { DoctorExtendedProfile } from '@/lib/api/doctor';
+import { adminApi } from '@/lib/api';
+import { DoctorExtendedProfile } from '@/lib/api';
 import toast from 'react-hot-toast';
 
 interface EditDoctorModalProps {

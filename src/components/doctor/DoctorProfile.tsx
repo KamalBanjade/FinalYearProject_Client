@@ -1,7 +1,7 @@
 import React, { useEffect, useState } from 'react';
 import { useForm } from 'react-hook-form';
 import toast from 'react-hot-toast';
-import { doctorApi, DoctorExtendedProfile } from '@/lib/api/doctor';
+import { doctorApi, DoctorExtendedProfile } from '@/lib/api';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { ProfilePictureUpload } from '@/components/profile/ProfilePictureUpload';
 import { Button } from '@/components/ui/Button';

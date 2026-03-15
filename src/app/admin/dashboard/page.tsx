@@ -2,6 +2,7 @@
 
 import React, { useState, useEffect, useCallback } from 'react';
 import { useRouter } from 'next/navigation';
+import { useQuery } from '@tanstack/react-query';
 import { motion, Variants } from 'framer-motion';
 import {
     Users, Stethoscope, FileText, QrCode, RefreshCw,
@@ -16,9 +17,9 @@ import {
     ResponsiveContainer
 } from 'recharts';
 import { toast } from 'react-hot-toast';
+import { format } from 'date-fns';
 import { PageLayout } from '@/components/layout/PageLayout';
 import { Button } from '@/components/ui/Button';
-import { adminAuditLogsApi, SystemStatisticsDTO } from '@/lib/api/adminAuditLogs';
 import { InviteDoctorModal } from '@/components/admin/InviteDoctorModal';
 import { RecentActivityTable } from '@/components/dashboard/RecentActivityTable';
 
@@ -61,37 +62,37 @@ function GlassMetricCard({
         <motion.div
             variants={itemVariants}
             transition={{ delay: delay * 0.07 }}
-            className={`group relative bg-white dark:bg-slate-950 border border-slate-200 dark:border-slate-800 rounded-[2rem] p-5 lg:p-6 overflow-hidden hover:-translate-y-1 hover:shadow-md transition-all duration-300 shadow-sm cursor-default`}
+            className={`group relative bg-white/70 dark:bg-slate-900/40 backdrop-blur-xl border border-slate-200 dark:border-white/5 rounded-3xl p-4 lg:p-5 overflow-hidden hover:-translate-y-1 hover:shadow-xl transition-all duration-300 shadow-sm cursor-default`}
         >
             {/* Soft glow */}
-            <div className={`absolute -inset-px rounded-[2rem] opacity-0 group-hover:opacity-60 transition-opacity duration-700 blur-2xl ${glowColor}`} />
+            <div className={`absolute -inset-px rounded-3xl opacity-0 group-hover:opacity-60 transition-opacity duration-700 blur-2xl ${glowColor}`} />
 
             {/* Decorative icon watermark */}
-            <div className="absolute bottom-0 right-0 translate-x-1/3 translate-y-1/3 opacity-[0.04] pointer-events-none text-foreground">
-                <Icon className="w-24 h-24" />
+            <div className="absolute bottom-0 right-0 translate-x-1/4 translate-y-1/4 opacity-[0.03] pointer-events-none text-foreground">
+                <Icon className="w-20 h-20" />
             </div>
 
-            <div className="relative z-10 flex items-start justify-between mb-4">
-                <div className={`p-2.5 rounded-xl ${accentColor} text-white shadow-sm group-hover:scale-110 transition-transform duration-300`}>
-                    <Icon className="w-5 h-5" />
+            <div className="relative z-10 flex items-start justify-between mb-3">
+                <div className={`p-2 rounded-lg ${accentColor} text-white shadow-sm group-hover:scale-110 transition-transform duration-300`}>
+                    <Icon className="w-4 h-4" />
                 </div>
                 {change && (
-                    <span className={`flex items-center gap-1 text-[10px] font-bold px-2 py-0.5 rounded-full ${change.positive !== false
+                    <span className={`flex items-center gap-1 text-[9px] font-bold px-1.5 py-0.5 rounded-full ${change.positive !== false
                         ? 'bg-emerald-50 dark:bg-emerald-500/10 text-emerald-600 dark:text-emerald-400'
                         : 'bg-rose-50 dark:bg-rose-500/10 text-rose-600 dark:text-rose-400'
                         }`}>
-                        <ArrowUpRight className="w-3 h-3" />
+                        <ArrowUpRight className="w-2.5 h-2.5" />
                         {change.label}
                     </span>
                 )}
             </div>
 
             <div className="relative z-10">
-                <div className="text-3xl font-black text-foreground mb-0.5">
+                <div className="text-2xl font-black text-foreground mb-0.5 leading-none">
                     {typeof value === 'number' ? value.toLocaleString() : value}
                 </div>
-                <div className="text-[10px] font-bold text-muted uppercase tracking-widest">{label}</div>
-                {sub && <div className="text-[10px] text-muted/70 mt-1">{sub}</div>}
+                <div className="text-[9px] font-bold text-muted uppercase tracking-widest">{label}</div>
+                {sub && <div className="text-[9px] text-muted/70 mt-1 leading-tight">{sub}</div>}
             </div>
         </motion.div>
     );
@@ -113,16 +114,23 @@ function SectionLabel({ children, icon: Icon }: { children: React.ReactNode; ico
 
 // ─── Glass chart panel ────────────────────────────────────────────────────────
 
-function ChartPanel({ title, sub, children, className = '' }: { title: string; sub?: string; children: React.ReactNode; className?: string }) {
+function ChartPanel({ title, sub, children, className = '', glowColor = 'bg-primary/5' }: { title: string; sub?: string; children: React.ReactNode; className?: string; glowColor?: string }) {
     return (
-        <motion.div variants={itemVariants} className={`bg-white/50 dark:bg-slate-900/40 backdrop-blur-2xl border border-slate-200/50 dark:border-slate-800/50 rounded-[2.5rem] sm:rounded-[3rem] p-6 lg:p-8 shadow-xl shadow-slate-200/20 dark:shadow-black/30 ${className}`}>
-            <div className="mb-6 flex flex-col sm:flex-row sm:items-center justify-between gap-2">
-                <div>
-                    <h3 className="text-base font-black text-foreground">{title}</h3>
-                    {sub && <p className="text-xs text-muted font-medium mt-0.5">{sub}</p>}
+        <motion.div variants={itemVariants} className={`group relative bg-white/60 dark:bg-slate-900/40 backdrop-blur-2xl border border-slate-200/50 dark:border-slate-800/50 rounded-3xl p-5 lg:p-6 shadow-xl shadow-slate-200/20 dark:shadow-black/30 overflow-hidden ${className}`}>
+            {/* Soft glow on hover */}
+            <div className={`absolute -inset-px rounded-3xl opacity-0 group-hover:opacity-40 transition-opacity duration-700 blur-2xl ${glowColor}`} />
+            
+            <div className="relative z-10 h-full flex flex-col">
+                <div className="mb-4 flex flex-col sm:flex-row sm:items-center justify-between gap-2">
+                    <div>
+                        <h3 className="text-sm font-black text-foreground tracking-tight">{title}</h3>
+                        {sub && <p className="text-[10px] text-muted font-medium mt-0.5">{sub}</p>}
+                    </div>
+                </div>
+                <div className="flex-1">
+                    {children}
                 </div>
             </div>
-            {children}
         </motion.div>
     );
 }
@@ -149,35 +157,67 @@ function ProgressRow({ label, value, total, color }: { label: string; value: num
     );
 }
 
-// ─── Skeleton ─────────────────────────────────────────────────────────────────
-
-function Skeleton({ className = '' }: { className?: string }) {
-    return <div className={`bg-white/30 dark:bg-slate-800/50 backdrop-blur-xl border border-slate-200/20 dark:border-slate-700/40 rounded-[2.5rem] animate-pulse ${className}`} />;
-}
+import { Skeleton } from '@/components/ui/Skeleton';
 
 // ─── Main Dashboard Page ──────────────────────────────────────────────────────
 
+import { useSystemStats } from '@/hooks/useAdminQueries';
+
 export default function AdminDashboard() {
-    const [stats, setStats] = useState<SystemStatisticsDTO | null>(null);
-    const [loading, setLoading] = useState(true);
     const [inviteOpen, setInviteOpen] = useState(false);
-    const [lastUpdated, setLastUpdated] = useState<Date>(new Date());
     const router = useRouter();
 
-    const fetchStats = useCallback(async () => {
-        setLoading(true);
-        try {
-            const data = await adminAuditLogsApi.getSystemStatistics();
-            setStats(data);
-            setLastUpdated(new Date());
-        } catch {
+    const {
+        data: stats,
+        isLoading: loading,
+        isError
+    } = useSystemStats();
+    useEffect(() => {
+        if (isError) {
             toast.error('Failed to load dashboard data');
-        } finally {
-            setLoading(false);
         }
-    }, []);
+    }, [isError]);
 
-    useEffect(() => { fetchStats(); }, [fetchStats]);
+    if (loading) {
+        return (
+            <PageLayout>
+                <motion.div
+                    initial="hidden"
+                    animate="visible"
+                    variants={containerVariants}
+                    className="space-y-12 pb-20"
+                >
+                    <div className="flex justify-between items-center">
+                        <motion.div variants={itemVariants} className="space-y-3">
+                            <Skeleton className="h-4 w-32 rounded-full" />
+                            <Skeleton className="h-12 w-80 rounded-2xl" />
+                        </motion.div>
+                        <motion.div variants={itemVariants}>
+                            <Skeleton className="h-12 w-40 rounded-2xl" />
+                        </motion.div>
+                    </div>
+
+                    <div className="grid grid-cols-1 md:grid-cols-4 gap-6">
+                        {[...Array(4)].map((_, i) => (
+                            <motion.div key={i} variants={itemVariants} transition={{ delay: i * 0.05 }}>
+                                <Skeleton className="h-44 rounded-3xl" variant="glass" />
+                            </motion.div>
+                        ))}
+                    </div>
+
+                    <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
+                        <motion.div variants={itemVariants} className="lg:col-span-2">
+                             <Skeleton className="h-[500px] rounded-[3rem]" variant="glass" />
+                        </motion.div>
+                        <motion.div variants={itemVariants} className="lg:col-span-1">
+                             <Skeleton className="h-[500px] rounded-[3rem]" variant="glass" />
+                        </motion.div>
+                    </div>
+                </motion.div>
+            </PageLayout>
+        );
+    }
+
 
     // Data Transformation Helpers
     const userDist = stats ? [
@@ -209,6 +249,9 @@ export default function AdminDashboard() {
         return <text x={x} y={y} fill="white" textAnchor="middle" dominantBaseline="central" fontSize={11} fontWeight="bold">{`${(percent * 100).toFixed(0)}%`}</text>;
     };
 
+    const hour = new Date().getHours();
+    const greeting = hour < 12 ? 'Good Morning' : hour < 17 ? 'Good Afternoon' : 'Good Evening';
+
     return (
         <PageLayout>
             {/* Ambient background decoration */}
@@ -218,22 +261,48 @@ export default function AdminDashboard() {
                 <div className="absolute bottom-[-10%] left-[10%] w-[45%] h-[45%] bg-blue-500/5 rounded-full blur-[150px]" />
             </div>
 
+            <div className="relative mb-10">
+                <div className="flex flex-col md:flex-row md:items-end justify-between gap-6">
+                    <motion.div
+                        initial={{ opacity: 0, x: -20 }}
+                        animate={{ opacity: 1, x: 0 }}
+                        className="space-y-1"
+                    >
+                        <div className="flex items-center gap-2 mb-2">
+                            <span className="px-2 py-0.5 rounded-full bg-primary/10 border border-primary/20 text-[10px] font-black text-primary uppercase tracking-widest">
+                                Central Administration
+                            </span>
+                            <div className="w-1 h-1 rounded-full bg-slate-300 dark:bg-slate-700" />
+                            <span className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">
+                                System Overview
+                            </span>
+                        </div>
+                        <h1 className="text-4xl font-black text-slate-900 dark:text-white tracking-tighter">
+                            {greeting}, <span className="text-transparent bg-clip-text bg-gradient-to-r from-primary to-indigo-600">Admin {stats?.adminFirstName || 'User'}</span>
+                        </h1>
+                        <p className="text-sm font-medium text-slate-500 dark:text-slate-400">
+                            Welcome back to the Central Management System.
+                        </p>
+                    </motion.div>
+
+                    <motion.div
+                        initial={{ opacity: 0, y: 10 }}
+                        animate={{ opacity: 1, y: 0 }}
+                        transition={{ delay: 0.2 }}
+                        className="flex items-center gap-3 px-4 py-2 bg-white/60 dark:bg-slate-900/40 backdrop-blur-xl border border-slate-200/50 dark:border-slate-800/50 rounded-2xl shadow-sm"
+                    >
+                        <Calendar className="w-4 h-4 text-primary" />
+                        <div className="flex flex-col">
+                            <span className="text-[10px] font-black text-slate-400 uppercase tracking-widest leading-none">Standard Time</span>
+                            <span className="text-xs font-bold text-slate-700 dark:text-slate-300 mt-1">
+                                {format(new Date(), 'EEEE, MMMM do yyyy')}
+                            </span>
+                        </div>
+                    </motion.div>
+                </div>
+            </div>
+
             <motion.div initial="hidden" animate="visible" variants={containerVariants} className="space-y-12 pb-20">
-
-                {/* ── Header Area ── */}
-                <motion.div variants={itemVariants} className="flex justify-end gap-6 px-2">
-                    <div className="flex items-center gap-3 flex-wrap">
-                        <Button onClick={() => setInviteOpen(true)}
-                            className="h-11 px-5 bg-primary hover:bg-primary/90 text-white rounded-2xl font-bold text-sm flex items-center gap-2 cursor-pointer shadow-lg shadow-primary/20 transition-all transform hover:-translate-y-0.5">
-                            <PlusCircle className="w-5 h-5" /> Onboard Doctor
-                        </Button>
-                        <Button variant="ghost" onClick={() => router.push('/admin/audit-logs')}
-                            className="h-11 px-5 border border-slate-200 dark:border-slate-800 rounded-2xl font-bold text-sm flex items-center gap-2 cursor-pointer bg-white/50 dark:bg-slate-900/50 backdrop-blur-xl hover:bg-white dark:hover:bg-slate-800 transition-all shadow-sm">
-                            <ClipboardList className="w-4 h-4" /> Comprehensive Logs
-                        </Button>
-                    </div>
-                </motion.div>
-
                 {/* ── Key Indicators (Hero) ── */}
                 {loading ? (
                     <div className="grid grid-cols-2 lg:grid-cols-4 gap-4 lg:gap-6">

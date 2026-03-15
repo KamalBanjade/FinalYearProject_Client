@@ -13,9 +13,11 @@ import {
     Search,
     Edit2,
     Loader2,
-    SendHorizontal
+    SendHorizontal,
+    UserCircle
 } from 'lucide-react';
 import { MedicalRecordResponseDTO, medicalRecordsApi } from '@/lib/api/medicalRecords';
+import Link from 'next/link';
 import { RecordVerificationBadge } from './RecordVerificationBadge';
 import { getRelativeTimeString, formatDate } from '@/lib/utils/dateUtils';
 import { Card } from '@/components/ui/Card';
@@ -32,7 +34,7 @@ interface RecordCardProps {
     onView?: (record: MedicalRecordResponseDTO, url: string) => void;
 }
 
-export const RecordCard: React.FC<RecordCardProps> = ({
+const RecordCardInner: React.FC<RecordCardProps> = ({
     record,
     onDownload,
     onDelete,
@@ -99,31 +101,50 @@ export const RecordCard: React.FC<RecordCardProps> = ({
     const status = getStatusConfig(record.state);
 
     return (
-        <Card 
+        <Card
             className={`
                 relative group overflow-hidden transition-all duration-300
                 hover:shadow-md hover:translate-y-[-2px]
                 ${record.rejectionReason ? 'border-rose-200 dark:border-rose-900/50' : ''}
             `}
         >
-            {/* Status Header */}
-            <Stack direction="row" justify="between" align="start" className="mb-4">
-                <Stack direction="row" align="center" spacing="xs" className={`
-                    px-3 py-1 rounded-full text-xs font-bold border shadow-sm
-                    ${status.colorClass}
-                `}>
-                    <span className="w-3.5 h-3.5 flex items-center justify-center">
-                        {status.icon}
-                    </span>
-                    {status.label}
-                </Stack>
-
-                {record.state === 2 && (
+            {/* Compact Header: Status + Category + Doctor */}
+            <div className="flex flex-wrap items-center gap-2 mb-3">
+                {record.state === 2 ? (
                     <RecordVerificationBadge recordId={record.id} isCertified={true} />
+                ) : (
+                    <div className={`px-2 py-0.5 rounded-md text-[10px] font-black border shadow-sm flex items-center justify-center gap-1 ${status.colorClass}`}>
+                        <div className="flex items-center justify-center shrink-0 [&>svg]:w-3 [&>svg]:h-3">
+                            {status.icon}
+                        </div>
+                        <span className="leading-none pt-[1px]">
+                            {status.label.replace('✅ ', '').replace('⏳ ', '').replace('📝 ', '').replace('📁 ', '').replace('⚠️ ', '')}
+                        </span>
+                    </div>
                 )}
-            </Stack>
 
-            {/* Main Content Area */}
+                <div className="px-2 py-0.5 rounded-md bg-primary/5 text-primary text-[10px] font-black uppercase tracking-wider border border-primary/10">
+                    {record.recordType}
+                </div>
+
+                {(record.uploadedBy?.startsWith('Dr.') || record.assignedDoctorName || record.certifiedBy) && (
+                    <div className="flex items-center gap-1.5 ml-auto md:ml-0 bg-emerald-50/50 dark:bg-emerald-500/5 px-2 py-0.5 rounded-md border border-emerald-500/10">
+                        <span className="text-[9px] font-black text-emerald-600/70 dark:text-emerald-400/70 uppercase tracking-tight">Under</span>
+                        <Link
+                            href={`/profile/doctor/${record.certifiedById || record.assignedDoctorId}`}
+                            className="text-xs text-emerald-800 dark:text-emerald-100 underline hover:no-underline font-black truncate max-w-[180px]"
+                        >
+                            {(() => {
+                                const name = (record.certifiedBy || record.assignedDoctorName || record.uploadedBy || '').trim();
+                                if (!name || name === 'Dr.') return 'Clinical Team';
+                                return name.startsWith('Dr.') ? name : `Dr. ${name}`;
+                            })()}
+                        </Link>
+                    </div>
+                )}
+            </div>
+
+            {/* Main Content Area: Simplified */}
             <Stack
                 direction="row"
                 align="center"
@@ -132,83 +153,61 @@ export const RecordCard: React.FC<RecordCardProps> = ({
                 onClick={handleViewClick as any}
             >
                 <div className={`
-                    w-12 h-12 md:w-14 md:h-14 rounded-xl flex items-center justify-center shrink-0
+                    w-10 h-10 rounded-lg flex items-center justify-center shrink-0
                     shadow-sm border border-black/5 dark:border-white/5
-                    ${isPdf ? 'bg-red-50 text-red-600 dark:bg-red-900/20' :
-                        isImage ? 'bg-blue-50 text-blue-600 dark:bg-blue-900/20' :
-                            'bg-indigo-50 text-indigo-600 dark:bg-indigo-900/20'}
+                    ${record.uploadedBy?.startsWith('Dr.')
+                        ? 'bg-secondary/10 text-secondary'
+                        : isPdf ? 'bg-rose-50 text-rose-600 dark:bg-rose-900/20' :
+                            isImage ? 'bg-primary/10 text-primary' :
+                                'bg-slate-50 text-slate-600 dark:bg-slate-800'}
                 `}>
-                    {isPdf ? <FileText className="w-6 h-6 md:w-7 md:h-7" /> :
-                        isImage ? <FileImage className="w-6 h-6 md:w-7 md:h-7" /> :
-                            <FileText className="w-6 h-6 md:w-7 md:h-7" />}
+                    {isPdf ? <FileText className="w-5 h-5" /> :
+                        isImage ? <FileImage className="w-5 h-5" /> :
+                            <FileText className="w-5 h-5" />}
                 </div>
 
                 <Stack direction="col" spacing="xs" className="min-w-0 flex-1">
-                    <Stack direction="row" align="center" spacing="xs" className="mb-1">
-                        <span className="px-2 py-0.5 rounded-md bg-indigo-50 dark:bg-indigo-900/30 text-indigo-600 dark:text-indigo-400 text-[10px] font-black uppercase tracking-wider">
-                            {record.recordType}
-                        </span>
-                        <Text variant="label" className="text-indigo-600 dark:text-indigo-400">
-                            • {getRelativeTimeString(record.uploadedAt)}
-                        </Text>
-                    </Stack>
-                    <H3 className="truncate leading-snug">
+                    <H3 className="text-sm md:text-base truncate font-black leading-tight text-slate-800 dark:text-slate-100">
                         {record.originalFileName}
                     </H3>
-                    <Text variant="muted" className="mt-1">
+                    <Text variant="muted" className="text-[11px] font-bold uppercase tracking-tight opacity-70">
                         Uploaded on {formatDate(record.uploadedAt)}
                     </Text>
                 </Stack>
 
-                <div className="hidden md:flex items-center justify-center w-8 h-8 rounded-full bg-slate-50 dark:bg-slate-800 text-slate-400 group-hover/content:bg-indigo-600 group-hover/content:text-white transition-all">
-                    <ChevronRight className="w-4 h-4" />
+                <div className="flex items-center justify-center w-7 h-7 rounded-full bg-slate-50 dark:bg-slate-800 text-slate-400 group-hover/content:bg-indigo-600 group-hover/content:text-white transition-all scale-0 group-hover/content:scale-100 duration-200">
+                    <ChevronRight className="w-3.5 h-3.5" />
                 </div>
             </Stack>
 
-            {/* Subtler Doctor Info */}
-            {(record.isCertified || record.assignedDoctorName) && (
-                <Stack direction="row" align="center" spacing="xs" className="mt-4 pt-3 border-t border-slate-50 dark:border-slate-800/50">
-                    <div className="w-1.5 h-1.5 rounded-full bg-slate-300 dark:bg-slate-700" />
-                    <Text variant="label">
-                        {record.isCertified ? 'Certified by' : 'Assigned to'} <span className="text-slate-700 dark:text-slate-200">Dr. {record.certifiedBy || record.assignedDoctorName}</span>
-                        {record.assignedDepartment && (
-                            <span className="opacity-60 ml-1">({record.assignedDepartment})</span>
-                        )}
-                    </Text>
-                </Stack>
-            )}
-
             {/* Action Buttons */}
-            <div className="grid grid-cols-2 md:grid-cols-4 gap-2 mt-4">
+            <div className="flex flex-wrap md:flex-nowrap items-center w-full gap-2 mt-4">
                 <Button
-                    variant="action"
-                    size="compact"
                     onClick={handleViewClick as any}
                     disabled={viewLoading}
                     aria-busy={viewLoading}
+                    className="flex-1 bg-indigo-50/50 text-indigo-700 border border-indigo-200/50 dark:bg-indigo-500/5 dark:text-indigo-300 dark:border-indigo-500/20 hover:bg-indigo-600 hover:text-white hover:border-indigo-600 transition-all font-black py-2.5 h-auto gap-2 justify-center shadow-sm"
                 >
-                    {viewLoading ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <Search className="w-3.5 h-3.5" />}
+                    {viewLoading ? <Loader2 className="w-4 h-4 animate-spin" /> : <Search className="w-4 h-4" />}
                     {viewLoading ? 'Viewing...' : 'View'}
                 </Button>
 
                 {record.canDownload && (
                     <Button
-                        variant="action"
-                        size="compact"
                         onClick={() => onDownload(record.id, record.originalFileName)}
+                        className="flex-1 bg-emerald-50/50 text-emerald-700 border border-emerald-200/50 dark:bg-emerald-500/5 dark:text-emerald-300 dark:border-emerald-500/20 hover:bg-emerald-600 hover:text-white hover:border-emerald-600 transition-all font-black py-2.5 h-auto gap-2 justify-center shadow-sm"
                     >
-                        <Download className="w-3.5 h-3.5" />
+                        <Download className="w-4 h-4" />
                         Download
                     </Button>
                 )}
 
                 {(record.state === 0 || record.state === 1) && (
                     <Button
-                        variant="action"
-                        size="compact"
                         onClick={() => onEdit(record)}
+                        className="flex-1 bg-amber-50/50 text-amber-700 border border-amber-200/50 dark:bg-amber-500/5 dark:text-amber-300 dark:border-amber-500/20 hover:bg-amber-600 hover:text-white hover:border-amber-600 transition-all font-black py-2.5 h-auto gap-2 justify-center shadow-sm"
                     >
-                        <Edit2 className="w-3.5 h-3.5" />
+                        <Edit2 className="w-4 h-4" />
                         Edit
                     </Button>
                 )}
@@ -216,23 +215,20 @@ export const RecordCard: React.FC<RecordCardProps> = ({
                 {record.state === 0 && onSubmit && (
                     <Button
                         variant="primary"
-                        size="compact"
                         onClick={() => onSubmit(record)}
-                        className="gap-1.5"
+                        className="flex-1 h-auto py-2.5 gap-2 font-black shadow-lg shadow-indigo-500/20"
                     >
-                        <SendHorizontal className="w-3.5 h-3.5" />
+                        <SendHorizontal className="w-4 h-4" />
                         Submit
                     </Button>
                 )}
 
                 {record.state !== 4 && (
                     <Button
-                        variant="ghost"
-                        size="compact"
                         onClick={() => onDelete(record.id)}
-                        className="bg-slate-50 text-slate-600 border border-slate-100 dark:border-slate-700 hover:bg-rose-50 hover:text-rose-700 font-bold gap-1.5 justify-center"
+                        className="flex-1 bg-rose-50/50 text-rose-700 border border-rose-200/50 dark:bg-rose-500/5 dark:text-rose-300 dark:border-rose-500/20 hover:bg-rose-600 hover:text-white hover:border-rose-600 transition-all font-black py-2.5 h-auto gap-2 justify-center shadow-sm"
                     >
-                        <Trash2 className="w-3.5 h-3.5" />
+                        <Trash2 className="w-4 h-4" />
                         Delete
                     </Button>
                 )}
@@ -250,3 +246,7 @@ export const RecordCard: React.FC<RecordCardProps> = ({
         </Card>
     );
 };
+
+// Memoized export: prevents RecordCard from re-rendering when parent state
+// changes (e.g. date filter, category toggle) — massive win for lists of 10+ cards.
+export const RecordCard = React.memo(RecordCardInner);

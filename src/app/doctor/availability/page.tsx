@@ -27,6 +27,10 @@ import toast from 'react-hot-toast';
 import { formatDate, normalizeUTC } from '@/lib/utils/dateUtils';
 import { MedicalLoader } from '@/components/ui/MedicalLoader';
 import { SectionCard } from '@/components/ui/SectionCard';
+import { useDoctorSchedule } from '@/hooks/useAdminQueries';
+import { useQueryClient } from '@tanstack/react-query';
+import { queryKeys } from '@/lib/queryKeys';
+import { AvailabilitySkeleton } from '@/components/doctor/AvailabilitySkeleton';
 
 const DAYS = [
     { value: '0', label: 'Sunday' },
@@ -39,8 +43,16 @@ const DAYS = [
 ];
 
 export default function AvailabilityPage() {
-    const [schedule, setSchedule] = useState<DoctorAvailabilityDTO[]>([]);
-    const [loading, setLoading] = useState(true);
+    const queryClient = useQueryClient();
+    const [dateRange] = useState(() => {
+        const start = new Date();
+        const end = new Date();
+        end.setMonth(end.getMonth() + 3);
+        return { start: start.toISOString(), end: end.toISOString() };
+    });
+
+    const { data: scheduleRes, isLoading: queryLoading } = useDoctorSchedule(dateRange.start, dateRange.end);
+    const schedule = scheduleRes?.data || [];
 
     // Weekly Schedule Form
     const [selectedDay, setSelectedDay] = useState(0);
@@ -60,31 +72,7 @@ export default function AvailabilityPage() {
     const weeklyHours = schedule.filter(a => (a.recurrenceType === 1 || a.recurrenceType === 'Weekly'));
     const blockedTimes = schedule.filter(a => (a.recurrenceType === 0 || a.recurrenceType === 'OneTime') && !a.isAvailable);
 
-    const fetchSchedule = async () => {
-        try {
-            setLoading(true);
-            const start = new Date();
-            const end = new Date();
-            end.setMonth(end.getMonth() + 3);
-
-            const res = await doctorAvailabilityApi.getSchedule(
-                start.toISOString(),
-                end.toISOString()
-            );
-
-            if (res.success) {
-                setSchedule(res.data);
-            }
-        } catch (error) {
-            toast.error('Failed to synchronize schedule');
-        } finally {
-            setLoading(false);
-        }
-    };
-
-    useEffect(() => {
-        fetchSchedule();
-    }, []);
+    // No manual fetch needed with React Query
 
     // Sync form with selected day's data
     useEffect(() => {
@@ -133,7 +121,7 @@ export default function AvailabilityPage() {
 
             if (res.success) {
                 toast.success(`Schedule for ${DAYS[selectedDay].label} updated`);
-                fetchSchedule();
+                queryClient.invalidateQueries({ queryKey: queryKeys.doctor.schedule(dateRange.start, dateRange.end) });
             }
         } catch (error) {
             toast.error('Identity sync error');
@@ -161,7 +149,7 @@ export default function AvailabilityPage() {
                 setBlockStart('');
                 setBlockEnd('');
                 setBlockReason('');
-                fetchSchedule();
+                queryClient.invalidateQueries({ queryKey: queryKeys.doctor.schedule(dateRange.start, dateRange.end) });
             }
         } catch (error) {
             toast.error('Absence registration failed');
@@ -175,19 +163,14 @@ export default function AvailabilityPage() {
             const res = await doctorAvailabilityApi.unblockTime(id);
             if (res.success) {
                 toast.success('Schedule item removed');
-                fetchSchedule();
+                queryClient.invalidateQueries({ queryKey: queryKeys.doctor.schedule(dateRange.start, dateRange.end) });
             }
         } catch (error) {
             toast.error('Removal error');
         }
     };
 
-    if (loading) return (
-        <div className="min-h-[60vh] flex flex-col items-center justify-center gap-6">
-            <MedicalLoader />
-            <p className="text-[10px] font-black text-slate-400 uppercase tracking-[0.4em] animate-pulse">Syncing Clinical Calendar...</p>
-        </div>
-    );
+    if (queryLoading || !scheduleRes) return <AvailabilitySkeleton />;
 
     return (
         <div className="max-w-7xl mx-auto py-12 px-6 lg:px-8 space-y-12 relative overflow-hidden">

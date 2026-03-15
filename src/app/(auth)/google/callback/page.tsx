@@ -1,12 +1,12 @@
 'use client';
 
-import { useEffect, useRef } from 'react';
+import { Suspense, useEffect, useRef } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
 import { useAuthStore } from '@/store/authStore';
 import axiosInstance from '@/lib/utils/axios';
 import toast from 'react-hot-toast';
 
-export default function GoogleCallbackPage() {
+function SuspendedGoogleCallback() {
   const router = useRouter();
   const searchParams = useSearchParams();
   const handleExternalLogin = useAuthStore((state) => state.handleExternalLogin);
@@ -74,5 +74,22 @@ export default function GoogleCallbackPage() {
         </p>
       </div>
     </div>
+  );
+}
+
+export default function GoogleCallbackPage() {
+  return (
+    <Suspense fallback={
+      <div className="flex h-screen w-full flex-col items-center justify-center">
+        <div className="flex flex-col items-center space-y-4">
+          <div className="h-12 w-12 animate-spin rounded-full border-4 border-primary border-t-transparent"></div>
+          <h2 className="text-xl font-semibold text-slate-700 dark:text-slate-200">
+            Loading...
+          </h2>
+        </div>
+      </div>
+    }>
+      <SuspendedGoogleCallback />
+    </Suspense>
   );
 }

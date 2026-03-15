@@ -1,9 +1,12 @@
 'use client';
 
-import React, { useEffect, useState } from 'react';
+import React, { useState } from 'react';
 import { motion } from 'framer-motion';
-import { adminApi } from '@/lib/api/admin';
-import { Doctor } from '@/types/admin';
+import { useQueryClient } from '@tanstack/react-query';
+import { queryKeys } from '@/lib/queryKeys';
+import { useAdminDoctors } from '@/hooks/useAdminQueries';
+import { adminApi } from '@/lib/api';
+import { Doctor, UpdateDoctorRequest } from '@/types/admin';
 
 import { Input } from '@/components/ui/Input';
 import {
@@ -19,7 +22,9 @@ import {
     UserCheck,
     ChevronLeft,
     ChevronRight,
-    SearchX
+    SearchX,
+    Plus,
+    X
 } from 'lucide-react';
 import { format } from 'date-fns';
 import Link from 'next/link';
@@ -28,27 +33,22 @@ import { useConfirm } from '@/context/ConfirmContext';
 
 import { RegenerateKeysModal } from '@/components/admin/RegenerateKeysModal';
 import { EditDoctorModal } from '@/components/admin/EditDoctorModal';
-import { UpdateDoctorRequest } from '@/types/admin';
 import { PageLayout, Section } from '@/components/layout/PageLayout';
 import { Stack } from '@/components/ui/Stack';
 import { Button } from '@/components/ui/Button';
 import { H1, H2, H3, Text } from '@/components/ui/Typography';
 import { ResponsiveTable } from '@/components/data-display/ResponsiveTable';
 import { Card } from '@/components/ui/Card';
-import { Plus, X } from 'lucide-react';
 import { InviteDoctorModal } from '@/components/admin/InviteDoctorModal';
 
 export default function DoctorListPage() {
+    const queryClient = useQueryClient();
     const { confirm } = useConfirm();
-    const [doctors, setDoctors] = useState<Doctor[]>([]);
-    const [loading, setLoading] = useState(true);
     const [searchTerm, setSearchTerm] = useState('');
     const [department, setDepartment] = useState('');
     const [isActive, setIsActive] = useState<boolean | undefined>(undefined);
     const [page, setPage] = useState(1);
     const [pageSize] = useState(10);
-    const [totalPages, setTotalPages] = useState(1);
-    const [totalCount, setTotalCount] = useState(0);
 
     const [togglingId, setTogglingId] = useState<string | null>(null);
     const [isRotateModalOpen, setIsRotateModalOpen] = useState(false);
@@ -57,33 +57,17 @@ export default function DoctorListPage() {
     const [editingDoctor, setEditingDoctor] = useState<Doctor | null>(null);
     const [isInviteModalOpen, setIsInviteModalOpen] = useState(false);
 
-    const fetchDoctors = async () => {
-        setLoading(true);
-        try {
-            const response = await adminApi.getAllDoctors({
-                page,
-                pageSize,
-                searchTerm,
-                department: department || undefined,
-                isActive
-            });
-            setDoctors(response.data.doctors);
-            setTotalPages(response.data.pagination.totalPages);
-            setTotalCount(response.data.pagination.totalCount);
-        } catch (error) {
-            console.error('Failed to fetch doctors:', error);
-            toast.error('Failed to load clinical staff directory');
-        } finally {
-            setLoading(false);
-        }
-    };
+    const { data: doctorsData, isLoading: loading, refetch } = useAdminDoctors({
+        page,
+        pageSize,
+        searchTerm: searchTerm || undefined,
+        department: department || undefined,
+        isActive
+    });
 
-    useEffect(() => {
-        const timer = setTimeout(() => {
-            fetchDoctors();
-        }, 300); // Debounce search
-        return () => clearTimeout(timer);
-    }, [page, searchTerm, department, isActive]);
+    const doctors = doctorsData?.data || [];
+    const totalCount = doctorsData?.pagination?.totalCount || 0;
+    const totalPages = doctorsData?.pagination?.totalPages || 1;
 
     const handleToggleStatus = async (doc: any) => {
         const action = doc.isActive ? 'deactivate' : 'reactivate';
@@ -108,7 +92,7 @@ export default function DoctorListPage() {
                 phoneNumber: doc.phoneNumber
             });
             toast.success(`Account ${doc.isActive ? 'deactivated' : 'reactivated'} successfully`);
-            fetchDoctors();
+            queryClient.invalidateQueries({ queryKey: queryKeys.admin.doctors.all() });
         } catch (error) {
             console.error('Failed to toggle doctor status:', error);
             toast.error(`Failed to ${action} account`);
@@ -129,7 +113,7 @@ export default function DoctorListPage() {
 
     const handleSaveDoctor = async (id: string, data: UpdateDoctorRequest) => {
         await adminApi.updateDoctor(id, data);
-        fetchDoctors();
+        queryClient.invalidateQueries({ queryKey: queryKeys.admin.doctors.all() });
     };
 
     const handleConfirmRotation = async () => {
@@ -138,7 +122,7 @@ export default function DoctorListPage() {
         try {
             await adminApi.regenerateKeys(selectedDoctor.id);
             toast.success('Keys regenerated successfully');
-            fetchDoctors();
+            queryClient.invalidateQueries({ queryKey: queryKeys.admin.doctors.all() });
         } catch (error) {
             console.error('Failed to rotate keys:', error);
             toast.error('Key regeneration failed');
@@ -433,7 +417,7 @@ export default function DoctorListPage() {
             <InviteDoctorModal
                 isOpen={isInviteModalOpen}
                 onClose={() => setIsInviteModalOpen(false)}
-                onSuccess={fetchDoctors}
+                onSuccess={() => queryClient.invalidateQueries({ queryKey: queryKeys.admin.doctors.all() })}
             />
         </PageLayout>
     );

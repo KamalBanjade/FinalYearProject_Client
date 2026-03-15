@@ -2,7 +2,7 @@
 
 import React, { useState, useEffect } from 'react';
 import { useAuthStore } from '@/store/authStore';
-import { doctorApi, DoctorExtendedProfile } from '@/lib/api/doctor';
+import { doctorApi, DoctorExtendedProfile } from '@/lib/api';
 import axiosInstance from '@/lib/utils/axios';
 import { Button } from '@/components/ui/Button';
 import {
@@ -30,7 +30,9 @@ import {
 } from 'lucide-react';
 import toast from 'react-hot-toast';
 import { motion, AnimatePresence } from 'framer-motion';
-import { MedicalLoader } from '@/components/ui/MedicalLoader';
+import { SettingsSkeleton } from '@/components/ui/SettingsSkeleton';
+import { useDoctorProfile, useUserDevices } from '@/hooks/useAdminQueries';
+import { useQueryClient } from '@tanstack/react-query';
 
 // --- Shared Components ---
 
@@ -71,11 +73,14 @@ function SettingsSection({ icon, title, desc, children, accent = 'primary' }: {
 // --- Main Components ---
 
 export default function DoctorSettingsPage() {
-    const { user, checkAuth, getUserDevices, revokeDevice, revokeAllDevices } = useAuthStore();
-    const [profile, setProfile] = useState<DoctorExtendedProfile | null>(null);
-    const [loading, setLoading] = useState(true);
-    const [devices, setDevices] = useState<any[]>([]);
-    const [loadingDevices, setLoadingDevices] = useState(false);
+    const queryClient = useQueryClient();
+    const { user, checkAuth, revokeDevice, revokeAllDevices } = useAuthStore();
+    
+    const { data: profileRes, isLoading: loadingProfile } = useDoctorProfile();
+    const { data: devicesRes, isLoading: loadingDevices } = useUserDevices();
+    
+    const profile = profileRes?.data;
+    const devices = devicesRes || [];
 
     // States for various forms
     const [isChangingPassword, setIsChangingPassword] = useState(false);
@@ -86,24 +91,6 @@ export default function DoctorSettingsPage() {
     const [is2FASubmitting, setIs2FASubmitting] = useState(false);
     const [showBackupCodes, setShowBackupCodes] = useState(false);
     const [backupCodes, setBackupCodes] = useState<string[]>([]);
-
-    useEffect(() => {
-        const loadInitialData = async () => {
-            try {
-                const [profRes, deviceList] = await Promise.all([
-                    doctorApi.getProfile(),
-                    getUserDevices()
-                ]);
-                setProfile(profRes.data);
-                setDevices(deviceList || []);
-            } catch (err) {
-                console.error("Failed to load settings data", err);
-            } finally {
-                setLoading(false);
-            }
-        };
-        loadInitialData();
-    }, [getUserDevices]);
 
     const handlePasswordChange = async (e: React.FormEvent) => {
         e.preventDefault();
@@ -133,7 +120,7 @@ export default function DoctorSettingsPage() {
         try {
             await revokeDevice(id);
             toast.success("Access revoked");
-            setDevices(devices.filter(d => d.id !== id));
+            queryClient.invalidateQueries({ queryKey: ['auth', 'devices'] });
         } catch (err: any) {
             toast.error(err.message || "Failed to revoke device");
         }
@@ -161,12 +148,7 @@ export default function DoctorSettingsPage() {
         }
     };
 
-    if (loading) return (
-        <div className="min-h-[60vh] flex flex-col items-center justify-center gap-6">
-            <MedicalLoader />
-            <p className="text-[10px] font-black text-slate-400 uppercase tracking-[0.4em] animate-pulse">Syncing System Preferences...</p>
-        </div>
-    );
+    if (loadingProfile || loadingDevices) return <SettingsSkeleton />;
 
     return (
         <div className="max-w-7xl mx-auto py-12 px-6 lg:px-8 space-y-12">
@@ -312,8 +294,7 @@ export default function DoctorSettingsPage() {
                                             if (confirm("Sign out from all other devices?")) {
                                                 await revokeAllDevices();
                                                 toast.success("Signed out from all other sessions");
-                                                const list = await getUserDevices();
-                                                setDevices(list || []);
+                                                queryClient.invalidateQueries({ queryKey: ['auth', 'devices'] });
                                             }
                                         }}
                                         className="text-[9px] font-black text-rose-500/60 uppercase tracking-widest hover:text-rose-500 transition-colors"

@@ -28,6 +28,8 @@ import { formatLocalTime, getRelativeTimeString } from '@/lib/utils/dateUtils';
 import { useRouter } from 'next/navigation';
 import { DayPicker } from 'react-day-picker';
 import { Activity, CalendarDays, ChevronLeft } from 'lucide-react';
+import { AppointmentSkeleton } from '@/components/ui/AppointmentSkeleton';
+import { Skeleton } from '@/components/ui/Skeleton';
 
 export default function DoctorAppointmentsDashboard() {
     const router = useRouter();
@@ -72,7 +74,7 @@ export default function DoctorAppointmentsDashboard() {
         return dates;
     }, [allAppointmentsResponse]);
 
-    const { data: statsResponse } = useQuery({
+    const { data: statsResponse, isLoading: statsLoading } = useQuery({
         queryKey: ['doctor-appointment-stats'],
         queryFn: appointmentsApi.getDoctorStats,
     });
@@ -89,10 +91,10 @@ export default function DoctorAppointmentsDashboard() {
         <div className="max-w-7xl mx-auto px-4 py-2 space-y-10 animate-in fade-in slide-in-from-bottom-6 duration-700">
             {/* Insight Cards */}
             <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-                <InsightCard title="Total Consults" value={stats.totalAppointments} icon={User} color="primary" />
-                <InsightCard title="Completed" value={stats.completedAppointments} icon={CheckCircle2} color="emerald" />
-                <InsightCard title="Upcoming" value={stats.upcomingAppointments} icon={Play} color="amber" />
-                <InsightCard title="Pending" value={stats.pendingConfirmation} icon={Clock} color="rose" />
+                <InsightCard title="Total Consults" value={stats.totalAppointments} icon={User} color="primary" isLoading={statsLoading} />
+                <InsightCard title="Completed" value={stats.completedAppointments} icon={CheckCircle2} color="emerald" isLoading={statsLoading} />
+                <InsightCard title="Upcoming" value={stats.upcomingAppointments} icon={Play} color="amber" isLoading={statsLoading} />
+                <InsightCard title="Pending" value={stats.pendingConfirmation} icon={Clock} color="rose" isLoading={statsLoading} />
             </div>
 
             {/* Toolbar */}
@@ -117,9 +119,10 @@ export default function DoctorAppointmentsDashboard() {
 
             {/* Main Content */}
             {isLoading ? (
-                <div className="py-32 flex flex-col items-center">
-                    <RefreshCw className="w-12 h-12 text-primary animate-spin" />
-                    <span className="mt-4 text-[10px] font-black text-slate-400 dark:text-slate-500 uppercase tracking-[0.3em]">Synchronizing Records...</span>
+                <div className="grid grid-cols-1 lg:grid-cols-12 gap-10 items-start">
+                    <div className="lg:col-span-8">
+                        <AppointmentSkeleton />
+                    </div>
                 </div>
             ) : (
                 <div className="grid grid-cols-1 lg:grid-cols-12 gap-10 items-start">
@@ -148,14 +151,16 @@ export default function DoctorAppointmentsDashboard() {
                                 </section>
                             ) : (
                                 <div className="grid grid-cols-1 gap-6">
-                                    {appointments.map((app: AppointmentDTO) => (
-                                        <DoctorAppointmentCard
-                                            key={app.id}
-                                            appointment={app}
-                                            onLink={() => setLinkingAppointment(app)}
-                                            router={router}
-                                        />
-                                    ))}
+                                    {appointments
+                                        .filter((app: AppointmentDTO) => app.status !== 'Cancelled' && app.status !== 'Completed')
+                                        .map((app: AppointmentDTO) => (
+                                            <DoctorAppointmentCard
+                                                key={app.id}
+                                                appointment={app}
+                                                onLink={() => setLinkingAppointment(app)}
+                                                router={router}
+                                            />
+                                        ))}
                                 </div>
                             )
                         ) : (
@@ -442,7 +447,7 @@ export default function DoctorAppointmentsDashboard() {
                                                                         <p className="text-[8px] text-slate-400 font-bold uppercase">{format(new Date(app.appointmentDate), 'MMM d')}</p>
                                                                     </div>
                                                                 </div>
-                                                                <button 
+                                                                <button
                                                                     onClick={() => router.push(`/doctor/patients/${app.patientId}`)}
                                                                     className="w-6 h-6 rounded-lg flex items-center justify-center text-slate-300 hover:text-indigo-500 hover:bg-indigo-50 dark:hover:bg-indigo-900/20 transition-all"
                                                                 >
@@ -478,7 +483,7 @@ export default function DoctorAppointmentsDashboard() {
     );
 }
 
-const InsightCard = ({ title, value, icon: Icon, color }: { title: string; value: number; icon: any; color: string }) => {
+const InsightCard = ({ title, value, icon: Icon, color, isLoading = false }: { title: string; value: number; icon: any; color: string; isLoading?: boolean }) => {
     const colorStyles: Record<string, string> = {
         primary: 'text-primary bg-primary/5 border-primary/10',
         emerald: 'text-emerald-500 bg-emerald-500/5 border-emerald-500/10',
@@ -492,9 +497,13 @@ const InsightCard = ({ title, value, icon: Icon, color }: { title: string; value
             <div className={`w-12 h-12 rounded-2xl flex items-center justify-center border ${style}`}>
                 <Icon className="w-5 h-5" />
             </div>
-            <div>
+            <div className="flex-1">
                 <p className="text-[10px] font-black text-slate-400 dark:text-slate-500 uppercase tracking-widest mb-0.5">{title}</p>
-                <p className="text-2xl font-black text-slate-900 dark:text-white tracking-tighter">{value}</p>
+                {isLoading ? (
+                    <Skeleton className="h-8 w-12 rounded-lg" />
+                ) : (
+                    <p className="text-2xl font-black text-slate-900 dark:text-white tracking-tighter">{value}</p>
+                )}
             </div>
         </div>
     );
@@ -604,6 +613,27 @@ function DoctorAppointmentCard({
             </div>
 
             <div className="flex flex-col sm:flex-row md:flex-col gap-3 shrink-0 w-full md:w-44">
+                <button
+                    onClick={() => router.push(`/doctor/records/new?patientId=${appointment.patientId}&appointmentId=${appointment.id}&source=appointment`)}
+                    className="
+                        group/btn relative flex-1 h-14 rounded-xl
+                        bg-secondary text-white
+                        border border-primary
+                        hover:bg-primary/90 hover:scale-[1.02]
+                        transition-all duration-300
+                        font-black text-[10px] uppercase tracking-[0.2em]
+                        flex items-center justify-center gap-3
+                        active:scale-95
+                        shadow-lg shadow-primary/20
+                        overflow-hidden
+                        cursor-pointer
+                        p-2
+                    "
+                >
+                    <div className="absolute inset-0 bg-white/10 opacity-0 group-hover/btn:opacity-100 transition-opacity duration-300 pointer-events-none" />
+                    <Stethoscope className="w-4 h-4 transition-transform duration-500 group-hover/btn:rotate-12" />
+                    <span className="relative">Add Consultation</span>
+                </button>
                 <button
                     onClick={onLink}
                     className="

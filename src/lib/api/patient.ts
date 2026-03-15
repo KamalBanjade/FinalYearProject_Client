@@ -22,6 +22,7 @@ export interface DoctorBasicInfo {
     id: string;
     firstName: string;
     lastName: string;
+    profilePictureUrl?: string;
 }
 
 export interface DoctorSuggestionItem {
@@ -30,6 +31,7 @@ export interface DoctorSuggestionItem {
     department: string;
     suggestionType: 'Appointment' | 'Primary' | 'Recent';
     suggestionLabel?: string;
+    profilePictureUrl?: string;
 }
 
 export interface SmartDoctorSuggestionDTO {
@@ -58,6 +60,47 @@ export interface EmergencySettingsDTO {
     emergencyContactRelationship?: string;
     emergencyNotesToResponders?: string;
     lastUpdated?: string;
+}
+
+export interface TimeSeriesDataPoint {
+    label: string;
+    value: number;
+    value2?: number;
+    value3?: number;
+}
+
+export interface PatientStatisticsDTO {
+    firstName: string;
+    totalRecords: number;
+    certifiedRecords: number;
+    pendingRecords: number;
+    upcomingAppointments: number;
+    totpEnabled: boolean;
+    trustedDevicesCount: number;
+    activeShareCount: number;
+    emergencyDataLastUpdated?: string;
+    recordTypeDistribution: TimeSeriesDataPoint[];
+    recordGrowthTrend: { 
+        label: string; 
+        total: number;
+        certified: number;
+        pending: number;
+        draft: number;
+        emergency: number;
+        archived: number;
+        resolution?: string;
+    }[];
+    scanTrend: TimeSeriesDataPoint[];
+    appointmentStatusDistribution: TimeSeriesDataPoint[];
+    recentActivities: {
+        id: string;
+        action: string;
+        details: string;
+        timestamp: string;
+        type: string;
+    }[];
+    totalNormalScans: number;
+    totalEmergencyScans: number;
 }
 
 export const patientApi = {
@@ -105,7 +148,19 @@ export const patientApi = {
         const response = await axiosInstance.get(`patient/doctors/${doctorId}`);
         return response.data;
     },
-    
+
+    getQRCodes: async (): Promise<{ success: boolean; message: string; data: any[] }> => {
+        const response = await axiosInstance.get('qr/my-codes');
+        return response.data;
+    },
+
+    getAppointments: async (page = 1) => {
+        const response = await axiosInstance.get('patient/appointments', {
+            params: { page }
+        });
+        return response.data;
+    },
+
     uploadProfilePicture: async (file: File) => {
         const formData = new FormData();
         formData.append('file', file);
@@ -117,6 +172,11 @@ export const patientApi = {
 
     deleteProfilePicture: async () => {
         const response = await axiosInstance.delete('patient/profile/picture');
+        return response.data;
+    },
+
+    getDashboardStats: async (): Promise<{ success: boolean; message: string; data: PatientStatisticsDTO }> => {
+        const response = await axiosInstance.get('patient/statistics/dashboard');
         return response.data;
     },
 };

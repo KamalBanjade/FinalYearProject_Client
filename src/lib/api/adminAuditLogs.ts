@@ -59,6 +59,7 @@ export interface TimeSeriesDataPointDTO {
 }
 
 export interface SystemStatisticsDTO {
+    adminFirstName: string;
     totalUsers: number;
     totalDoctors: number;
     totalPatients: number;
@@ -107,7 +108,7 @@ export const adminAuditLogsApi = {
     },
 
     getSystemStatistics: async (): Promise<SystemStatisticsDTO> => {
-        const response = await axiosInstance.get('admin/statistics');
+        const response = await axiosInstance.get('admin/dashboard/stats');
         return response.data.data;
     },
 

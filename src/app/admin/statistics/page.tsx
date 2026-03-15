@@ -1,7 +1,8 @@
 'use client';
 
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import { adminAuditLogsApi, SystemStatisticsDTO, SecurityAlertDTO } from '@/lib/api/adminAuditLogs';
+import { useQuery } from '@tanstack/react-query';
 import { motion, AnimatePresence, Variants } from 'framer-motion';
 import { PageLayout } from '@/components/layout/PageLayout';
 import { Card } from '@/components/ui/Card';
@@ -19,6 +20,7 @@ import {
     ChevronRight, Sparkles, Filter, ActivitySquare
 } from 'lucide-react';
 import { formatLocalTime } from '@/lib/utils/dateUtils';
+import { StatisticsSkeleton } from '@/components/ui/StatisticsSkeleton';
 
 const fadeIn: Variants = {
     hidden: { opacity: 0, y: 20 },
@@ -92,29 +94,37 @@ function Section({ title, icon: Icon, children }: { title: string, icon: React.E
 }
 
 export default function StatisticsPage() {
-    const [stats, setStats] = useState<SystemStatisticsDTO | null>(null);
-    const [alerts, setAlerts] = useState<SecurityAlertDTO[]>([]);
-    const [loading, setLoading] = useState(true);
-    const [retaining, setRetaining] = useState(false);
     const router = useRouter();
+    const [retaining, setRetaining] = useState(false);
 
-    const fetchAll = async () => {
-        setLoading(true);
-        try {
-            const [statsData, alertsData] = await Promise.all([
-                adminAuditLogsApi.getSystemStatistics(),
-                adminAuditLogsApi.getSecurityAlerts(),
-            ]);
-            setStats(statsData);
-            setAlerts(alertsData);
-        } catch {
-            toast.error('Failed to load statistics');
-        } finally {
-            setLoading(false);
-        }
-    };
+    // 1. Fetch System Statistics
+    const { 
+        data: stats, 
+        isLoading: statsLoading, 
+        refetch: refetchStats 
+    } = useQuery({
+        queryKey: ['admin', 'statistics'],
+        queryFn: adminAuditLogsApi.getSystemStatistics,
+        staleTime: 5 * 60 * 1000, // 5 minutes
+    });
 
-    useEffect(() => { fetchAll(); }, []);
+    // 2. Fetch Security Alerts
+    const { 
+        data: alerts = [], 
+        isLoading: alertsLoading, 
+        refetch: refetchAlerts 
+    } = useQuery({
+        queryKey: ['admin', 'security-alerts'],
+        queryFn: adminAuditLogsApi.getSecurityAlerts,
+        staleTime: 1 * 60 * 1000, // 1 minute
+    });
+
+    const loading = statsLoading || alertsLoading;
+
+    const fetchAll = useCallback(() => {
+        refetchStats();
+        refetchAlerts();
+    }, [refetchStats, refetchAlerts]);
 
     const handleApplyRetention = async () => {
         setRetaining(true);
@@ -132,22 +142,7 @@ export default function StatisticsPage() {
     if (loading) {
         return (
             <PageLayout>
-                <div className="flex items-center justify-center min-h-[60vh]">
-                    <motion.div 
-                        initial={{ opacity: 0, scale: 0.9 }}
-                        animate={{ opacity: 1, scale: 1 }}
-                        className="p-10 rounded-[3rem] bg-white/30 dark:bg-slate-900/40 backdrop-blur-2xl border border-white/60 dark:border-slate-800/50 shadow-2xl flex flex-col items-center justify-center"
-                    >
-                        <div className="relative">
-                            <div className="absolute inset-0 border-4 border-t-indigo-500 border-r-purple-500 border-b-rose-500 border-l-blue-500 rounded-full animate-[spin_3s_linear_infinite]" />
-                            <div className="p-6 bg-white dark:bg-slate-900 rounded-full m-2 shadow-inner">
-                                <ActivitySquare className="w-10 h-10 text-indigo-500 animate-pulse" />
-                            </div>
-                        </div>
-                        <h3 className="mt-8 text-lg font-black text-slate-800 dark:text-white tracking-widest uppercase">Initializing Canvas</h3>
-                        <p className="text-xs font-bold text-slate-400 mt-2">Gathering system intelligence...</p>
-                    </motion.div>
-                </div>
+                <StatisticsSkeleton />
             </PageLayout>
         );
     }

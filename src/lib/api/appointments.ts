@@ -10,6 +10,7 @@ export interface AppointmentDTO {
     doctorId: string;
     doctorName: string;
     doctorDepartment: string;
+    doctorProfilePictureUrl?: string;
     appointmentDate: string;
     duration: number;
     status: string;
