@@ -238,8 +238,9 @@ export default function BookAppointmentPage() {
 
                             <AnimatePresence mode="wait">
                                 {!isChangingDoctor ? (
-                                    <motion.div
-                                        key="selected"
+                                    <React.Fragment key="selected-group">
+                                        <motion.div
+                                            key="selected"
                                         initial={{ opacity: 0, scale: 0.95 }}
                                         animate={{ opacity: 1, scale: 1 }}
                                         exit={{ opacity: 0, scale: 0.95 }}
@@ -268,7 +269,17 @@ export default function BookAppointmentPage() {
                                             </p>
                                         </div>
                                     </motion.div>
-                                ) : (
+                                    {selectedDoctorId && !suggestions?.primaryDoctor && (
+                                        <motion.div 
+                                            initial={{ opacity: 0, y: -5 }} animate={{ opacity: 1, y: 0 }}
+                                            className="mt-4 ml-6 flex items-center gap-2"
+                                        >
+                                            <div className="w-1.5 h-1.5 rounded-full bg-rose-500 animate-pulse" />
+                                            <span className="text-[9px] font-black text-rose-500/80 uppercase tracking-widest">First interaction: will be set as primary specialist</span>
+                                        </motion.div>
+                                    )}
+                                </React.Fragment>
+                            ) : (
                                     <motion.div
                                         key="selector"
                                         initial={{ opacity: 0, y: 10 }}

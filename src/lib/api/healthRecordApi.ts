@@ -17,11 +17,47 @@ export interface CreateHealthRecordRequest {
         attributes: {
             name: string;
             value: string;
+            unit?: string;
+            normalRangeMin?: number;
+            normalRangeMax?: number;
+            fieldType?: string;
         }[];
     }[];
     diagnosis: string;
     treatmentPlan: string;
     doctorNotes?: string;
+}
+
+export interface ProtocolDTO {
+    id?: string;
+    templateName: string;
+    sections: {
+        sectionName: string;
+        fields: {
+            fieldName: string;
+            lastValue?: string;
+            unit?: string;
+            normalRange?: string;
+            fieldType?: string;
+        }[];
+    }[];
+}
+
+export interface VitalsComparison {
+    lastVisit?: any;
+    suggested?: any;
+    lockedFields: string[];
+}
+
+export interface VisitContext {
+    type: 'FirstVisit' | 'FollowUp' | 'RoutineCheckup' | 'LongGapVisit';
+    daysSinceLastVisit: number;
+    lastDiagnosis?: string;
+    prePopulateVitals: boolean;
+    prePopulateProtocol: boolean;
+    vitalsComparison: VitalsComparison;
+    protocolToLoad?: ProtocolDTO;
+    previousRecord?: any;
 }
 
 export const healthRecordApi = {
@@ -37,6 +73,11 @@ export const healthRecordApi = {
 
     getPatientRecords: async (patientId: string) => {
         const response = await axiosInstance.get(`health-records/patient/${patientId}`);
+        return response.data;
+    },
+
+    getVisitContext: async (patientId: string) => {
+        const response = await axiosInstance.get(`health-records/visit-context/${patientId}`);
         return response.data;
     }
 };

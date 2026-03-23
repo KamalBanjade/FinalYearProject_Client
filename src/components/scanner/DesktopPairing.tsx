@@ -8,7 +8,7 @@ import toast from 'react-hot-toast';
 import { useAuthStore } from '@/store/authStore';
 
 export function DesktopPairing() {
-  const { user } = useAuthStore();
+  const { user, hasChecked, isAuthenticated } = useAuthStore();
   const [sessionId, setSessionId] = useState('');
   const [isPaired, setIsPaired] = useState(false);
   const [deviceName, setDeviceName] = useState('');
@@ -24,8 +24,9 @@ export function DesktopPairing() {
   };
 
   useEffect(() => {
-    // Only run for doctors
-    if (!user || user.role !== 'Doctor') return;
+    // Only run for doctors after initial session check
+    if (!hasChecked) return;
+    if (!isAuthenticated || !user || user.role !== 'Doctor') return;
 
     if (connectionStartedRef.current) return;
     connectionStartedRef.current = true;

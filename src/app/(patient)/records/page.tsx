@@ -551,7 +551,6 @@ export default function PatientRecordsPage() {
         </Suspense>
     );
 }
-
 const FilteredTimeline = React.memo(function FilteredTimeline({
     data,
     fromDate,

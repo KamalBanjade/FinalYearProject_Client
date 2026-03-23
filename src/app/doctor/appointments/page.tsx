@@ -24,7 +24,7 @@ import { format, addDays, getDay, isSameDay, startOfMonth, addMonths, isBefore, 
 import toast from 'react-hot-toast';
 import { Button } from '@/components/ui/Button';
 import { LinkRecordsModal } from '@/components/doctor/LinkRecordsModal';
-import { formatLocalTime, getRelativeTimeString } from '@/lib/utils/dateUtils';
+import { formatLocalTime, getRelativeTimeString, normalizeUTC } from '@/lib/utils/dateUtils';
 import { useRouter } from 'next/navigation';
 import { DayPicker } from 'react-day-picker';
 import { Activity, CalendarDays, ChevronLeft } from 'lucide-react';
@@ -68,7 +68,8 @@ export default function DoctorAppointmentsDashboard() {
         const dates = new Set<string>();
         allAppointmentsResponse?.data?.forEach((app: AppointmentDTO) => {
             if (app.status !== 'Cancelled') {
-                dates.add(format(new Date(app.appointmentDate), 'yyyy-MM-dd'));
+                const date = new Date(normalizeUTC(app.appointmentDate));
+                dates.add(format(date, 'yyyy-MM-dd'));
             }
         });
         return dates;

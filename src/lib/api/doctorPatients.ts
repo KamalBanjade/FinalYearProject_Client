@@ -13,7 +13,10 @@ export interface PatientListResponseDTO {
     emergencyContactPhone?: string;
     emergencyContactRelationship?: string;
     sharedRecordsCount: number;
+    appointmentCount: number;
     latestSharedRecordDate?: string;
+    lastAppointmentDate?: string;
+    isPrimary: boolean;
 }
 
 export const doctorPatientsApi = {

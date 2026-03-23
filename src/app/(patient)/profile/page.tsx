@@ -110,6 +110,7 @@ export default function PatientProfilePage() {
     const [formData, setFormData] = useState<UpdatePatientProfileRequest>({
         bloodType: '',
         address: '',
+        occupation: '',
         emergencyContactName: '',
         emergencyContactPhone: '',
         allergies: '',
@@ -121,6 +122,7 @@ export default function PatientProfilePage() {
             setFormData({
                 bloodType: profile.bloodType || '',
                 address: profile.address || '',
+                occupation: profile.occupation || '',
                 emergencyContactName: profile.emergencyContactName || '',
                 emergencyContactPhone: profile.emergencyContactPhone || '',
                 allergies: profile.allergies || '',
@@ -162,6 +164,18 @@ export default function PatientProfilePage() {
             checkAuth(); // Sync global dashboard avatar
         } catch (error) {
             toast.error('Visual removal error');
+        }
+    };
+
+    const handleSetPrimary = async (doctorId: string) => {
+        const loadingToast = toast.loading('Synchronizing primary specialist...');
+        try {
+            await patientApi.setPrimaryDoctor(doctorId);
+            toast.success('Primary specialist updated', { id: loadingToast });
+            queryClient.invalidateQueries({ queryKey: ['smart-suggestions'] });
+            queryClient.invalidateQueries({ queryKey: queryKeys.patient.profile() });
+        } catch (error) {
+            toast.error('Failed to update primary specialist', { id: loadingToast });
         }
     };
 
@@ -283,6 +297,20 @@ export default function PatientProfilePage() {
                                     <div className="text-sm font-black text-slate-900 dark:text-white">{profile?.phoneNumber || 'Linked Required'}</div>
                                 </div>
                             </div>
+
+                            {/* Occupation */}
+                            <div className="group p-6 bg-white dark:bg-slate-900/50 backdrop-blur-xl border border-slate-100 dark:border-white/5 rounded-[2rem] shadow-sm hover:shadow-xl transition-all duration-500 border-l-[4px] border-l-amber-500">
+                                <label className="text-[9px] font-black uppercase tracking-[0.2em] text-slate-400 mb-3 block">Current Occupation</label>
+                                <div className="flex items-center gap-4">
+                                    <Building2 size={20} className="text-amber-500" />
+                                    {isEditing ? (
+                                        <input className="bg-transparent border-none text-sm font-black text-slate-900 dark:text-white w-full outline-none focus:ring-0"
+                                            value={formData.occupation || ''} onChange={e => setFormData({...formData, occupation: e.target.value})} placeholder="E.g., Software Engineer" />
+                                    ) : (
+                                        <div className="text-sm font-black text-slate-900 dark:text-white">{profile?.occupation || 'Not specified'}</div>
+                                    )}
+                                </div>
+                            </div>
                         </div>
 
                         {/* Address: Large Tactile Card */}
@@ -380,9 +408,28 @@ export default function PatientProfilePage() {
                                                 )}
                                             </div>
                                             <div className="flex-1 min-w-0">
-                                                <p className="text-xs font-black text-slate-900 dark:text-white truncate font-sans">{doc.fullName}</p>
+                                                <div className="flex items-center gap-2">
+                                                    <p className="text-xs font-black text-slate-900 dark:text-white truncate font-sans">{doc.fullName}</p>
+                                                    {suggestions?.primaryDoctor?.id === doc.id && (
+                                                        <span className="px-1.5 py-0.5 rounded bg-emerald-500/10 text-emerald-600 text-[7px] font-black uppercase tracking-tighter border border-emerald-500/20">
+                                                            Primary
+                                                        </span>
+                                                    )}
+                                                </div>
                                                 <p className="text-[9px] font-black text-violet-500 uppercase tracking-[0.1em] mt-1">{doc.department}</p>
                                             </div>
+                                            {suggestions?.primaryDoctor?.id !== doc.id && (
+                                                <button
+                                                    onClick={(e) => {
+                                                        e.stopPropagation();
+                                                        handleSetPrimary(doc.id);
+                                                    }}
+                                                    className="p-1.5 rounded-lg bg-slate-50 dark:bg-slate-800 text-slate-400 hover:text-rose-500 hover:bg-rose-50 transition-all opacity-0 group-hover:opacity-100"
+                                                    title="Set as Primary Specialist"
+                                                >
+                                                    <Heart size={14} />
+                                                </button>
+                                            )}
                                             <ChevronRight size={16} className="text-slate-300 group-hover:text-violet-500 transition-all group-hover:translate-x-1" />
                                         </div>
                                     </motion.div>

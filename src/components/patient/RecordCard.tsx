@@ -130,16 +130,26 @@ const RecordCardInner: React.FC<RecordCardProps> = ({
                 {(record.uploadedBy?.startsWith('Dr.') || record.assignedDoctorName || record.certifiedBy) && (
                     <div className="flex items-center gap-1.5 ml-auto md:ml-0 bg-emerald-50/50 dark:bg-emerald-500/5 px-2 py-0.5 rounded-md border border-emerald-500/10">
                         <span className="text-[9px] font-black text-emerald-600/70 dark:text-emerald-400/70 uppercase tracking-tight">Under</span>
-                        <Link
-                            href={`/profile/doctor/${record.certifiedById || record.assignedDoctorId}`}
-                            className="text-xs text-emerald-800 dark:text-emerald-100 underline hover:no-underline font-black truncate max-w-[180px]"
-                        >
-                            {(() => {
-                                const name = (record.certifiedBy || record.assignedDoctorName || record.uploadedBy || '').trim();
-                                if (!name || name === 'Dr.') return 'Clinical Team';
-                                return name.startsWith('Dr.') ? name : `Dr. ${name}`;
-                            })()}
-                        </Link>
+                        {(record.certifiedById || record.assignedDoctorId) ? (
+                            <Link
+                                href={`/records/doctor/${record.certifiedById || record.assignedDoctorId}`}
+                                className="text-xs text-emerald-800 dark:text-emerald-100 underline hover:no-underline font-black truncate max-w-[180px]"
+                            >
+                                {(() => {
+                                    const name = (record.certifiedBy || record.assignedDoctorName || record.uploadedBy || '').trim();
+                                    if (!name || name === 'Dr.') return 'Clinical Team';
+                                    return name.startsWith('Dr.') ? name : `Dr. ${name}`;
+                                })()}
+                            </Link>
+                        ) : (
+                            <span className="text-xs text-emerald-800 dark:text-emerald-100 font-black truncate max-w-[180px]">
+                                {(() => {
+                                    const name = (record.certifiedBy || record.assignedDoctorName || record.uploadedBy || '').trim();
+                                    if (!name || name === 'Dr.') return 'Clinical Team';
+                                    return name.startsWith('Dr.') ? name : `Dr. ${name}`;
+                                })()}
+                            </span>
+                        )}
                     </div>
                 )}
             </div>

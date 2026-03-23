@@ -181,6 +181,13 @@ function ProfileContent() {
 
                 <div className="flex items-center gap-2 sm:gap-3">
                     <Button 
+                        onClick={() => router.push(`/doctor/patients/${patientId}/data`)}
+                        variant="outline"
+                        className="h-11 sm:h-12 px-4 sm:px-6 rounded-2xl bg-white dark:bg-slate-900 border-slate-200 dark:border-slate-800 text-slate-600 dark:text-slate-300 shadow-sm font-black uppercase tracking-widest text-[10px] flex items-center justify-center gap-2 cursor-pointer transition-all hover:border-indigo-500 hover:text-indigo-600"
+                    >
+                        <Database size={16} /> View Data
+                    </Button>
+                    <Button 
                         onClick={() => router.push(`/doctor/records/new?patientId=${patientId}&source=profile`)}
                         className="flex-1 sm:flex-none h-11 sm:h-12 px-4 sm:px-6 rounded-2xl bg-indigo-600 hover:bg-indigo-700 text-white shadow-xl shadow-indigo-100 dark:shadow-none font-black uppercase tracking-widest text-[10px] flex items-center justify-center gap-2 cursor-pointer transition-transform active:scale-95"
                     >

@@ -160,5 +160,25 @@ export const appointmentsApi = {
     suggestByReason: async (reason: string) => {
         const response = await axiosInstance.get(`appointments/suggest-by-reason?reason=${encodeURIComponent(reason)}`);
         return response.data;
+    },
+
+    scheduleFollowUp: async (data: ScheduleFollowUpRequest): Promise<{ data: FollowUpAppointmentResult }> => {
+        const response = await axiosInstance.post('appointments/follow-up', data);
+        return response.data;
     }
 };
+
+// ── Follow-Up Types ───────────────────────────────────────────────────────────
+
+export interface ScheduleFollowUpRequest {
+    originalAppointmentId?: string; // Optional if patientId is provided
+    patientId?: string;            // Required if originalAppointmentId is null
+    preferredFollowUpDate: string; // ISO DateTime string
+}
+
+export interface FollowUpAppointmentResult {
+    wasScheduled: boolean;
+    newAppointmentId?: string;
+    scheduledFor?: string; // ISO date string
+    message?: string;
+}

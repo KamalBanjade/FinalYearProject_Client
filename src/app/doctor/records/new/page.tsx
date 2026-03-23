@@ -2,14 +2,19 @@
 
 import React, { useState, useEffect } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
+import { format } from 'date-fns';
+import { formatLocalTime, formatTime } from '@/lib/utils/dateUtils';
 import { doctorApi } from '@/lib/api';
 import { Button } from '@/components/ui/Button';
 import { Input } from '@/components/ui/Input';
 import {
   Heart, Activity, Thermometer, Weight, Ruler, Droplets,
-  Search, ScanLine, FileText, CheckCircle, AlertTriangle, Plus,
-  Layout, BookOpen, Save, ChevronRight, X, Sparkles
+  Search, ScanLine, FileText, CheckCircle, AlertTriangle, Plus, ClipboardList,
+  Layout, BookOpen, Save, ChevronRight, X, Sparkles, Clipboard,
+  Clock, ArrowUpRight, ArrowDownRight,
+  History as HistoryIcon
 } from 'lucide-react';
+import { motion, AnimatePresence } from 'framer-motion';
 import { UserGroupIcon, CalendarDaysIcon } from '@heroicons/react/24/solid';
 import { AddCustomFieldModal } from '@/components/doctor/AddCustomFieldModal';
 import { TemplateBrowserModal } from '@/components/doctor/TemplateBrowserModal';
@@ -17,6 +22,17 @@ import { FormGrid } from '@/components/layout/ResponsiveGrid';
 import toast from 'react-hot-toast';
 import { healthRecordApi } from '@/lib/api/healthRecordApi';
 import { templatesApi, VisibilityLevel } from '@/lib/api/templatesApi';
+import { appointmentsApi, AppointmentDTO } from '@/lib/api/appointments';
+import { FollowUpSchedulingModal, FollowUpData } from '@/components/consultation/FollowUpSchedulingModal';
+import { ProgressBar, Step as FlowStep } from '@/components/doctor/ProgressBar';
+import { CollapsibleSection } from '@/components/doctor/CollapsibleSection';
+import { SmartFieldBuilder } from '@/components/doctor/SmartFieldBuilder';
+import { SmartProtocolSuggestion } from '@/components/doctor/SmartProtocolSuggestion';
+import { useKeyboardShortcuts } from '@/hooks/useKeyboardShortcuts';
+import { useVisitContext } from '@/hooks/useVisitContext';
+import { VisitTypeSelector } from '@/components/doctor/VisitTypeSelector';
+import { VitalsComparisonForm } from '@/components/doctor/VitalsComparisonForm';
+import { ProtocolProgressForm } from '@/components/doctor/ProtocolProgressForm';
 
 // ─── Types ──────────────────────────────────────────────────────────────────
 
@@ -41,6 +57,7 @@ interface TemplateField {
   normal_range_max?: number;
   is_required: boolean;
   dropdown_options?: string[];
+  last_value?: string;
 }
 
 interface BaseVitalsForm {
@@ -83,12 +100,12 @@ const VitalInput = ({ label, field, icon: Icon, type, unit, value, onChange }: {
   };
   return (
     <div className={`relative flex items-center gap-3 p-4 rounded-2xl border transition-all duration-200 ${status && status !== 'normal'
-        ? 'border-red-200 dark:border-red-800/50 bg-red-50/30 dark:bg-red-900/10'
-        : 'border-gray-100 dark:border-gray-800 bg-gray-50/50 dark:bg-gray-900/30'
+      ? 'border-red-200 dark:border-red-800/50 bg-red-50/30 dark:bg-red-900/10'
+      : 'border-gray-100 dark:border-gray-800 bg-gray-50/50 dark:bg-gray-900/30'
       }`}>
       <div className={`w-10 h-10 rounded-xl flex items-center justify-center shrink-0 ${status === 'high' ? 'bg-red-100 text-red-500' :
-          status === 'low' ? 'bg-blue-100 text-blue-500' :
-            'bg-white dark:bg-gray-800 text-blue-500 shadow-sm'
+        status === 'low' ? 'bg-blue-100 text-blue-500' :
+          'bg-white dark:bg-gray-800 text-blue-500 shadow-sm'
         }`}>
         <Icon size={18} />
       </div>
@@ -157,8 +174,81 @@ export default function StructuredRecordEntry() {
   const [isSaving, setIsSaving] = useState(false);
   const [isSavingTemplate, setIsSavingTemplate] = useState(false);
   const [newTemplateName, setNewTemplateName] = useState('');
+  const [sourceTemplateId, setSourceTemplateId] = useState<string | null>(null);
+  const [originalSchema, setOriginalSchema] = useState<any[]>([]);
   const [lastSavedRecordId, setLastSavedRecordId] = useState<string | null>(null);
   const [hasStructureChanges, setHasStructureChanges] = useState(false);
+  const [latestRecord, setLatestRecord] = useState<any>(null);
+  const [allRecords, setAllRecords] = useState<any[]>([]);
+  const [currentStep, setCurrentStep] = useState<FlowStep>('patient');
+
+  // — Follow-Up Flow
+  const [isFollowUpModalOpen, setIsFollowUpModalOpen] = useState(false);
+  const [isSchedulingFollowUp, setIsSchedulingFollowUp] = useState(false);
+  const [todayAppointment, setTodayAppointment] = useState<AppointmentDTO | null>(null);
+
+  // — Visit Context & Redesign
+  const [overrideMode, setOverrideMode] = useState(false);
+  const [visitOption, setVisitOption] = useState<'continue' | 'new'>('continue');
+
+  const { data: visitContext } = useVisitContext(patient?.id);
+
+  // Handle automatic chief complaint for follow-ups
+  useEffect(() => {
+    if (visitOption === 'continue' && visitContext?.type === 'FollowUp') {
+      setChiefComplaint("Follow up on previous Diagnosis");
+    }
+  }, [visitOption, visitContext]);
+
+  // — Pre-population Effect handles both Vitals and Protocol structures
+  useEffect(() => {
+    if (visitContext && visitOption === 'continue' && !overrideMode) {
+      if (visitContext.prePopulateVitals && visitContext.vitalsComparison.suggested) {
+        const s = visitContext.vitalsComparison.suggested;
+        setBaseVitals({
+          bloodPressureSystolic: s.bloodPressureSystolic?.toString() || '',
+          bloodPressureDiastolic: s.bloodPressureDiastolic?.toString() || '',
+          heartRate: s.heartRate?.toString() || '',
+          temperature: s.temperature?.toString() || '',
+          weight: s.weight?.toString() || '',
+          height: s.height?.toString() || '',
+          spO2: s.spO2?.toString() || ''
+        });
+      }
+
+      if (visitContext.prePopulateProtocol && visitContext.protocolToLoad) {
+        const p = visitContext.protocolToLoad;
+        setSelectedTemplateName(p.templateName);
+
+        const sections: TemplateSection[] = p.sections.map(s => ({
+          section_name: s.sectionName,
+          display_order: 1,
+          fields: s.fields.map(f => ({
+            field_name: f.fieldName,
+            field_label: f.fieldName.replace(/_/g, ' '),
+            field_type: f.fieldType || 'Text',
+            unit: f.unit,
+            normal_range_min: f.normalRange ? parseFloat(f.normalRange.split('-')[0]) : undefined,
+            normal_range_max: f.normalRange ? parseFloat(f.normalRange.split('-')[1]) : undefined,
+            is_required: false
+          }))
+        }));
+        setLocalSections(sections);
+        setOriginalSchema(sections); // Set original schema for comparison
+        setSourceTemplateId(p.id || null); // Set source template ID
+
+        const initialData: Record<string, string> = {};
+        p.sections.forEach(s => {
+          s.fields.forEach(f => {
+            if (f.lastValue) {
+              initialData[`${s.sectionName}_${f.fieldName}`] = f.lastValue;
+            }
+          });
+        });
+        setTemplateData(prev => ({ ...prev, ...initialData }));
+      }
+    }
+  }, [visitContext, visitOption, overrideMode]);
 
   // ─── Query Params ─────────────────────────────────────────────────────────
 
@@ -170,9 +260,26 @@ export default function StructuredRecordEntry() {
 
     if (source) setEntrySource(source as any);
     else if (fromQR === 'true') setEntrySource('qr');
-    if (apptId) setAppointmentId(apptId);
-    if (pId) loadPatientData(pId);
+    if (apptId) {
+      setAppointmentId(apptId);
+      loadAppointmentData(apptId);
+    }
+    if (pId) {
+      loadPatientData(pId);
+      setCurrentStep('vitals');
+    }
   }, [searchParams]);
+
+  async function loadAppointmentData(id: string) {
+    try {
+      const res = await appointmentsApi.getAppointment(id);
+      if (res.success && res.data) {
+        setTodayAppointment(res.data);
+      }
+    } catch (err) {
+      console.error('Failed to load appointment details', err);
+    }
+  }
 
   // ─── Data Loading ─────────────────────────────────────────────────────────
 
@@ -186,6 +293,16 @@ export default function StructuredRecordEntry() {
           name: `${res.data.firstName} ${res.data.lastName}`,
           age: calculateAge(res.data.dateOfBirth)
         });
+      }
+
+      // Load latest record for cloning
+      const recordsRes = await healthRecordApi.getPatientRecords(pId);
+      if (recordsRes.success && recordsRes.data && recordsRes.data.length > 0) {
+        setLatestRecord(recordsRes.data[0]);
+        setAllRecords(recordsRes.data);
+      } else {
+        setLatestRecord(null);
+        setAllRecords([]);
       }
     } catch {
       toast.error('Failed to load patient data');
@@ -221,35 +338,140 @@ export default function StructuredRecordEntry() {
     return { label: 'Obese', color: 'text-red-500' };
   }, [bmi]);
 
-  // ─── Handlers ─────────────────────────────────────────────────────────────
+  const getTrendColor = (fieldName: string, current: string, previous: string, min?: number, max?: number) => {
+    const curr = parseFloat(current);
+    const prev = parseFloat(previous);
+    if (isNaN(curr) || isNaN(prev)) return 'bg-slate-500/10 text-slate-500';
 
-  const handleVitalsChange = (field: keyof BaseVitalsForm, value: string) =>
-    setBaseVitals(prev => ({ ...prev, [field]: value }));
+    const diff = curr - prev;
+    if (Math.abs(diff) < 0.01) return 'bg-slate-500/10 text-slate-500';
+
+    const name = fieldName.toLowerCase();
+    const isIncrease = diff > 0;
+
+    // Range-aware logic (Priority)
+    if (min !== undefined && max !== undefined) {
+      const isCurrInRange = curr >= min && curr <= max;
+      const isPrevInRange = prev >= min && prev <= max;
+
+      if (isCurrInRange && !isPrevInRange) return 'bg-emerald-500/10 text-emerald-500'; // Recovered
+      if (!isCurrInRange && isPrevInRange) return 'bg-rose-500/10 text-rose-500'; // Fell out of range
+
+      if (!isCurrInRange && !isPrevInRange) {
+        // Check if moving towards range
+        const mid = (min + max) / 2;
+        const currDist = Math.abs(curr - mid);
+        const prevDist = Math.abs(prev - mid);
+        return currDist < prevDist ? 'bg-emerald-500/10 text-emerald-500' : 'bg-rose-500/10 text-rose-500';
+      }
+      return 'bg-slate-500/10 text-slate-500'; // Both in range
+    }
+
+    // Fallback: Lower is better logic
+    const lowerIsBetter = name.includes('blood pressure') || name.includes('weight') ||
+      name.includes('heart rate') || name.includes('pulse') ||
+      name.includes('glucose') || name.includes('cholesterol') ||
+      name.includes('bmi') || name.includes('sugar') ||
+      name.includes('temperature') || name.includes('fever');
+
+    // Higher is better logic
+    const higherIsBetter = name.includes('spo2') || name.includes('oxygen') ||
+      name.includes('hemoglobin') || name.includes('lung') ||
+      name.includes('capacity') || name.includes('function');
+
+    if (lowerIsBetter) return isIncrease ? 'bg-rose-500/10 text-rose-500' : 'bg-emerald-500/10 text-emerald-500';
+    if (higherIsBetter) return isIncrease ? 'bg-emerald-500/10 text-emerald-500' : 'bg-rose-500/10 text-rose-500';
+
+    return isIncrease ? 'bg-blue-500/10 text-blue-500' : 'bg-slate-500/10 text-slate-500';
+  };
+
+  // ─── Handlers ─────────────────────────────────────────────────────────────
+  const handleVitalsChange = (field: string, value: string) =>
+    setBaseVitals(prev => ({ ...prev, [field as keyof BaseVitalsForm]: value }));
 
   const handleFieldChange = (section: string, field: string, value: string) =>
     setTemplateData(prev => ({ ...prev, [`${section}_${field}`]: value }));
 
   const handleUseTemplate = (t: any) => {
-    setSelectedTemplateName(t.templateName);
-    setLocalSections(t.schema?.sections || []);
+    setSelectedTemplateName(t.templateName || t.name);
+    setSourceTemplateId(t.id);
+    setLocalSections(t.schema?.sections || t.sections || []);
+    setOriginalSchema(t.schema?.sections || t.sections || []);
     setTemplateData({});
     setHasStructureChanges(false);
     setIsTemplateBrowserOpen(false);
-    toast.success(`Protocol "${t.templateName}" loaded!`);
-    // Scroll to sections
-    setTimeout(() => {
-      document.getElementById('clinical-sections')?.scrollIntoView({ behavior: 'smooth' });
-    }, 100);
+    setOverrideMode(true);
+    setCurrentStep('summary');
+    toast.success(`Protocol "${t.templateName || t.name}" loaded!`);
+    window.scrollTo({ top: 0, behavior: 'smooth' });
+  };
+
+  const handleCloneLastRecord = () => {
+    if (!latestRecord) return;
+
+    // Map latestRecord sections to TemplateSection format
+    const clonedSections = latestRecord.sections.map((s: any) => ({
+      section_name: s.sectionName,
+      display_order: s.displayOrder,
+      fields: s.attributes.map((a: any) => {
+        // Parse NormalRange string "min-max" back to min/max if possible
+        let min, max;
+        if (a.normalRange && a.normalRange.includes('-')) {
+          const parts = a.normalRange.split('-').map((p: any) => p.trim());
+          min = parseFloat(parts[0]);
+          max = parseFloat(parts[1]);
+        }
+
+        // Find most recent non-empty value across ALL history
+        let lastKnownValue = a.fieldValue;
+        const isEmpty = (val: string) => !val || val === "—" || val === "--";
+
+        if (isEmpty(lastKnownValue)) {
+          for (const prev of allRecords.slice(1)) {
+            // Flatten sections to find attribute by name
+            const historicAttr = prev.sections
+              ?.flatMap((ps: any) => ps.attributes)
+              ?.find((pa: any) => pa.fieldName === a.fieldName);
+
+            if (historicAttr && !isEmpty(historicAttr.fieldValue)) {
+              lastKnownValue = historicAttr.fieldValue;
+              break;
+            }
+          }
+        }
+
+        return {
+          field_name: a.fieldName,
+          field_label: a.fieldLabel,
+          field_type: a.fieldType,
+          unit: a.fieldUnit,
+          normal_range_min: min,
+          normal_range_max: max,
+          is_from_standard: a.isFromTemplate,
+          last_value: lastKnownValue
+        };
+      })
+    }));
+
+    setLocalSections(clonedSections);
+    setSelectedTemplateName(`Follow-up (from ${new Date(latestRecord.recordDate).toLocaleDateString()})`);
+
+    setTemplateData({}); // Keep current data fresh/empty
+    setHasStructureChanges(true);
+    setOverrideMode(true);
+    setCurrentStep('summary');
+    toast.success('Previous record structure cloned for reference!');
   };
 
   const handleStartFromScratch = () => {
     setSelectedTemplateName(null);
+    setSourceTemplateId(null);
     setLocalSections([{ section_name: 'General Assessment', display_order: 1, fields: [] }]);
     setTemplateData({});
     setHasStructureChanges(false);
-    setTimeout(() => {
-      document.getElementById('clinical-sections')?.scrollIntoView({ behavior: 'smooth' });
-    }, 100);
+    setOverrideMode(true);
+    setCurrentStep('summary');
+    window.scrollTo({ top: 0, behavior: 'smooth' });
   };
 
   const openAddCustomField = (sectionName?: string) => {
@@ -272,14 +494,25 @@ export default function StructuredRecordEntry() {
   };
 
   const handleCompleteAndSave = async () => {
-    if (!patient) return;
+    if (!patient) {
+      toast.error('Please identify a patient first');
+      return;
+    }
+    if (currentStep !== 'summary') {
+      toast.error('Please complete the observations first');
+      return;
+    }
     setIsSaving(true);
     try {
       const formattedSections = localSections.map(s => ({
         sectionName: s.section_name,
         attributes: s.fields.map(f => ({
           name: f.field_name,
-          value: templateData[`${s.section_name}_${f.field_name}`] || ''
+          value: templateData[`${s.section_name}_${f.field_name}`] || '',
+          unit: f.unit,
+          normalRangeMin: f.normal_range_min,
+          normalRangeMax: f.normal_range_max,
+          fieldType: f.field_type
         }))
       }));
 
@@ -303,13 +536,10 @@ export default function StructuredRecordEntry() {
 
       if (res.success) {
         setLastSavedRecordId(res.data.id);
-        // ONLY prompt to save as template if meaningful structural changes were made
-        if (hasStructureChanges) {
-          setShowSaveTemplateModal(true);
-        } else {
-          toast.success('Record saved successfully!');
-          router.push('/doctor/dashboard');
-        }
+
+        // Post-save logic: Always offer follow-up scheduling (requested by user)
+        setIsFollowUpModalOpen(true);
+        toast.success('Clinical record saved successfully!');
       }
     } catch {
       toast.error('Failed to save health record');
@@ -318,22 +548,74 @@ export default function StructuredRecordEntry() {
     }
   };
 
-  const handleSaveTemplate = async () => {
-    if (!newTemplateName.trim()) { toast.error('Please enter a protocol name'); return; }
+  const handleNextStep = () => {
+    if (currentStep === 'patient' && patient) setCurrentStep('vitals');
+    else if (currentStep === 'vitals') {
+      const defaultValue = "Follow up on previous Diagnosis";
+      const actualReason = chiefComplaint || (visitOption === 'continue' ? defaultValue : "");
+
+      if (!actualReason && visitOption === 'new') {
+        toast.error("Please enter a chief complaint");
+        return;
+      }
+
+      // If continuing and no reason was typed, ensure the default is set
+      if (visitOption === 'continue' && (!chiefComplaint || chiefComplaint.trim() === "")) {
+        setChiefComplaint("Follow up on previous Diagnosis");
+      }
+
+      setCurrentStep('protocol');
+    }
+    else if (currentStep === 'protocol' && (selectedTemplateName || localSections.length > 0)) {
+      setCurrentStep('summary');
+    }
+  };
+
+  const handlePrevStep = () => {
+    if (currentStep === 'vitals') setCurrentStep('patient');
+    else if (currentStep === 'protocol') setCurrentStep('vitals');
+    else if (currentStep === 'summary') setCurrentStep('protocol');
+  };
+
+  // Keyboard Shortcuts
+  useKeyboardShortcuts([
+    { combo: { key: 's', ctrl: true }, callback: handleCompleteAndSave },
+    { combo: { key: 'n', alt: true }, callback: () => openAddCustomField() },
+    { combo: { key: 'ArrowRight', alt: true }, callback: handleNextStep },
+    { combo: { key: 'ArrowLeft', alt: true }, callback: handlePrevStep },
+  ]);
+
+  const handleSaveTemplate = async (updateExisting: boolean = false) => {
+    const finalName = newTemplateName.trim() || (sourceTemplateId ? selectedTemplateName : '');
+    if (!finalName) { toast.error('Please enter a protocol name'); return; }
+
     setIsSavingTemplate(true);
     try {
       let res;
-      if (lastSavedRecordId) {
+      if (updateExisting && sourceTemplateId) {
+        // Update existing template
+        res = await templatesApi.updateTemplate(sourceTemplateId, {
+          templateName: finalName || '',
+          visibility: VisibilityLevel.Private,
+          schema: {
+            sections: localSections.map((s, i) => ({
+              section_name: s.section_name,
+              display_order: i + 1,
+              fields: s.fields.map((f, j) => ({ ...f, display_order: j + 1 }))
+            }))
+          }
+        });
+      } else if (lastSavedRecordId) {
         // Save from record (post-save flow)
         res = await templatesApi.createTemplateFromRecord(lastSavedRecordId, {
-          templateName: newTemplateName,
+          templateName: finalName || '',
           visibility: VisibilityLevel.Private
         });
       } else {
-        // Direct save (from Structure Builder)
+        // Direct save from builder
         res = await templatesApi.createTemplate({
-          templateName: newTemplateName,
-          description: `Custom protocol: ${newTemplateName}`,
+          templateName: finalName || '',
+          description: `Custom protocol: ${finalName}`,
           visibility: VisibilityLevel.Private,
           schema: {
             sections: localSections.map((s, i) => ({
@@ -357,249 +639,325 @@ export default function StructuredRecordEntry() {
     }
   };
 
+  const handleFollowUpConfirm = async (data: FollowUpData | null) => {
+    if (data && patient?.id) {
+      setIsSchedulingFollowUp(true);
+      try {
+        const res = await appointmentsApi.scheduleFollowUp({
+          originalAppointmentId: appointmentId || undefined,
+          patientId: !appointmentId ? patient.id : undefined,
+          preferredFollowUpDate: data.preferredDate.toISOString()
+        });
+
+        if (res.data?.wasScheduled) {
+          toast.success(res.data.message || 'Follow-up scheduled!');
+        } else {
+          toast.error(res.data?.message || 'Failed to schedule follow-up');
+        }
+      } catch (err) {
+        toast.error('Error connecting to scheduling service');
+      } finally {
+        setIsSchedulingFollowUp(false);
+      }
+    }
+
+    // Always navigate away after follow-up choice (even if skipped or error)
+    setIsFollowUpModalOpen(false);
+
+    // Logic: Only prompt to save if we actually have changes AND we didn't just come from a blank/scratch unless explicitly requested.
+    // However, if we modified an existing template, we should prompt to UPDATE it.
+    if (hasStructureChanges) {
+      setShowSaveTemplateModal(true);
+    } else {
+      router.push('/doctor/dashboard');
+    }
+  };
+
   // ─── Render ───────────────────────────────────────────────────────────────
 
   return (
     <div className="max-w-5xl mx-auto pb-24">
-
-      {/* ── Sticky Header ── */}
-      <div className="sticky top-0 z-20 mb-4 sm:mb-8">
-        <div className="bg-white/80 dark:bg-gray-900/80 backdrop-blur-xl border border-gray-200/60 dark:border-gray-800/60 rounded-2xl shadow-lg shadow-gray-200/30 dark:shadow-none px-4 sm:px-6 py-3 sm:py-4 flex flex-col sm:flex-row sm:items-center justify-between gap-4">
-          <div>
-            <h1 className="text-lg font-black text-gray-900 dark:text-white tracking-tight flex items-center gap-2">
-              <FileText size={20} className="text-indigo-500" /> New Health Record
-            </h1>
-            <div className="flex flex-wrap items-center gap-2 mt-0.5">
-              {patient ? (
-                <span className="text-xs sm:text-sm text-gray-500 flex items-center flex-wrap gap-1">
-                  Patient: <strong className="text-gray-800 dark:text-gray-200">{patient.name}</strong>
-                  <span className="hidden xs:inline text-gray-400">·</span>
-                  <span className="text-gray-400">Age {patient.age}</span>
-                  {selectedTemplateName && (
-                    <span className="ml-1 px-2 py-0.5 rounded-full bg-primary/10 dark:bg-indigo-900/40 text-indigo-700 dark:text-indigo-300 text-[9px] sm:text-[10px] font-bold uppercase tracking-wide">
-                      {selectedTemplateName}
-                    </span>
-                  )}
-                </span>
-              ) : (
-                <span className="text-xs sm:text-sm text-gray-400 italic">Select a patient to begin</span>
-              )}
-              {entrySource === 'qr' && <span className="px-2 py-0.5 rounded-full bg-emerald-100 text-emerald-700 text-[10px] font-bold uppercase tracking-wide flex items-center gap-1"><ScanLine size={10} /> QR Verified</span>}
-              {entrySource === 'directory' && <span className="px-2 py-0.5 rounded-full bg-blue-100 text-blue-700 text-[10px] font-bold uppercase tracking-wide flex items-center gap-1"><UserGroupIcon className="w-2.5 h-2.5" /> Directory</span>}
-              {entrySource === 'appointment' && <span className="px-2 py-0.5 rounded-full bg-violet-100 text-violet-700 text-[10px] font-bold uppercase tracking-wide flex items-center gap-1"><CalendarDaysIcon className="w-2.5 h-2.5" /> Appt Linked</span>}
-            </div>
-          </div>
-          <div className="flex items-center gap-2 w-full sm:w-auto">
-            <Button variant="ghost" size="sm" onClick={() => router.push('/doctor/dashboard')} disabled={isSaving} className="hidden xs:flex flex-1 sm:flex-none rounded-xl font-bold text-gray-500 hover:text-red-500 hover:bg-red-50">
-              Cancel
-            </Button>
-            <Button size="sm" disabled={!patient || isSaving} onClick={handleCompleteAndSave} isLoading={isSaving} className="flex-1 sm:flex-none rounded-xl bg-primary hover:bg-indigo-700 font-bold px-5 shadow-[0_10px_25px_-5px_rgba(79,70,229,0.4),0_0_20px_rgba(255,255,255,0.3)] dark:shadow-[0_10px_30px_-10px_rgba(255,255,255,0.2)]">
-              {isSaving ? 'Saving...' : 'Save Record'} <ChevronRight size={16} className="ml-1" />
-            </Button>
-          </div>
-        </div>
-      </div>
+      <ProgressBar
+        currentStep={currentStep}
+        onStepClick={(step) => {
+          // Allow clicking if patient is identified or if it's a previous step
+          const steps: FlowStep[] = ['patient', 'vitals', 'protocol', 'summary'];
+          const targetIdx = steps.indexOf(step);
+          const currentIdx = steps.indexOf(currentStep);
+          if (targetIdx < currentIdx || patient) {
+            setCurrentStep(step);
+          }
+        }}
+      />
 
       <div className="space-y-6">
+        {currentStep === 'patient' && (
+          <div className="bg-white dark:bg-slate-900 rounded-[2.5rem] p-8 md:p-12 shadow-premium border border-white dark:border-slate-800">
+            <div className="max-w-xl mx-auto text-center space-y-8">
+              <div className="flex justify-center">
+                <div className="w-20 h-20 bg-slate-500/10 rounded-3xl flex items-center justify-center text-slate-500">
+                  <UserGroupIcon className="w-10 h-10" />
+                </div>
+              </div>
+              <div>
+                <h2 className="text-3xl font-black text-slate-900 dark:text-white tracking-tight">Identify Patient</h2>
+                <p className="text-slate-500 font-medium mt-2">Search or scan to begin clinical documentation</p>
+              </div>
 
-        {/* ── SECTION 1: Patient + Protocol Selection ── */}
-        <div className="bg-white dark:bg-gray-900 rounded-2xl border border-gray-100 dark:border-gray-800 overflow-hidden shadow-sm">
-          <div className="px-6 py-4 border-b border-gray-100 dark:border-gray-800 flex items-center gap-3">
-            <div className="w-7 h-7 rounded-lg bg-primary/10 dark:bg-indigo-900/40 flex items-center justify-center text-primary text-xs font-black">1</div>
-            <h2 className="font-bold text-gray-700 dark:text-gray-300 text-sm uppercase tracking-widest">Patient & Protocol</h2>
-          </div>
-          <div className="p-6 space-y-6">
+              {!patient && (
+                <div className="space-y-4">
+                  <div className="relative group">
+                    <Search className="absolute left-5 top-1/2 -translate-y-1/2 text-slate-400 group-focus-within:text-blue-500 transition-colors" size={24} />
+                    <input
+                      className="w-full h-16 bg-slate-50 dark:bg-slate-950 border-2 border-slate-100 dark:border-slate-800 rounded-[1.25rem] pl-16 pr-6 text-lg font-bold text-slate-900 dark:text-white outline-none focus:border-blue-500/50 transition-all focus:ring-8 focus:ring-blue-500/5 placeholder:text-slate-300"
+                      placeholder="Name, Hospital ID, or Phone..."
+                      value={patientSearch}
+                      onChange={e => setPatientSearch(e.target.value)}
+                    />
+                  </div>
+                  <Button variant="outline" size="lg" className="w-full h-16 rounded-[1.25rem] border-dashed text-slate-500 hover:text-blue-500 hover:border-blue-500" onClick={() => setPatient({ id: 'P-DEMO', name: 'Demo Patient', age: 45 })}>
+                    <ScanLine size={20} className="mr-2" /> Scan Patient Code
+                  </Button>
+                </div>
+              )}
 
-            {/* Patient Search */}
-            {!patient && (
-              <div className="flex flex-col sm:flex-row gap-3">
-                <Button variant="outline" className="flex items-center justify-center gap-2 shrink-0 rounded-xl border-dashed h-12 sm:h-auto" onClick={() => setPatient({ id: 'P-DEMO', name: 'Demo Patient', age: 45 })}>
-                  <ScanLine size={16} /> Scan QR
+              {patient && (
+                <motion.div initial={{ scale: 0.9, opacity: 0 }} animate={{ scale: 1, opacity: 1 }} className="p-6 bg-blue-500/5 rounded-[2rem] border border-blue-500/10 flex items-center justify-between group">
+                  <div className="flex items-center gap-4">
+                    <div className="w-14 h-14 rounded-2xl bg-blue-600 text-white flex items-center justify-center font-black text-xl shadow-lg">
+                      {patient.name.split(' ').map(n => n[0]).join('')}
+                    </div>
+                    <div className="text-left">
+                      <p className="text-xl font-black text-slate-900 dark:text-white leading-tight">{patient.name}</p>
+                      <p className="text-sm text-slate-500 font-bold uppercase tracking-widest mt-1">Age {patient.age} · {patient.id}</p>
+                    </div>
+                  </div>
+                  <button onClick={() => setPatient(null)} className="p-2 text-slate-300 hover:text-red-500 transition-colors">
+                    <X size={20} />
+                  </button>
+                </motion.div>
+              )}
+
+              {patient && (
+                <Button onClick={handleNextStep} className="w-full h-16 rounded-[1.25rem] bg-slate-900 border border-slate-800 hover:bg-slate-800 text-white font-black text-sm uppercase tracking-[0.2em] shadow-xl active:scale-95 transition-all">
+                  Proceed to Vitals <ChevronRight className="ml-2" />
                 </Button>
-                <div className="relative flex-grow">
-                  <Search className="absolute left-3.5 top-2.5 text-gray-400" size={16} />
-                  <input
-                    className="w-full border border-gray-200 dark:border-gray-700 rounded-xl pl-10 pr-4 py-2.5 text-sm bg-gray-50 dark:bg-gray-800 focus:outline-none focus:ring-2 focus:ring-indigo-500 transition"
-                    placeholder="Search patient by name, ID, or phone..."
-                    value={patientSearch}
-                    onChange={e => setPatientSearch(e.target.value)}
-                  />
+              )}
+            </div>
+          </div>
+        )}
+
+        {currentStep === 'vitals' && (
+          <div className="bg-white/70 dark:bg-slate-900/40 backdrop-blur-xl rounded-[2.5rem] p-8 md:p-12 shadow-premium border border-white/40 dark:border-slate-800/50 space-y-12">
+            <div className="flex items-center justify-between">
+              <div className="flex items-center gap-4">
+                <div className="w-12 h-12 bg-rose-500/10 rounded-2xl flex items-center justify-center text-rose-500">
+                  <Activity size={24} />
+                </div>
+                <div>
+                  <h2 className="text-2xl font-black text-slate-900 dark:text-white leading-tight">Chief Complaint & Vitals</h2>
+                  <p className="text-xs font-bold text-slate-400 uppercase tracking-[0.2em] mt-1">Step 2: Core Observations</p>
                 </div>
               </div>
-            )}
 
-            {/* Patient confirmed UI */}
-            {patient && (
-              <div className="flex items-center justify-between p-4 bg-indigo-50 dark:bg-indigo-900/20 rounded-2xl border border-primary/10 dark:border-indigo-800/40">
-                <div className="flex items-center gap-3">
-                  <div className="w-10 h-10 rounded-full bg-indigo-200 dark:bg-indigo-800 flex items-center justify-center text-indigo-700 dark:text-indigo-300 font-black text-sm">
-                    {patient.name.split(' ').map(n => n[0]).join('')}
-                  </div>
-                  <div>
-                    <p className="font-bold text-gray-900 dark:text-white text-sm">{patient.name}</p>
-                    <p className="text-xs text-gray-500">Age {patient.age} · {patient.id}</p>
-                  </div>
+              {visitContext?.type === 'FollowUp' && !overrideMode && (
+                <div className="px-4 py-2 bg-indigo-500/10 rounded-xl border border-indigo-500/20 text-indigo-500 text-[10px] font-black uppercase tracking-widest">
+                  Context-Aware Flow
                 </div>
-                <button onClick={() => setPatient(null)} className="text-gray-400 hover:text-gray-600 p-1.5 hover:bg-white rounded-lg transition">
-                  <X size={16} />
-                </button>
-              </div>
-            )}
+              )}
+            </div>
 
-            {/* Chief Complaint */}
-            <div>
-              <label className="text-[10px] font-black uppercase tracking-widest text-gray-400 block mb-2">Chief Complaint</label>
-              <div className="flex gap-2">
-                <input
-                  className="flex-grow border border-gray-200 dark:border-gray-700 rounded-xl px-4 py-3 sm:py-2.5 text-sm bg-gray-50 dark:bg-gray-800 focus:outline-none focus:ring-2 focus:ring-indigo-500 transition placeholder:text-gray-400"
-                  placeholder="e.g. chronic kidney disease, hypertension follow-up..."
+            <div className="space-y-12">
+              {/* Visit Selection for Follow-ups */}
+              {visitContext?.type === 'FollowUp' && !overrideMode && (
+                <VisitTypeSelector
+                  lastDiagnosis={visitContext.lastDiagnosis}
+                  daysSinceLastVisit={visitContext.daysSinceLastVisit}
+                  selectedType={visitOption}
+                  onContinue={() => {
+                    setVisitOption('continue');
+                    setChiefComplaint("Follow up on previous Diagnosis");
+                  }}
+                  onNewComplaint={() => {
+                    setVisitOption('new');
+                    setChiefComplaint("");
+                  }}
+                />
+              )}
+
+              <div className="space-y-3">
+                <label className="text-[10px] font-black uppercase tracking-widest text-slate-400 px-1">What is the primary reason for visit?</label>
+                <textarea
+                  className="w-full h-32 bg-slate-50/50 dark:bg-slate-950/20 border-2 border-slate-100/50 dark:border-slate-800/50 rounded-3xl p-6 text-xl font-bold text-slate-900 dark:text-white outline-none focus:border-blue-500/50 transition-all focus:ring-8 focus:ring-blue-500/5 placeholder:text-slate-200 resize-none backdrop-blur-sm"
                   value={chiefComplaint}
+                  placeholder={visitOption === 'continue' ? "Follow up on previous Diagnosis" : "E.g. Persistent cough for 3 days, sharp chest pain..."}
                   onChange={e => setChiefComplaint(e.target.value)}
+                />
+              </div>
+
+              {/* Vitals Section */}
+              <div className="space-y-6">
+                <div className="flex items-center justify-between px-1">
+                  <h3 className="text-sm font-black text-slate-900 dark:text-white uppercase tracking-widest">Vital Signs</h3>
+                  {visitContext?.vitalsComparison?.lastVisit && (
+                    <div className="flex items-center gap-2 text-[10px] font-bold text-slate-400">
+                      <HistoryIcon size={12} /> Showing comparison with {new Date(visitContext.vitalsComparison.lastVisit.recordedAt).toLocaleDateString()}
+                    </div>
+                  )}
+                </div>
+
+                <VitalsComparisonForm
+                  lastVitals={visitContext?.vitalsComparison?.lastVisit}
+                  currentVitals={{
+                    bloodPressureSystolic: parseInt(baseVitals.bloodPressureSystolic) || undefined,
+                    bloodPressureDiastolic: parseInt(baseVitals.bloodPressureDiastolic) || undefined,
+                    heartRate: parseInt(baseVitals.heartRate) || undefined,
+                    temperature: parseFloat(baseVitals.temperature) || undefined,
+                    weight: parseFloat(baseVitals.weight) || undefined,
+                    height: parseFloat(baseVitals.height) || undefined,
+                    spO2: parseInt(baseVitals.spO2) || undefined
+                  }}
+                  onChange={handleVitalsChange}
+                  lockedFields={visitContext?.vitalsComparison?.lockedFields || []}
+                  bmi={bmi}
+                  bmiCategory={bmiCategory}
                 />
               </div>
             </div>
 
-            {/* Protocol Selection - Only show selection triggers if no protocol is active */}
-            {!localSections.length && (
-              <div>
-                <label className="text-[10px] font-black uppercase tracking-widest text-gray-400 block mb-3">Clinical Protocol</label>
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
-                  {/* Browse Library */}
-                  <button
-                    onClick={() => setIsTemplateBrowserOpen(true)}
-                    className="group flex items-center gap-4 p-4 bg-gradient-to-br from-indigo-50 to-violet-50 dark:from-indigo-900/20 dark:to-violet-900/20 border border-primary/10 dark:border-indigo-800/40 rounded-2xl hover:shadow-md hover:shadow-indigo-200/50 dark:hover:shadow-none transition-all duration-200 text-left"
-                  >
-                    <div className="w-12 h-12 bg-white dark:bg-gray-800 rounded-xl flex items-center justify-center shadow-sm group-hover:scale-110 transition-transform text-primary">
-                      <BookOpen size={22} />
-                    </div>
-                    <div>
-                      <p className="font-bold text-gray-900 dark:text-white text-sm">Browse Protocol Library</p>
-                      <p className="text-xs text-gray-500 mt-0.5">Pick from your library</p>
-                    </div>
-                    <ChevronRight size={16} className="ml-auto text-gray-300 group-hover:text-indigo-500 group-hover:translate-x-1 transition-all" />
-                  </button>
-
-                  {/* Start from Scratch */}
-                  <button
-                    onClick={handleStartFromScratch}
-                    className="group flex items-center gap-4 p-4 bg-gray-50 dark:bg-gray-800/50 border border-gray-100 dark:border-gray-800 rounded-2xl hover:border-gray-300 dark:hover:border-gray-700 hover:shadow-sm transition-all duration-200 text-left"
-                  >
-                    <div className="w-12 h-12 bg-white dark:bg-gray-700 rounded-xl flex items-center justify-center shadow-sm group-hover:scale-110 transition-transform text-gray-500 dark:text-gray-400">
-                      <Plus size={22} />
-                    </div>
-                    <div>
-                      <p className="font-bold text-gray-800 dark:text-gray-200 text-sm">Build from Scratch</p>
-                      <p className="text-xs text-gray-500 mt-0.5">Add custom sections manually</p>
-                    </div>
-                    <ChevronRight size={16} className="ml-auto text-gray-300 group-hover:text-gray-500 group-hover:translate-x-1 transition-all" />
-                  </button>
-                </div>
-              </div>
-            )}
-
-            {/* Active protocol badge */}
-            {localSections.length > 0 && (
-              <div className="flex items-center gap-2 p-3 bg-indigo-50 dark:bg-indigo-900/20 rounded-xl border border-primary/10 dark:border-indigo-800/40">
-                <CheckCircle size={16} className="text-indigo-500 shrink-0" />
-                <span className="text-sm text-indigo-700 dark:text-indigo-400 font-semibold">
-                  {selectedTemplateName ? (
-                    <>Protocol active: <strong>{selectedTemplateName}</strong></>
-                  ) : (
-                    <>Custom Structure: <strong>Manual Entry</strong></>
-                  )}
-                </span>
-                <button
-                  onClick={() => setIsTemplateBrowserOpen(true)}
-                  className="ml-auto flex items-center gap-1.5 text-[10px] font-black uppercase tracking-widest text-primary dark:text-indigo-400 hover:opacity-80 transition-all px-2 py-1 bg-white dark:bg-gray-800 rounded-lg border border-primary/10 dark:border-indigo-800/40"
-                >
-                  <BookOpen size={12} /> Browse Library
-                </button>
-                <button
-                  onClick={() => { setSelectedTemplateName(null); setLocalSections([]); setTemplateData({}); }}
-                  className="text-gray-400 hover:text-red-500 transition-colors p-1"
-                  title="Reset Protocol"
-                >
-                  <X size={14} />
-                </button>
-              </div>
-            )}
-          </div>
-        </div>
-
-        {/* ── SECTION 2: Base Vital Signs ── */}
-        <div id="base-vitals" className="bg-white dark:bg-gray-900 rounded-2xl border border-gray-100 dark:border-gray-800 overflow-hidden shadow-sm">
-          <div className="px-6 py-4 border-b border-gray-100 dark:border-gray-800 flex items-center justify-between">
-            <div className="flex items-center gap-3">
-              <div className="w-7 h-7 rounded-lg bg-rose-100 dark:bg-rose-900/40 flex items-center justify-center text-rose-600 text-xs font-black">2</div>
-              <h2 className="font-bold text-gray-700 dark:text-gray-300 text-sm uppercase tracking-widest">Vital Signs</h2>
+            <div className="flex pt-8 border-t border-slate-100 dark:border-slate-800">
+              <Button
+                onClick={handleNextStep}
+                className="ml-auto px-10 h-16 rounded-[1.25rem] bg-emerald-600 hover:bg-emerald-500 text-white font-black text-sm uppercase tracking-widest shadow-xl shadow-emerald-500/10 active:scale-95 transition-all"
+              >
+                {visitOption === 'continue' ? 'Next: Review Assessment' : 'Next: Choose Protocol'} <ChevronRight className="ml-2" />
+              </Button>
+              <Button variant="ghost" onClick={handlePrevStep} className="mr-auto text-slate-400 hover:text-slate-600 font-bold">Back</Button>
             </div>
-            <span className="text-[10px] font-black uppercase tracking-widest text-rose-500 bg-rose-50 dark:bg-rose-900/20 px-2 py-1 rounded-lg">Always Required</span>
           </div>
-          <div className="p-6">
-            <FormGrid columns={3}>
+        )}
 
-              {/* Blood Pressure — spans 2 cols */}
-              <div className="sm:col-span-2 lg:col-span-2 relative flex items-center gap-3 p-4 rounded-2xl border border-gray-100 dark:border-gray-800 bg-gray-50/50 dark:bg-gray-900/30">
-                <div className="w-10 h-10 rounded-xl bg-white dark:bg-gray-800 flex items-center justify-center shrink-0 shadow-sm text-rose-500">
-                  <Activity size={18} />
-                </div>
-                <div className="flex-grow">
-                  <label className="text-[10px] text-gray-400 font-bold uppercase tracking-widest block mb-1">Blood Pressure</label>
-                  <div className="flex items-baseline gap-2">
-                    <input type="number" className="bg-transparent text-2xl font-black text-gray-900 dark:text-white outline-none w-16 placeholder:text-gray-300" placeholder="SYS" value={baseVitals.bloodPressureSystolic} onChange={e => handleVitalsChange('bloodPressureSystolic', e.target.value)} />
-                    <span className="text-gray-300 text-xl">/</span>
-                    <input type="number" className="bg-transparent text-2xl font-black text-gray-900 dark:text-white outline-none w-16 placeholder:text-gray-300" placeholder="DIA" value={baseVitals.bloodPressureDiastolic} onChange={e => handleVitalsChange('bloodPressureDiastolic', e.target.value)} />
-                    <span className="text-xs text-gray-400 font-medium">mmHg</span>
+        {currentStep === 'protocol' && (
+          <div className="bg-white dark:bg-slate-900 rounded-[2.5rem] p-8 md:p-12 shadow-premium border border-white dark:border-slate-800">
+            <div className={`transition-all duration-500 ${visitOption === 'continue' ? 'opacity-40 grayscale pointer-events-none scale-[0.98]' : 'opacity-100'}`}>
+              <SmartProtocolSuggestion
+                chiefComplaint={chiefComplaint}
+                patientId={patient?.id || ''}
+                onSelect={(id) => templatesApi.getTemplate(id).then(res => handleUseTemplate(res.data))}
+                onStartBlank={handleStartFromScratch}
+              />
+            </div>
+
+            {latestRecord && (
+              <div className="mt-8 flex justify-center">
+                <button
+                  onClick={handleCloneLastRecord}
+                  disabled={visitOption === 'new'}
+                  className={`group flex items-center gap-4 px-10 py-5 rounded-[2rem] border transition-all shadow-xl ${
+                    visitOption === 'new'
+                      ? 'bg-slate-500/5 border-slate-500/10 text-slate-400 opacity-40 grayscale cursor-not-allowed'
+                      : 'bg-blue-600/5 hover:bg-emerald-600 text-blue-500 hover:text-white border-blue-500/20 hover:border-emerald-400 hover:shadow-emerald-500/20'
+                  }`}
+                >
+                  <div className={`w-10 h-10 rounded-2xl flex items-center justify-center transition-colors ${
+                    visitOption === 'new' ? 'bg-slate-500/10' : 'bg-blue-500/10 group-hover:bg-white/20'
+                  }`}>
+                    <HistoryIcon className={visitOption === 'new' ? '' : 'group-hover:rotate-[-45deg] transition-transform'} size={20} />
                   </div>
-                </div>
-                {(vitalStatus('systolic', baseVitals.bloodPressureSystolic) === 'high') && (
-                  <div className="shrink-0 flex items-center gap-1 text-[10px] font-black text-red-500 bg-red-50 dark:bg-red-900/20 px-2 py-1 rounded-lg uppercase tracking-widest">
-                    <AlertTriangle size={10} /> High
+                  <div className="text-left">
+                    <p className="text-xs font-black uppercase tracking-[0.2em] mb-0.5">Clone Last Visit</p>
+                    <p className="text-[10px] opacity-60 font-medium">Replicate structure from {new Date(latestRecord.recordDate).toLocaleDateString()}</p>
                   </div>
-                )}
+                </button>
               </div>
+            )}
 
-              <VitalInput label="Heart Rate" field="heartRate" icon={Heart} type="hr" unit="bpm" value={baseVitals.heartRate} onChange={handleVitalsChange} />
-              <VitalInput label="Temperature" field="temperature" icon={Thermometer} type="temp" unit="°F" value={baseVitals.temperature} onChange={handleVitalsChange} />
-              <VitalInput label="Weight" field="weight" icon={Weight} type="none" unit="kg" value={baseVitals.weight} onChange={handleVitalsChange} />
-              <VitalInput label="Height" field="height" icon={Ruler} type="none" unit="cm" value={baseVitals.height} onChange={handleVitalsChange} />
-
-              {/* BMI Display */}
-              <div className="flex flex-col items-center justify-center p-4 rounded-2xl bg-gradient-to-br from-blue-50 to-indigo-50 dark:from-blue-900/20 dark:to-indigo-900/20 border border-blue-100 dark:border-blue-800/40">
-                <span className="text-[10px] text-blue-400 font-bold uppercase tracking-widest mb-1">BMI</span>
-                <span className="text-3xl font-black text-gray-900 dark:text-white">{bmi ?? '—'}</span>
-                {bmiCategory && <span className={`text-xs font-bold mt-1 ${bmiCategory.color}`}>{bmiCategory.label}</span>}
-              </div>
-
-              <VitalInput label="SpO₂" field="spO2" icon={Droplets} type="spo2" unit="%" value={baseVitals.spO2} onChange={handleVitalsChange} />
-            </FormGrid>
+            <div className="mt-12 pt-8 border-t border-slate-100 dark:border-slate-800">
+              <Button variant="ghost" onClick={handlePrevStep} className="text-slate-400 hover:text-slate-600 font-bold">Back to Vitals</Button>
+            </div>
           </div>
-        </div>
+        )}
 
         {/* ── SECTION 3: Dynamic Protocol Sections ── */}
-        <div id="clinical-sections">
-          {localSections.length > 0 && (
-            <div className="space-y-4">
-              {localSections.map((section, sIdx) => (
-                <div key={`${section.section_name}-${sIdx}`} className="bg-white dark:bg-gray-900 rounded-2xl border border-violet-100 dark:border-violet-900/40 overflow-hidden shadow-sm">
-                  <div className="px-6 py-4 border-b border-violet-50 dark:border-violet-900/30 bg-gradient-to-r from-violet-50/50 to-transparent dark:from-violet-900/10 flex items-center justify-between">
-                    <div className="flex items-center gap-3">
-                      <div className="w-7 h-7 rounded-lg bg-violet-100 dark:bg-violet-900/40 flex items-center justify-center text-violet-600 text-xs font-black">{sIdx + 3}</div>
-                      <h2 className="font-bold text-gray-700 dark:text-gray-300 text-sm uppercase tracking-widest">{section.section_name}</h2>
-                      <span className="text-[10px] font-black text-violet-500 bg-violet-50 dark:bg-violet-900/30 px-2 py-0.5 rounded-lg uppercase tracking-widest">Protocol Section</span>
-                    </div>
-
-                    <button
-                      onClick={() => setIsTemplateBrowserOpen(true)}
-                      className="flex items-center gap-2 px-3 py-1.5 bg-white dark:bg-slate-800 text-emerald-600 dark:text-emerald-400 text-[10px] font-black uppercase tracking-widest rounded-xl shadow-[0_8px_25px_-5px_rgba(255,255,255,0.8),0_0_15px_rgba(255,255,255,0.4)] dark:shadow-[0_8px_30px_-8px_rgba(255,255,255,0.2)] border border-emerald-100 dark:border-emerald-900/50 hover:scale-105 active:scale-95 transition-all group/btn"
-                    >
-                      <Sparkles size={12} className="group-hover/btn:rotate-12 transition-transform" />
-                      Choose Template
-                    </button>
+        {currentStep === 'summary' && (
+          <div className="space-y-6">
+            {/* Context Awareness Header / Override */}
+            {visitContext?.type === 'FollowUp' && !overrideMode && (
+              <motion.div initial={{ y: -20, opacity: 0 }} animate={{ y: 0, opacity: 1 }} className="bg-white dark:bg-slate-900 rounded-3xl p-6 border-2 border-indigo-500/20 shadow-sm flex items-center justify-between">
+                <div className="flex items-center gap-4">
+                  <div className="w-10 h-10 bg-indigo-500/10 rounded-xl flex items-center justify-center text-indigo-500">
+                    <Sparkles size={20} />
                   </div>
-                    <div className="p-4 sm:p-6">
+                  <div>
+                    <p className="text-[10px] font-black uppercase tracking-widest text-indigo-500">Visit-Aware Intelligence</p>
+                    <h3 className="text-sm font-bold text-slate-900 dark:text-white mt-0.5">
+                      {visitOption === 'continue' ? "Follow-up protocol pre-populated from previous visit." : "New complaint flow initiated."}
+                    </h3>
+                  </div>
+                </div>
+                <Button
+                  variant="ghost"
+                  size="compact"
+                  onClick={() => {
+                    setOverrideMode(true);
+                    setVisitOption('new');
+                    setCurrentStep('protocol');
+                    toast.success("Switched to Full Assessment Mode");
+                  }}
+                  className="text-[10px] font-black uppercase tracking-widest text-slate-400 hover:text-rose-500 hover:bg-rose-500/5 px-4"
+                >
+                  Switch to Full Assessment
+                </Button>
+              </motion.div>
+            )}
+
+            {/* Form Header */}
+            <div className="bg-white/70 dark:bg-slate-900/40 backdrop-blur-xl rounded-[2.5rem] p-8 shadow-premium border border-white/40 dark:border-slate-800/50 flex items-center justify-between">
+              <div className="flex items-center gap-6">
+                <div className="w-16 h-16 bg-emerald-600 rounded-[2rem] flex items-center justify-center text-white shadow-xl shadow-emerald-500/20">
+                  <ClipboardList size={28} />
+                </div>
+                <div>
+                  <h2 className="text-3xl font-black text-slate-900 dark:text-white tracking-tight leading-tight">
+                    {selectedTemplateName || 'General Assessment'}
+                  </h2>
+                  <div className="flex items-center gap-3 mt-1">
+                    <span className="text-[10px] font-black text-slate-400 uppercase tracking-widest">{patient?.name}</span>
+                    <span className="text-slate-200">·</span>
+                    <span className="text-[10px] font-black text-emerald-500 bg-emerald-500/5 px-2 py-0.5 rounded-full uppercase tracking-widest">Final Review</span>
+                  </div>
+                </div>
+              </div>
+              <div className="flex items-center gap-3">
+                {!overrideMode && visitContext?.type === 'FollowUp' ? null : (
+                  <Button variant="ghost" onClick={() => setCurrentStep('protocol')} className="text-slate-400 hover:text-indigo-500 font-bold">Change Protocol</Button>
+                )}
+                <Button onClick={handleCompleteAndSave} isLoading={isSaving} className="h-14 bg-blue-600 hover:bg-blue-500 text-white rounded-2xl font-black uppercase tracking-widest px-8 shadow-xl shadow-blue-500/20">
+                  Save Final Record
+                </Button>
+              </div>
+            </div>
+
+            <div className="grid grid-cols-1 gap-6">
+              {visitOption === 'continue' && visitContext?.protocolToLoad && !overrideMode ? (
+                <div className="bg-white/70 dark:bg-slate-900/40 backdrop-blur-xl rounded-[2.5rem] p-8 md:p-12 shadow-premium border border-white/40 dark:border-slate-800/50">
+                  <ProtocolProgressForm
+                    protocol={visitContext.protocolToLoad}
+                    data={templateData}
+                    onChange={handleFieldChange}
+                  />
+                </div>
+              ) : (
+                localSections.map((section, sIdx) => (
+                  <CollapsibleSection
+                    key={`${section.section_name}-${sIdx}`}
+                    title={section.section_name}
+                    badgeCount={section.fields.length}
+                    icon={<ClipboardList size={16} className="text-blue-500" />}
+                    className="bg-white/70 dark:bg-slate-900/40 backdrop-blur-xl border-white/40 dark:border-slate-800/50"
+                  >
                     {section.fields.length > 0 ? (
-                      <FormGrid columns={3} className="mb-6">
+                      <FormGrid columns={3} className="py-2">
                         {section.fields.map(field => {
                           const value = templateData[`${section.section_name}_${field.field_name}`] || '';
                           const numValue = parseFloat(value);
@@ -607,170 +965,160 @@ export default function StructuredRecordEntry() {
                             && !isNaN(numValue) && (numValue < field.normal_range_min || numValue > field.normal_range_max);
 
                           return (
-                            <div key={field.field_name} className="flex flex-col">
-                              <label className="text-xs font-bold text-gray-500 dark:text-gray-400 mb-1.5 flex items-center justify-between">
+                            <div key={field.field_name} className="space-y-2">
+                              <label className="text-[10px] font-black uppercase tracking-widest text-slate-500 px-1 flex items-center justify-between">
                                 <span>{field.field_label}{field.is_required && <span className="text-red-500 ml-0.5">*</span>}</span>
-                                {isAbnormal && (
-                                  <span className="flex items-center gap-0.5 text-red-500 text-[10px] font-black uppercase tracking-wide">
-                                    <AlertTriangle size={10} /> Abnormal
-                                  </span>
-                                )}
+                                {isAbnormal && <span className="text-red-500 flex items-center gap-1"><AlertTriangle size={10} /> Abnormal</span>}
                               </label>
 
-                              {field.field_type === 'Dropdown' && field.dropdown_options ? (
-                                <select
-                                  className="border border-gray-200 dark:border-gray-700 rounded-xl px-3 py-2.5 text-sm bg-gray-50 dark:bg-gray-800 focus:outline-none focus:ring-2 focus:ring-violet-500 transition"
-                                  value={value}
-                                  onChange={e => handleFieldChange(section.section_name, field.field_name, e.target.value)}
-                                >
-                                  <option value="">Select...</option>
-                                  {field.dropdown_options.map(opt => <option key={opt} value={opt}>{opt}</option>)}
-                                </select>
-                              ) : field.field_type === 'Text' ? (
-                                <textarea
-                                  rows={2}
-                                  className="border border-gray-200 dark:border-gray-700 rounded-xl px-3 py-2.5 text-sm bg-gray-50 dark:bg-gray-800 focus:outline-none focus:ring-2 focus:ring-violet-500 transition resize-none"
-                                  placeholder={`Enter ${field.field_label.toLowerCase()}...`}
-                                  value={value}
-                                  onChange={e => handleFieldChange(section.section_name, field.field_name, e.target.value)}
-                                />
-                              ) : (
-                                <div className="relative">
+                              <div className="relative group">
+                                {field.field_type === 'Dropdown' ? (
+                                  <select
+                                    className="w-full h-12 bg-slate-50 dark:bg-slate-950 border border-slate-100 dark:border-slate-800 rounded-xl px-4 text-sm font-bold text-slate-900 dark:text-white outline-none focus:border-blue-500/30 transition-all"
+                                    value={value}
+                                    onChange={e => handleFieldChange(section.section_name, field.field_name, e.target.value)}
+                                  >
+                                    <option value="">Select...</option>
+                                    {field.dropdown_options?.map(opt => <option key={opt} value={opt}>{opt}</option>)}
+                                  </select>
+                                ) : (
                                   <input
-                                    type="number"
-                                    className={`w-full border rounded-xl px-3 py-2.5 text-sm focus:outline-none focus:ring-2 transition ${isAbnormal
-                                        ? 'border-red-300 bg-red-50 dark:bg-red-900/10 focus:ring-red-400'
-                                        : 'border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-800 focus:ring-violet-500'
-                                      } ${field.unit ? 'pr-14' : ''}`}
+                                    type={field.field_type === 'Number' ? 'number' : 'text'}
+                                    className={`w-full h-12 bg-slate-50 dark:bg-slate-950 border rounded-xl px-4 text-sm font-bold placeholder:text-slate-200 outline-none transition-all ${isAbnormal
+                                        ? 'border-red-500/50 bg-red-500/5 focus:ring-4 focus:ring-red-500/5'
+                                        : 'border-slate-100 dark:border-slate-800 focus:border-blue-500/30'
+                                      }`}
                                     placeholder="—"
                                     value={value}
                                     onChange={e => handleFieldChange(section.section_name, field.field_name, e.target.value)}
                                   />
-                                  {field.unit && (
-                                    <span className="absolute right-3 top-2.5 text-xs text-gray-400 font-medium">{field.unit}</span>
+                                )}
+                                {field.unit && (
+                                  <span className="absolute right-4 top-1/2 -translate-y-1/2 text-[10px] font-black text-slate-400 uppercase bg-white dark:bg-slate-900 px-1.5 py-0.5 rounded border border-slate-100 dark:border-slate-800">
+                                    {field.unit}
+                                  </span>
+                                )}
+                              </div>
+
+                              {field.last_value && (
+                                <div className="flex items-start justify-between p-3 bg-blue-500/5 rounded-xl border border-blue-500/10 backdrop-blur-sm">
+                                  <div className="flex gap-2">
+                                    <Clock size={14} className="text-blue-400 shrink-0 mt-0.5" />
+                                    <div>
+                                      <p className="text-[10px] font-bold text-blue-400 uppercase tracking-tight">Previous Data</p>
+                                      <p className="text-[11px] font-black text-slate-500 dark:text-slate-400 mt-0.5">
+                                        {field.last_value} {field.unit}
+                                      </p>
+                                    </div>
+                                  </div>
+                                  {field.field_type === 'Number' && value && !isNaN(parseFloat(value)) && !isNaN(parseFloat(field.last_value)) && (
+                                    <div className={`flex items-center gap-1 text-[10px] font-black uppercase px-2 py-0.5 rounded-full ${getTrendColor(field.field_label, value, field.last_value, field.normal_range_min, field.normal_range_max)
+                                      }`}>
+                                      {parseFloat(value) > parseFloat(field.last_value) ? <ArrowUpRight size={12} /> :
+                                        parseFloat(value) < parseFloat(field.last_value) ? <ArrowDownRight size={12} /> : null}
+                                      {Math.abs(parseFloat(value) - parseFloat(field.last_value)).toFixed(1)}
+                                    </div>
                                   )}
                                 </div>
                               )}
-                              {field.normal_range_min !== undefined && field.normal_range_max !== undefined && (
-                                <span className="text-[10px] text-gray-400 mt-1">Normal: {field.normal_range_min}–{field.normal_range_max} {field.unit}</span>
+                              {field.normal_range_min !== undefined && (
+                                <p className="text-[9px] font-bold text-slate-400 uppercase tracking-tight px-1 italic">
+                                  Normal: {field.normal_range_min}–{field.normal_range_max} {field.unit}
+                                </p>
                               )}
                             </div>
                           );
                         })}
                       </FormGrid>
                     ) : (
-                      <p className="text-sm text-gray-400 italic mb-4">No fields yet. Add some below.</p>
+                      <div className="py-12 flex flex-col items-center justify-center text-center opacity-50">
+                        <Search size={40} className="text-slate-300 mb-4" />
+                        <p className="text-sm font-bold text-slate-400">Section is empty.</p>
+                        <p className="text-xs text-slate-500 mt-1">Use the "Add Measurement" button below to populate.</p>
+                      </div>
                     )}
 
-                    <button
-                      onClick={() => openAddCustomField(section.section_name)}
-                      className="inline-flex items-center gap-1.5 text-xs font-bold text-violet-600 dark:text-violet-400 hover:text-violet-700 transition px-3 py-1.5 bg-violet-50 dark:bg-violet-900/20 rounded-lg border border-violet-100 dark:border-violet-800/30 hover:border-violet-200"
-                    >
-                      <Plus size={12} /> Add Field to This Section
-                    </button>
+                    <div className="mt-6 flex justify-center">
+                      <button
+                        onClick={() => openAddCustomField(section.section_name)}
+                        className="group flex items-center gap-2 px-6 py-2 bg-slate-100 dark:bg-slate-800/50 hover:bg-blue-600 hover:text-white rounded-full text-[10px] font-black uppercase tracking-widest transition-all"
+                      >
+                        <Plus size={14} className="group-hover:rotate-90 transition-transform" /> Add Field to {section.section_name}
+                      </button>
+                    </div>
+                  </CollapsibleSection>
+                ))
+              )}
+
+              {/* Clinical Notes */}
+              <CollapsibleSection title="Clinical Assessment & Plan" icon={<FileText size={16} />} defaultOpen={true}>
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-8 py-4">
+                  <div className="space-y-4">
+                    <label className="text-[10px] font-black uppercase tracking-widest text-slate-400 px-1">Final Diagnosis</label>
+                    <textarea
+                      rows={4}
+                      className="w-full bg-slate-50 dark:bg-slate-950 border border-slate-100 dark:border-slate-800 rounded-2xl p-6 text-sm font-bold text-slate-900 dark:text-white outline-none focus:border-blue-500/30 transition-all resize-none placeholder:text-slate-200"
+                      placeholder="Describe the diagnosed condition..."
+                      value={diagnosis}
+                      onChange={e => setDiagnosis(e.target.value)}
+                    />
+                  </div>
+                  <div className="space-y-4">
+                    <label className="text-[10px] font-black uppercase tracking-widest text-slate-400 px-1">Management Plan</label>
+                    <textarea
+                      rows={4}
+                      className="w-full bg-slate-50 dark:bg-slate-950 border border-slate-100 dark:border-slate-800 rounded-2xl p-6 text-sm font-bold font-mono text-slate-900 dark:text-white outline-none focus:border-blue-500/30 transition-all resize-none placeholder:text-slate-200"
+                      placeholder={"1. Medications\n2. Lifestyle advice\n3. Follow-up"}
+                      value={treatmentPlan}
+                      onChange={e => setTreatmentPlan(e.target.value)}
+                    />
+                  </div>
+                  <div className="md:col-span-2 space-y-4">
+                    <label className="text-[10px] font-black uppercase tracking-widest text-amber-500 px-1 flex items-center gap-2">
+                      <AlertTriangle size={12} /> Private Doctor Observations
+                    </label>
+                    <textarea
+                      rows={3}
+                      className="w-full bg-amber-500/5 border border-amber-500/10 rounded-2xl p-6 text-sm font-bold text-slate-900 dark:text-white outline-none focus:border-amber-500/30 transition-all resize-none placeholder:text-amber-200"
+                      placeholder="Confidential clinical notes, internal thoughts, or mental health observations..."
+                      value={doctorNotes}
+                      onChange={e => setDoctorNotes(e.target.value)}
+                    />
                   </div>
                 </div>
-              ))}
+              </CollapsibleSection>
             </div>
-          )}
 
-          {/* ── Discrete Structure Actions ── */}
-          {localSections.length > 0 && (
-            <div className="mt-6 pt-6 border-t border-gray-100 dark:border-gray-800 flex items-center justify-between">
-              <div className="flex items-center gap-4">
-                <button
-                  onClick={() => openAddCustomField()}
-                  className="flex items-center gap-1.5 text-[10px] font-black uppercase tracking-widest text-indigo-600 dark:text-indigo-400 hover:opacity-80 transition-all px-3 py-1.5 bg-indigo-50 dark:bg-indigo-900/20 rounded-lg"
-                >
-                  <Plus size={12} /> Add New Section
-                </button>
-                {hasStructureChanges && (
-                  <button
-                    onClick={() => { setShowSaveTemplateModal(true); setLastSavedRecordId(null); }}
-                    className="flex items-center gap-1.5 text-[10px] font-black uppercase tracking-widest text-emerald-600 dark:text-emerald-400 hover:opacity-80 transition-all px-3 py-1.5 bg-emerald-50 dark:bg-emerald-900/20 rounded-lg"
-                  >
-                    <Save size={12} /> Capture as Template
-                  </button>
-                )}
-              </div>
-              <p className="text-[10px] font-bold text-gray-400 uppercase tracking-widest italic opacity-50">
-                End of framework
-              </p>
+            {/* Floating Action Menu */}
+            <div className="fixed bottom-10 left-1/2 -translate-x-1/2 z-50 flex items-center gap-3 p-2 bg-slate-900/90 backdrop-blur-xl border border-slate-800 rounded-3xl shadow-2xl">
+              <button
+                onClick={() => openAddCustomField()}
+                className="flex items-center gap-2 px-6 py-4 bg-blue-600 hover:bg-blue-500 text-white rounded-2xl font-black uppercase tracking-widest text-xs transition-all active:scale-95 shadow-lg shadow-blue-500/20"
+              >
+                <Plus size={18} /> Add Measurement
+              </button>
+              <div className="w-[1px] h-8 bg-slate-800 mx-2" />
+              <button
+                onClick={handleCompleteAndSave}
+                className="flex items-center gap-2 px-6 py-4 bg-emerald-600 hover:bg-emerald-500 text-white rounded-2xl font-black uppercase tracking-widest text-xs transition-all active:scale-95 shadow-lg shadow-emerald-500/20"
+              >
+                <Save size={18} /> Finish Record
+              </button>
             </div>
-          )}
-
-          {/* ── Structure Builder (Empty State Only) ── */}
-          {localSections.length === 0 && (
-            <div className="mt-4 p-5 border-2 border-dashed border-gray-200 dark:border-gray-800 rounded-2xl flex flex-wrap items-center justify-between gap-4">
-              <div>
-                <p className="text-sm font-bold text-gray-500 uppercase tracking-widest">Structure Builder</p>
-                <p className="text-xs text-gray-400 mt-0.5">
-                  Browse a protocol or build custom sections below
-                </p>
-              </div>
-              <div className="flex items-center flex-wrap gap-2">
-                <button
-                  onClick={() => openAddCustomField()}
-                  className="inline-flex items-center gap-1.5 text-xs font-bold text-gray-600 dark:text-gray-300 hover:text-gray-900 dark:hover:text-white px-3 py-2 bg-white dark:bg-gray-800 rounded-xl border border-gray-200 dark:border-gray-700 shadow-sm hover:shadow-md transition-all"
-                >
-                  <Plus size={13} /> Add Section
-                </button>
-              </div>
-            </div>
-          )}
-        </div>
-
-        {/* ── SECTION 4: Clinical Notes ── */}
-        <div className="bg-white dark:bg-gray-900 rounded-2xl border border-gray-100 dark:border-gray-800 overflow-hidden shadow-sm">
-          <div className="px-6 py-4 border-b border-gray-100 dark:border-gray-800 flex items-center gap-3">
-            <div className="w-7 h-7 rounded-lg bg-amber-100 dark:bg-amber-900/40 flex items-center justify-center text-amber-600 text-xs font-black">
-              {localSections.length + 3}
-            </div>
-            <h2 className="font-bold text-gray-700 dark:text-gray-300 text-sm uppercase tracking-widest">Clinical Notes</h2>
           </div>
-          <div className="p-6">
-            <FormGrid columns={2}>
-              <div>
-                <label className="text-[10px] font-black uppercase tracking-widest text-gray-400 block mb-2">Diagnosis</label>
-              <textarea
-                rows={4}
-                className="w-full border border-gray-200 dark:border-gray-700 rounded-xl p-4 text-sm bg-gray-50 dark:bg-gray-800 focus:outline-none focus:ring-2 focus:ring-amber-500 transition resize-none placeholder:text-gray-400"
-                placeholder="e.g. Chronic Kidney Disease Stage 3, Hypertension..."
-                value={diagnosis}
-                onChange={e => setDiagnosis(e.target.value)}
-              />
-            </div>
-            <div>
-              <label className="text-[10px] font-black uppercase tracking-widest text-gray-400 block mb-2">Treatment Plan</label>
-              <textarea
-                rows={4}
-                className="w-full border border-gray-200 dark:border-gray-700 rounded-xl p-4 text-sm font-mono bg-gray-50 dark:bg-gray-800 focus:outline-none focus:ring-2 focus:ring-amber-500 transition resize-none placeholder:text-gray-400"
-                placeholder={"1. Continue ACEI therapy\n2. Low-sodium diet\n3. Follow-up in 4 weeks"}
-                value={treatmentPlan}
-                onChange={e => setTreatmentPlan(e.target.value)}
-              />
-            </div>
-            <div className="lg:col-span-2">
-              <label className="text-[10px] font-black uppercase tracking-widest text-gray-400 block mb-2">Private Doctor Notes</label>
-              <textarea
-                rows={3}
-                className="w-full border border-yellow-200 dark:border-yellow-800/40 rounded-xl p-4 text-sm bg-yellow-50/50 dark:bg-yellow-900/10 focus:outline-none focus:ring-2 focus:ring-yellow-400 transition resize-none placeholder:text-gray-400"
-                placeholder="Patient seems anxious about results. Consider referral to nephrology..."
-                value={doctorNotes}
-                onChange={e => setDoctorNotes(e.target.value)}
-              />
-            </div>
-            </FormGrid>
-          </div>
-        </div>
-
-        {/* Bottom spacer for sticky footer padding if needed, but we consolidated to header */}
-        <div className="h-4" />
+        )}
       </div>
 
       {/* ═══ Modals ═══ */}
 
-      {/* Template Browser */}
+      {/* Smart Field Builder */}
+      <SmartFieldBuilder
+        isOpen={isCustomFieldModalOpen}
+        onClose={() => setIsCustomFieldModalOpen(false)}
+        onAdd={handleAddCustomField}
+        sections={localSections.map(s => s.section_name)}
+      />
+
       <TemplateBrowserModal
         isOpen={isTemplateBrowserOpen}
         onClose={() => setIsTemplateBrowserOpen(false)}
@@ -780,33 +1128,44 @@ export default function StructuredRecordEntry() {
       {/* Save as Template Modal */}
       {showSaveTemplateModal && (
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
-          <div className="absolute inset-0 bg-gray-900/60 backdrop-blur-sm" onClick={() => setShowSaveTemplateModal(false)} />
-          <div className="relative bg-white dark:bg-gray-900 rounded-3xl shadow-2xl border border-gray-100 dark:border-gray-800 w-full max-w-md overflow-hidden">
-            <div className="p-8 text-center">
-              <div className="w-16 h-16 bg-gradient-to-br from-emerald-400 to-teal-500 rounded-2xl flex items-center justify-center mx-auto mb-5 shadow-lg shadow-emerald-300/30 dark:shadow-none">
-                <Sparkles size={28} className="text-white" />
+          <div className="absolute inset-0 bg-slate-900/60 backdrop-blur-md" onClick={() => setShowSaveTemplateModal(false)} />
+          <div className="relative bg-white/90 dark:bg-slate-900/90 rounded-[2.5rem] shadow-2xl border border-white/40 dark:border-slate-800/50 w-full max-w-md overflow-hidden backdrop-blur-xl">
+            <div className="p-10 text-center">
+              <div className="w-20 h-20 bg-blue-600 rounded-3xl flex items-center justify-center mx-auto mb-6 shadow-xl shadow-blue-500/20">
+                <Sparkles size={32} className="text-white" />
               </div>
-              <h2 className="text-2xl font-black text-gray-900 dark:text-white tracking-tight">Save as Protocol</h2>
-              <p className="text-sm text-gray-500 mt-2 mb-6 max-w-xs mx-auto">
-                This clinical structure will be saved to your library and available for any future patient with the same needs.
+              <h2 className="text-2xl font-black text-slate-900 dark:text-white tracking-tight">
+                {sourceTemplateId ? "Update Protocol?" : "Save as Protocol?"}
+              </h2>
+              <p className="text-sm font-bold text-slate-500 mt-2 mb-8 max-w-xs mx-auto leading-relaxed">
+                {sourceTemplateId
+                  ? `You've modified the "${selectedTemplateName}" structure. Would you like to update the original or save as new?`
+                  : "This clinical structure will be saved to your library for future use with any patient."}
               </p>
-              <div className="text-left mb-6">
-                <label className="text-[10px] font-black uppercase tracking-widest text-gray-400 block mb-2">Protocol Name</label>
+
+              <div className="text-left mb-8">
+                <label className="text-[10px] font-black uppercase tracking-widest text-slate-400 block mb-2 px-1">Protocol Name</label>
                 <input
                   autoFocus
-                  className="w-full border border-gray-200 dark:border-gray-700 rounded-xl px-4 py-3 text-sm bg-gray-50 dark:bg-gray-800 focus:outline-none focus:ring-2 focus:ring-emerald-500 transition font-semibold"
+                  className="w-full border-2 border-slate-100 dark:border-slate-800 rounded-2xl px-5 py-4 text-sm bg-slate-50/50 dark:bg-slate-950/30 focus:outline-none focus:border-blue-500/50 transition font-black text-slate-900 dark:text-white"
                   placeholder="e.g. Renal Function Profile, Diabetes Checkup..."
-                  value={newTemplateName}
+                  value={newTemplateName || (sourceTemplateId ? (selectedTemplateName || '') : '')}
                   onChange={e => setNewTemplateName(e.target.value)}
                   onKeyDown={e => e.key === 'Enter' && handleSaveTemplate()}
                 />
               </div>
-              <div className="flex gap-3">
-                <Button variant="outline" className="flex-1 rounded-xl" onClick={() => { setShowSaveTemplateModal(false); if (lastSavedRecordId) router.push('/doctor/dashboard'); }} disabled={isSavingTemplate}>
-                  {lastSavedRecordId ? 'Skip & Done' : 'Cancel'}
+
+              <div className="flex flex-col gap-3">
+                <Button className="w-full h-14 rounded-2xl bg-blue-600 hover:bg-blue-500 font-black uppercase tracking-widest text-xs shadow-lg shadow-blue-500/20" onClick={() => handleSaveTemplate(false)} isLoading={isSavingTemplate}>
+                  {sourceTemplateId ? "Save as New Protocol" : "Save Protocol"}
                 </Button>
-                <Button className="flex-1 rounded-xl bg-gradient-to-r from-emerald-500 to-teal-500 hover:from-emerald-600 hover:to-teal-600 font-bold border-0 shadow-md shadow-emerald-300/30 dark:shadow-none" onClick={handleSaveTemplate} isLoading={isSavingTemplate}>
-                  Save Protocol
+                {sourceTemplateId && (
+                  <Button variant="ghost" className="w-full h-12 rounded-2xl font-black uppercase tracking-widest text-[10px] text-blue-600 dark:text-blue-400 hover:bg-blue-500/5" onClick={() => handleSaveTemplate(true)} isLoading={isSavingTemplate}>
+                    Update Existing Protocol
+                  </Button>
+                )}
+                <Button variant="ghost" className="w-full h-12 rounded-2xl font-black uppercase tracking-widest text-[10px] text-slate-400 hover:text-rose-500" onClick={() => { setShowSaveTemplateModal(false); if (lastSavedRecordId) router.push('/doctor/dashboard'); }}>
+                  Don't Save
                 </Button>
               </div>
             </div>
@@ -814,12 +1173,14 @@ export default function StructuredRecordEntry() {
         </div>
       )}
 
-      {/* Add Custom Field */}
-      <AddCustomFieldModal
-        isOpen={isCustomFieldModalOpen}
-        onClose={() => setIsCustomFieldModalOpen(false)}
-        onAdd={handleAddCustomField}
-        existingSections={localSections.map(s => s.section_name)}
+      {/* Follow-Up Scheduling Modal */}
+      <FollowUpSchedulingModal
+        isOpen={isFollowUpModalOpen}
+        onClose={() => setIsFollowUpModalOpen(false)}
+        onConfirm={handleFollowUpConfirm}
+        patientName={patient?.name || ''}
+        todayAppointmentTime={todayAppointment?.appointmentDate ? formatLocalTime(todayAppointment.appointmentDate, 'HH:mm') : ''}
+        isLoading={isSchedulingFollowUp}
       />
     </div>
   );

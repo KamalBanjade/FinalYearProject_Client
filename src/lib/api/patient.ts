@@ -11,8 +11,10 @@ export interface PatientProfileData {
     gender: string;
     bloodType: string;
     address: string;
+    occupation?: string;
     emergencyContactName: string;
     emergencyContactPhone: string;
+    emergencyContactRelationship?: string;
     allergies: string;
     chronicConditions: string;
     profilePictureUrl?: string;
@@ -44,8 +46,10 @@ export interface SmartDoctorSuggestionDTO {
 export interface UpdatePatientProfileRequest {
     bloodType?: string;
     address?: string;
+    occupation?: string;
     emergencyContactName?: string;
     emergencyContactPhone?: string;
+    emergencyContactRelationship?: string;
     allergies?: string;
     chronicConditions?: string;
 }

@@ -53,6 +53,16 @@ export const templatesApi = {
         return response.data;
     },
 
+    updateTemplate: async (id: string, data: {
+        templateName: string;
+        description?: string;
+        visibility: VisibilityLevelValue;
+        schema?: { sections: any[] };
+    }) => {
+        const response = await axiosInstance.put(`templates/${id}`, data);
+        return response.data;
+    },
+
     forkTemplate: async (id: string, newName: string) => {
         const response = await axiosInstance.post(`templates/${id}/fork`, { newTemplateName: newName });
         return response.data;

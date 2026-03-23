@@ -21,6 +21,7 @@
     "axios-retry": "^4.5.0",
     "date-fns": "^4.1.0",
     "framer-motion": "^12.34.4",
+    "html2canvas": "^1.4.1",
     "js-cookie": "^3.0.5",
     "jspdf": "^4.2.0",
     "jwt-decode": "^4.0.0",
@@ -40,8 +41,8 @@
     "zustand": "^5.0.11"
   },
   "devDependencies": {
-    "@tanstack/react-query-devtools": "^5.91.3",
     "@tailwindcss/postcss": "^4",
+    "@tanstack/react-query-devtools": "^5.91.3",
     "@types/js-cookie": "^3.0.6",
     "@types/node": "^20.19.33",
     "@types/react": "^19",

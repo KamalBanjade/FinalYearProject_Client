@@ -9,6 +9,7 @@ import {
 } from 'lucide-react';
 import { Button } from '@/components/ui/Button';
 import { Input } from '@/components/ui/Input';
+import { useCreateCustomLabUnit } from '@/hooks/useLabUnitSearch';
 
 interface AddCustomFieldModalProps {
   isOpen: boolean;
@@ -47,6 +48,8 @@ export function AddCustomFieldModal({ isOpen, onClose, onAdd, existingSections }
     FIELD_TYPES.find(f => f.value === fieldType) || FIELD_TYPES[0]
   , [fieldType]);
 
+  const createCustomMutation = useCreateCustomLabUnit();
+
   if (!isOpen) return null;
 
   const handleAdd = () => {
@@ -65,6 +68,17 @@ export function AddCustomFieldModal({ isOpen, onClose, onAdd, existingSections }
       is_required: isRequired,
       dropdown_options: fieldType === 'Dropdown' ? dropdownOptions.split(',').map(s => s.trim()).filter(s => s) : undefined
     };
+
+    if (fieldType === 'Number') {
+        createCustomMutation.mutate({
+            measurementType: fieldLabel,
+            commonUnits: unit ? [unit] : [],
+            defaultUnit: unit,
+            normalRangeLow: min ? parseFloat(min) : undefined,
+            normalRangeHigh: max ? parseFloat(max) : undefined,
+            category: 'Custom'
+        });
+    }
 
     onAdd(newField, finalSectionName);
     onClose();
@@ -87,14 +101,14 @@ export function AddCustomFieldModal({ isOpen, onClose, onAdd, existingSections }
           initial={{ scale: 0.95, opacity: 0, y: 20 }}
           animate={{ scale: 1, opacity: 1, y: 0 }}
           exit={{ scale: 0.95, opacity: 0, y: 20 }}
-          className="relative bg-[#EBEEF2] dark:bg-slate-900 rounded-[2.5rem] shadow-premium border border-white dark:border-slate-800 w-full max-w-4xl h-[min(800px,90vh)] overflow-hidden flex flex-col md:flex-row shadow-2xl"
+          className="relative bg-white/80 dark:bg-slate-900/90 rounded-[2.5rem] shadow-premium border border-white/40 dark:border-slate-800/50 w-full max-w-4xl h-[min(800px,90vh)] overflow-hidden flex flex-col md:flex-row shadow-2xl backdrop-blur-2xl"
         >
           {/* Left Panel: Configuration */}
           <div className="flex-1 p-8 md:p-10 space-y-8 overflow-y-auto custom-scrollbar">
             
             {/* 1. Section Header */}
             <div className="flex items-center gap-4">
-              <div className="w-12 h-12 bg-white dark:bg-slate-800 rounded-2xl flex items-center justify-center text-primary shadow-sm">
+              <div className="w-12 h-12 bg-blue-600/10 dark:bg-blue-600/20 rounded-2xl flex items-center justify-center text-blue-600 shadow-sm border border-blue-500/10">
                 <Sparkles size={24} />
               </div>
               <div>
@@ -110,11 +124,11 @@ export function AddCustomFieldModal({ isOpen, onClose, onAdd, existingSections }
                   <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Target Protocol Section</label>
                   <span className="text-[10px] font-bold text-primary bg-primary/5 px-2 py-0.5 rounded-full">Placement</span>
                 </div>
-                <div className="flex p-1.5 bg-white dark:bg-slate-950 rounded-[1.25rem] border border-slate-200 dark:border-slate-800">
+                <div className="flex p-1.5 bg-slate-100/50 dark:bg-slate-950/50 rounded-[1.25rem] border border-white/20 dark:border-slate-800/50 backdrop-blur-sm">
                   <button 
                     onClick={() => setSectionType('existing')}
                     className={`flex-1 flex items-center justify-center gap-2 py-2.5 rounded-xl text-xs font-black transition-all ${
-                      sectionType === 'existing' ? 'bg-primary text-white shadow-md' : 'text-slate-400 hover:text-slate-600'
+                      sectionType === 'existing' ? 'bg-blue-600 text-white shadow-lg shadow-blue-500/20' : 'text-slate-400 hover:text-slate-600'
                     }`}
                   >
                     <Layers size={14} /> Existing Section
@@ -122,7 +136,7 @@ export function AddCustomFieldModal({ isOpen, onClose, onAdd, existingSections }
                   <button 
                     onClick={() => setSectionType('new')}
                     className={`flex-1 flex items-center justify-center gap-2 py-2.5 rounded-xl text-xs font-black transition-all ${
-                      sectionType === 'new' ? 'bg-primary text-white shadow-md' : 'text-slate-400 hover:text-slate-600'
+                      sectionType === 'new' ? 'bg-blue-600 text-white shadow-lg shadow-blue-500/20' : 'text-slate-400 hover:text-slate-600'
                     }`}
                   >
                     <Plus size={14} /> Create New
@@ -138,7 +152,7 @@ export function AddCustomFieldModal({ isOpen, onClose, onAdd, existingSections }
                   >
                     {sectionType === 'existing' ? (
                       <select 
-                        className="w-full h-12 bg-white dark:bg-slate-950 border border-slate-200 dark:border-slate-800 rounded-2xl px-4 text-sm font-bold text-slate-700 dark:text-slate-200 outline-none focus:ring-2 focus:ring-primary/20 appearance-none cursor-pointer"
+                        className="w-full h-12 bg-white/50 dark:bg-slate-950/50 border border-white/20 dark:border-slate-800/50 rounded-2xl px-4 text-sm font-bold text-slate-700 dark:text-slate-200 outline-none focus:ring-4 focus:ring-blue-500/5 appearance-none cursor-pointer backdrop-blur-sm"
                         value={selectedSection}
                         onChange={(e) => setSelectedSection(e.target.value)}
                       >
@@ -149,7 +163,7 @@ export function AddCustomFieldModal({ isOpen, onClose, onAdd, existingSections }
                         placeholder="e.g. Kidney Function Assessment"
                         value={newSectionName}
                         onChange={(e) => setNewSectionName(e.target.value)}
-                        className="h-12 rounded-2xl shadow-sm"
+                        className="h-12 rounded-2xl shadow-sm bg-white/50 border-white/20"
                       />
                     )}
                   </motion.div>
@@ -178,16 +192,16 @@ export function AddCustomFieldModal({ isOpen, onClose, onAdd, existingSections }
                       <button
                         key={type.value}
                         onClick={() => setFieldType(type.value)}
-                        className={`p-4 rounded-[1.5rem] border text-left transition-all duration-200 ${
+                        className={`p-4 rounded-[1.5rem] border text-left transition-all duration-300 ${
                           isActive 
-                            ? 'bg-white dark:bg-slate-800 border-primary shadow-lg ring-4 ring-primary/5 x' 
-                            : 'bg-white/50 dark:bg-slate-950/50 border-white dark:border-slate-800 hover:border-slate-300'
+                            ? 'bg-white dark:bg-slate-800 border-blue-500/50 shadow-xl shadow-blue-500/5 ring-4 ring-blue-500/5' 
+                            : 'bg-white/30 dark:bg-slate-950/30 border-white/40 dark:border-slate-800 hover:border-blue-500/30 backdrop-blur-sm'
                         }`}
                       >
-                        <div className={`w-8 h-8 rounded-xl flex items-center justify-center mb-3 ${isActive ? 'bg-primary text-white' : `bg-slate-100 dark:bg-slate-800 ${type.color}`}`}>
+                        <div className={`w-8 h-8 rounded-xl flex items-center justify-center mb-3 ${isActive ? 'bg-blue-600 text-white' : `bg-slate-100 dark:bg-slate-800 ${type.color}`}`}>
                           <Icon size={18} />
                         </div>
-                        <p className={`text-xs font-black uppercase tracking-tight ${isActive ? 'text-primary' : 'text-slate-700 dark:text-slate-300'}`}>{type.label}</p>
+                        <p className={`text-xs font-black uppercase tracking-tight ${isActive ? 'text-blue-600' : 'text-slate-700 dark:text-slate-300'}`}>{type.label}</p>
                         <p className="text-[9px] text-slate-400 font-bold mt-1 line-clamp-1">{type.desc}</p>
                       </button>
                     );
@@ -318,7 +332,7 @@ export function AddCustomFieldModal({ isOpen, onClose, onAdd, existingSections }
               <Button 
                 onClick={handleAdd} 
                 disabled={!fieldLabel || (sectionType === 'new' && !newSectionName)}
-                className="w-full h-14 bg-primary hover:bg-primary/90 text-white rounded-[1.25rem] text-sm font-black uppercase tracking-widest flex items-center justify-center gap-2 shadow-premium disabled:opacity-50 transition-all active:scale-95"
+                className="w-full h-14 bg-blue-600 hover:bg-blue-500 text-white rounded-[1.25rem] text-sm font-black uppercase tracking-widest flex items-center justify-center gap-2 shadow-xl shadow-blue-500/20 disabled:opacity-50 transition-all active:scale-95"
               >
                 Insert to Record <ChevronRight size={18} />
               </Button>

@@ -32,6 +32,9 @@ import { Button } from '@/components/ui/Button';
 import { useAuthStore } from '@/store/authStore';
 import { useRouter } from 'next/navigation';
 import { useConfirm } from '@/context/ConfirmContext';
+import html2canvas from 'html2canvas';
+import { EmergencyIDCard } from '@/components/patient/EmergencyIDCard';
+import { patientApi, PatientProfileData } from '@/lib/api/patient';
 
 export default function QRCodesPage() {
     const { confirm } = useConfirm();
@@ -48,16 +51,27 @@ export default function QRCodesPage() {
     });
     const [networkFrontendUrl, setNetworkFrontendUrl] = useState<string | null>(null);
     const generatingRef = useRef(false);
+    const [error, setError] = useState<string | null>(null);
+    const [patientProfile, setPatientProfile] = useState<PatientProfileData | null>(null);
 
     const fetchCodes = async () => {
         try {
             setLoading(true);
-            const res = await qrApi.getMyCodes();
-            if (res.success) {
-                setCodes(res.data);
+            const [qrRes, profileRes] = await Promise.all([
+                qrApi.getMyCodes(),
+                patientApi.getProfile()
+            ]);
+            
+            if (qrRes.success) {
+                setCodes(qrRes.data);
             }
-        } catch (error) {
-            toast.error("Failed to load QR codes");
+            if (profileRes.success) {
+                setPatientProfile(profileRes.data);
+            }
+            setError(null);
+        } catch (err) {
+            setError('Failed to fetch QR codes');
+            toast.error('Failed to load access codes');
         } finally {
             setLoading(false);
         }
@@ -140,18 +154,49 @@ export default function QRCodesPage() {
         toast.success("Link copied to clipboard!");
     };
 
-    const downloadQR = (token: string, type: 'Normal' | 'Emergency') => {
-        const canvas = document.getElementById(`qr-${token}`) as HTMLCanvasElement;
-        if (!canvas) {
-            toast.error("Could not find QR code element");
-            return;
-        }
+    const downloadQR = async (token: string, type: 'Normal' | 'Emergency') => {
+        if (type === 'Emergency') {
+            const cardElement = document.getElementById('emergency-id-card-element');
+            if (!cardElement) {
+                toast.error("Could not find ID card element");
+                return;
+            }
+            try {
+                setIsGenerating(true);
+                toast.loading('Generating high-res ID card...', { id: 'generating-card' });
+                
+                const canvas = await html2canvas(cardElement, {
+                    scale: 3, // High resolution for printing
+                    backgroundColor: null,
+                    logging: false,
+                    useCORS: true
+                });
+                const url = canvas.toDataURL("image/png");
+                const link = document.createElement("a");
+                link.href = url;
+                link.download = `Sajilo-Emergency-ID-${token.substring(0, 8)}.png`;
+                link.click();
+                
+                toast.success('ID card generated successfully', { id: 'generating-card' });
+            } catch (err) {
+                toast.error("Failed to generate ID card image", { id: 'generating-card' });
+                console.error(err);
+            } finally {
+                setIsGenerating(false);
+            }
+        } else {
+            const canvas = document.getElementById(`qr-${token}`) as HTMLCanvasElement;
+            if (!canvas) {
+                toast.error("Could not find QR code element");
+                return;
+            }
 
-        const url = canvas.toDataURL("image/png");
-        const link = document.createElement("a");
-        link.href = url;
-        link.download = `Sajilo-QR-${type}-${token.substring(0, 8)}.png`;
-        link.click();
+            const url = canvas.toDataURL("image/png");
+            const link = document.createElement("a");
+            link.href = url;
+            link.download = `Sajilo-QR-${type}-${token.substring(0, 8)}.png`;
+            link.click();
+        }
     };
 
     const printQR = () => {
@@ -651,6 +696,25 @@ export default function QRCodesPage() {
                     }
                 }
             `}</style>
+
+            {/* Hidden Emergency ID Card for Download */}
+            {user && emergencyCode && (
+                <div className="absolute -left-[9999px] top-0 pointer-events-none">
+                    <EmergencyIDCard 
+                        firstName={user.firstName}
+                        lastName={user.lastName}
+                        patientId={user.id}
+                        dateOfBirth={user.dateOfBirth?.toString() || ''}
+                        bloodType={patientProfile?.bloodType || user.bloodType}
+                        address={patientProfile?.address}
+                        occupation={patientProfile?.occupation}
+                        emergencyContactName={patientProfile?.emergencyContactName}
+                        emergencyContactRelationship={patientProfile?.emergencyContactRelationship}
+                        emergencyContactPhone={patientProfile?.emergencyContactPhone}
+                        accessUrl={`${typeof window !== 'undefined' && window.location.hostname !== 'localhost' && window.location.hostname !== '127.0.0.1' ? window.location.origin : networkFrontendUrl || window.location.origin}/emergency/${emergencyCode.token}`}
+                    />
+                </div>
+            )}
         </div>);
 
 }

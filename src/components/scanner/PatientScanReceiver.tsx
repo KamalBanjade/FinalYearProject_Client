@@ -9,7 +9,7 @@ import { useAuthStore } from '@/store/authStore';
 
 export function PatientScanReceiver() {
   const router = useRouter();
-  const { user } = useAuthStore();
+  const { user, hasChecked, isAuthenticated } = useAuthStore();
   const [patient, setPatient] = useState<any>(null);
   const [totpCode, setTotpCode] = useState('');
   const [isVerifying, setIsVerifying] = useState(false);
@@ -24,8 +24,11 @@ export function PatientScanReceiver() {
   };
 
   useEffect(() => {
-    // Only run for logged-in doctors
-    if (!user || user.role !== 'Doctor') return;
+    // Only run for logged-in doctors after the initial session check.
+    // This prevents 401 errors during negotiation when the browser has a 
+    // persisted user in localStorage but the backend session (cookie) is gone.
+    if (!hasChecked) return;
+    if (!isAuthenticated || !user || user.role !== 'Doctor') return;
 
     if (connectionStartedRef.current) return;
     connectionStartedRef.current = true;
