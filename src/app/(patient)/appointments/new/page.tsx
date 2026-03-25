@@ -160,16 +160,33 @@ export default function BookAppointmentPage() {
 
     // ── Mutation ─────────────────────────────────────────────────────────────
     const createMutation = useMutation({
-        mutationFn: (data: CreateAppointmentDTO) => appointmentsApi.requestAppointment(data),
+        mutationFn: async (data: CreateAppointmentDTO) => {
+            const bookingToast = toast.loading('Verifying availability and securing your slot...', {
+                style: {
+                    borderRadius: '16px',
+                    background: '#1e293b',
+                    color: '#fff',
+                },
+            });
+            try {
+                const result = await appointmentsApi.requestAppointment(data);
+                toast.success('Appointment confirmed instantly!', {
+                    id: bookingToast,
+                    icon: '⚡',
+                });
+                return result;
+            } catch (error: any) {
+                toast.error(error.response?.data?.message || 'Failed to book appointment', {
+                    id: bookingToast,
+                });
+                throw error;
+            }
+        },
         onSuccess: () => {
-            toast.success('Appointment confirmed instantly!', { icon: '⚡', duration: 5000 });
             queryClient.invalidateQueries({ queryKey: ['patient-appointments'] });
             queryClient.invalidateQueries({ queryKey: ['doctor-slots'] });
             router.push('/appointments');
         },
-        onError: (err: any) => {
-            toast.error(err.response?.data?.message || 'Failed to book appointment');
-        }
     });
 
     const handleSubmit = (e: React.FormEvent) => {

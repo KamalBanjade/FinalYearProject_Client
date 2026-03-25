@@ -28,7 +28,6 @@ import Link from 'next/link';
 import { useConfirm } from '@/context/ConfirmContext';
 import { formatLocalTime, normalizeUTC } from '@/lib/utils/dateUtils';
 import { motion, AnimatePresence } from 'framer-motion';
-import { MedicalLoader } from '@/components/ui/MedicalLoader';
 import { InsightCard } from '@/components/cards/InsightCard';
 import { PatientAppointmentCard } from '@/components/patient/PatientAppointmentCard';
 import { AppointmentSkeleton } from '@/components/ui/AppointmentSkeleton';
@@ -61,10 +60,16 @@ export default function PatientAppointmentsPage() {
 
         if (!matchesSearch) return false;
 
+        const isPast = isBefore(appDate, now);
+        const isActiveStatus = (app.status === 'Scheduled' || app.status === 'Confirmed' || app.status === 'Pending');
+
         if (activeTab === 'upcoming') {
-            return (app.status === 'Scheduled' || app.status === 'Confirmed' || app.status === 'Pending' || app.status === 'Overdue') && isAfter(appDate, subDays(now, 1));
+            // Upcoming should only show active statuses that are in the future/today
+            return isActiveStatus && !isPast;
         } else {
-            return app.status === 'Cancelled' || app.status === 'Completed' || isBefore(appDate, subDays(now, 1));
+            // History shows everything else: past appointments, or final statuses (Cancelled, Completed, Overdue)
+            const isFinalStatus = (app.status === 'Cancelled' || app.status === 'Completed' || app.status === 'Overdue');
+            return isFinalStatus || (isActiveStatus && isPast);
         }
     }).sort((a: AppointmentDTO, b: AppointmentDTO) => {
         const dateA = new Date(normalizeUTC(a.appointmentDate));
@@ -76,7 +81,10 @@ export default function PatientAppointmentsPage() {
 
     const stats = {
         total: appointments.length,
-        upcoming: appointments.filter((a: AppointmentDTO) => (a.status === 'Scheduled' || a.status === 'Confirmed' || a.status === 'Pending') && isAfter(new Date(normalizeUTC(a.appointmentDate)), now)).length,
+        upcoming: appointments.filter((a: AppointmentDTO) => {
+            const appDate = new Date(normalizeUTC(a.appointmentDate));
+            return (a.status === 'Scheduled' || a.status === 'Confirmed' || a.status === 'Pending') && !isBefore(appDate, now);
+        }).length,
         completed: appointments.filter((a: AppointmentDTO) => a.status === 'Completed').length,
         cancelled: appointments.filter((a: AppointmentDTO) => a.status === 'Cancelled').length
     };
@@ -96,15 +104,27 @@ export default function PatientAppointmentsPage() {
 
         setIsCancelling(true);
         setCancellationError(null);
+        const cancelToast = toast.loading('Revoking clinical slot and notifying physician...', {
+            style: {
+                borderRadius: '16px',
+                background: '#1e293b',
+                color: '#fff',
+            },
+        });
+
         try {
             await appointmentsApi.cancelAppointment(cancellingAppointmentId, {
                 cancellationReason: cancellationReason.trim()
             });
-            toast.success('Appointment cancelled successfully');
+            toast.success('Appointment cancelled successfully', {
+                id: cancelToast,
+            });
             queryClient.invalidateQueries({ queryKey: ['patient-appointments'] });
             setCancellingAppointmentId(null);
         } catch (err) {
-            toast.error('Failed to cancel appointment');
+            toast.error('Failed to cancel appointment', {
+                id: cancelToast,
+            });
         } finally {
             setIsCancelling(false);
         }
@@ -115,10 +135,10 @@ export default function PatientAppointmentsPage() {
 
             {/* Insight Cards */}
             <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 md:gap-6">
-                <InsightCard title="Total Consults" value={stats.total} icon={Calendar} gradient="from-violet-500 to-indigo-600" />
-                <InsightCard title="Active Schedule" value={stats.upcoming} icon={Clock} gradient="from-amber-500 to-orange-600" />
-                <InsightCard title="Successful" value={stats.completed} icon={CheckCircle2} gradient="from-emerald-500 to-teal-600" />
-                <InsightCard title="Terminated" value={stats.cancelled} icon={XCircle} gradient="from-rose-500 to-pink-600" />
+                <InsightCard isLoading={isLoading} title="Total Consults" value={stats.total} icon={Calendar} gradient="from-violet-500 to-indigo-600" />
+                <InsightCard isLoading={isLoading} title="Active Schedule" value={stats.upcoming} icon={Clock} gradient="from-amber-500 to-orange-600" />
+                <InsightCard isLoading={isLoading} title="Successful" value={stats.completed} icon={CheckCircle2} gradient="from-emerald-500 to-teal-600" />
+                <InsightCard isLoading={isLoading} title="Terminated" value={stats.cancelled} icon={XCircle} gradient="from-rose-500 to-pink-600" />
             </div>
 
             {/* Toolbar */}
@@ -173,12 +193,10 @@ export default function PatientAppointmentsPage() {
             {/* List Container */}
             <div>
                 {isLoading ? (
-                    <div className="py-24 flex flex-col items-center justify-center text-center">
-                        <div className="relative w-12 h-12">
-                            <div className="absolute inset-0 border-4 border-slate-100 dark:border-white/10 rounded-full" />
-                            <div className="absolute inset-0 border-4 border-t-emerald-500 dark:border-t-emerald-400 rounded-full animate-spin" />
-                            <div className="absolute inset-0 bg-emerald-500/5 dark:bg-emerald-400/5 rounded-full animate-pulse" />
-                        </div>
+                    <div className="grid grid-cols-1 gap-6">
+                        {[1, 2, 3].map((i) => (
+                            <AppointmentSkeleton key={i} />
+                        ))}
                     </div>
                 ) : (
                     <AnimatePresence mode="popLayout">

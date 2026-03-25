@@ -12,6 +12,7 @@ import {
     Stethoscope, ClipboardList, Droplets, ChevronRight
 } from 'lucide-react';
 import { Button } from '@/components/ui/Button';
+import { Skeleton } from '@/components/ui/Skeleton';
 import { healthRecordApi } from '@/lib/api/healthRecordApi';
 import { appointmentsApi } from '@/lib/api/appointments';
 import { motion, AnimatePresence } from 'framer-motion';
@@ -124,16 +125,7 @@ function ProfileContent() {
     };
 
     if (isLoading && !patient) {
-        return (
-            <div className="flex-1 flex flex-col items-center justify-center p-12 bg-slate-50/30 dark:bg-slate-900/10">
-                <div className="relative w-16 h-16">
-                    <div className="absolute inset-0 rounded-2xl border-4 border-indigo-100 dark:border-indigo-900/30" />
-                    <div className="absolute inset-0 rounded-2xl border-4 border-t-indigo-600 animate-spin" />
-                </div>
-                <h3 className="mt-8 text-xl font-bold text-slate-800 dark:text-white uppercase tracking-tighter">Sajilo स्वास्थ्य</h3>
-                <p className="mt-2 text-[10px] font-bold text-slate-400 uppercase tracking-[0.3em] animate-pulse">Retrieving Patient Identity...</p>
-            </div>
-        );
+        return <PatientProfileSkeleton />;
     }
 
     if (!patient && !isLoading) {
@@ -294,7 +286,22 @@ function ProfileContent() {
 
                         <div className="p-5 sm:p-8 max-h-[800px] sm:max-h-[1200px] overflow-y-auto custom-scrollbar">
                             <div className="space-y-4">
-                                {filteredRecords.length === 0 ? (
+                                {isLoading && unifiedRecords.length === 0 ? (
+                                    <div className="space-y-4">
+                                        {[1, 2, 3].map(i => (
+                                            <div key={i} className="p-6 rounded-[2rem] border border-slate-100 dark:border-slate-800 space-y-4">
+                                                <div className="flex items-center gap-4">
+                                                    <Skeleton className="w-12 h-12 rounded-2xl" />
+                                                    <div className="space-y-2 flex-1">
+                                                        <Skeleton className="w-1/3 h-5 rounded-lg" />
+                                                        <Skeleton className="w-1/4 h-3 rounded-md" />
+                                                    </div>
+                                                </div>
+                                                <Skeleton className="w-full h-16 rounded-xl" />
+                                            </div>
+                                        ))}
+                                    </div>
+                                ) : filteredRecords.length === 0 ? (
                                     <div className="py-20 text-center opacity-30">
                                         <Database size={48} className="mx-auto mb-4 text-slate-300" />
                                         <p className="text-[10px] font-black uppercase tracking-widest ">Zero records matching current criteria</p>
@@ -478,18 +485,75 @@ function ProfileContent() {
     );
 }
 
+function PatientProfileSkeleton() {
+    return (
+        <div className="max-w-[1600px] mx-auto px-6 md:px-10 py-8 space-y-8 animate-in fade-in duration-700">
+            {/* Header Skeleton */}
+            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+                <div className="flex items-center gap-4">
+                    <Skeleton className="w-12 h-12 rounded-2xl" />
+                    <div className="space-y-2">
+                        <Skeleton className="w-48 h-8 rounded-lg" />
+                        <Skeleton className="w-32 h-4 rounded-md" />
+                    </div>
+                </div>
+                <div className="flex gap-3">
+                    <Skeleton className="w-32 h-12 rounded-2xl" />
+                    <Skeleton className="w-48 h-12 rounded-2xl" />
+                </div>
+            </div>
+
+            {/* Profile Bar Skeleton */}
+            <div className="bg-white dark:bg-slate-900 rounded-[2.5rem] border border-slate-100 dark:border-slate-800 h-auto sm:h-40 overflow-hidden flex flex-col lg:flex-row">
+                <div className="p-8 flex items-center gap-6 lg:border-r border-slate-50 dark:border-slate-800 lg:min-w-[400px]">
+                    <Skeleton className="w-24 h-24 rounded-3xl" />
+                    <div className="space-y-3 flex-1">
+                        <Skeleton className="w-3/4 h-8 rounded-lg" />
+                        <Skeleton className="w-1/2 h-4 rounded-md" />
+                        <Skeleton className="w-1/3 h-5 rounded-full" />
+                    </div>
+                </div>
+                <div className="flex-1 p-8 grid grid-cols-2 md:grid-cols-4 gap-8">
+                    {[1, 2, 3, 4].map(i => (
+                        <div key={i} className="space-y-3">
+                            <Skeleton className="w-16 h-3 rounded-md" />
+                            <Skeleton className="w-full h-6 rounded-lg" />
+                        </div>
+                    ))}
+                </div>
+            </div>
+
+            {/* Content Area Skeleton */}
+            <div className="grid grid-cols-1 lg:grid-cols-12 gap-10">
+                <div className="lg:col-span-8 space-y-6">
+                    <div className="bg-white dark:bg-slate-900 rounded-[2.5rem] border border-slate-100 dark:border-slate-800 p-8 space-y-8">
+                        <div className="flex justify-between items-center">
+                            <div className="space-y-2">
+                                <Skeleton className="w-40 h-8 rounded-lg" />
+                                <Skeleton className="w-64 h-3 rounded-md" />
+                            </div>
+                            <Skeleton className="w-48 h-12 rounded-2xl" />
+                        </div>
+                        <Skeleton className="w-full h-12 rounded-2xl" />
+                        <div className="space-y-4">
+                            {[1, 2, 3].map(i => (
+                                <Skeleton key={i} className="w-full h-32 rounded-[2rem]" />
+                            ))}
+                        </div>
+                    </div>
+                </div>
+                <div className="lg:col-span-4 space-y-8">
+                    <Skeleton className="w-full h-80 rounded-[2.5rem]" />
+                    <Skeleton className="w-full h-60 rounded-[2.5rem]" />
+                </div>
+            </div>
+        </div>
+    );
+}
+
 export default function PatientProfilePage() {
     return (
-        <Suspense fallback={
-            <div className="flex-1 flex flex-col items-center justify-center p-12 bg-slate-50/30 dark:bg-slate-900/10">
-                <div className="relative w-16 h-16">
-                    <div className="absolute inset-0 rounded-2xl border-4 border-indigo-100 dark:border-indigo-900/30" />
-                    <div className="absolute inset-0 rounded-2xl border-4 border-t-indigo-600 animate-spin" />
-                </div>
-                <h3 className="mt-8 text-xl font-bold text-slate-800 dark:text-white uppercase tracking-tighter">Sajilo स्वास्थ्य</h3>
-                <p className="mt-2 text-[10px] font-bold text-slate-400 uppercase tracking-[0.3em] animate-pulse">Syncing Medical Profile...</p>
-            </div>
-        }>
+        <Suspense fallback={<PatientProfileSkeleton />}>
             <ProfileContent />
         </Suspense>
     );

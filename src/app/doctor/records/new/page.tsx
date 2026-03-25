@@ -11,7 +11,7 @@ import {
   Heart, Activity, Thermometer, Weight, Ruler, Droplets,
   Search, ScanLine, FileText, CheckCircle, AlertTriangle, Plus, ClipboardList,
   Layout, BookOpen, Save, ChevronRight, X, Sparkles, Clipboard,
-  Clock, ArrowUpRight, ArrowDownRight,
+  Clock, ArrowUpRight, ArrowDownRight, RefreshCw,
   History as HistoryIcon
 } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
@@ -332,10 +332,10 @@ export default function StructuredRecordEntry() {
   const bmiCategory = React.useMemo(() => {
     if (!bmi) return null;
     const v = parseFloat(bmi);
-    if (v < 18.5) return { label: 'Underweight', color: 'text-yellow-500' };
-    if (v < 25) return { label: 'Normal', color: 'text-green-500' };
-    if (v < 30) return { label: 'Overweight', color: 'text-amber-500' };
-    return { label: 'Obese', color: 'text-red-500' };
+    if (v < 18.5) return { label: 'Underweight', color: 'text-amber-500' };
+    if (v < 25) return { label: 'Normal', color: 'text-emerald-500' };
+    if (v < 30) return { label: 'Overweight', color: 'text-orange-500' };
+    return { label: 'Obese', color: 'text-rose-500' };
   }, [bmi]);
 
   const getTrendColor = (fieldName: string, current: string, previous: string, min?: number, max?: number) => {
@@ -344,45 +344,53 @@ export default function StructuredRecordEntry() {
     if (isNaN(curr) || isNaN(prev)) return 'bg-slate-500/10 text-slate-500';
 
     const diff = curr - prev;
-    if (Math.abs(diff) < 0.01) return 'bg-slate-500/10 text-slate-500';
+    if (Math.abs(diff) < 0.001) return 'bg-blue-500/10 text-blue-500';
 
     const name = fieldName.toLowerCase();
-    const isIncrease = diff > 0;
+    
+    // 1. Core Heuristic Detection (Highest confidence for known clinical metrics)
+    const lowerIsBetter = name.includes('blood pressure') || name.includes('weight') ||
+      name.includes('heart rate') || name.includes('pulse') ||
+      name.includes('glucose') || name.includes('cholesterol') ||
+      name.includes('bmi') || name.includes('sugar') || name.includes('hba1c') ||
+      name.includes('temperature') || name.includes('fever') || name.includes('ldl') ||
+      name.includes('triglyceride') || name.includes('creatinine') || name.includes('urea');
 
-    // Range-aware logic (Priority)
+    const higherIsBetter = name.includes('spo2') || name.includes('oxygen') ||
+      name.includes('hemoglobin') || name.includes('lung') ||
+      name.includes('capacity') || name.includes('function') || name.includes('hdl') ||
+      name.includes('gfr') || name.includes('egfr');
+
+    // 2. Clinical Range-Aware Refinement
     if (min !== undefined && max !== undefined) {
       const isCurrInRange = curr >= min && curr <= max;
       const isPrevInRange = prev >= min && prev <= max;
 
-      if (isCurrInRange && !isPrevInRange) return 'bg-emerald-500/10 text-emerald-500'; // Recovered
-      if (!isCurrInRange && isPrevInRange) return 'bg-rose-500/10 text-rose-500'; // Fell out of range
+      // Moving from Outside -> Inside (Excellent)
+      if (!isPrevInRange && isCurrInRange) return 'bg-emerald-500/10 text-emerald-500';
+      // Moving from Inside -> Outside (Warning)
+      if (isPrevInRange && !isCurrInRange) return 'bg-rose-500/10 text-rose-500';
 
+      // Both Outside - follow midpoint logic
+      const mid = (min + max) / 2;
+      const isImproving = Math.abs(curr - mid) < Math.abs(prev - mid);
       if (!isCurrInRange && !isPrevInRange) {
-        // Check if moving towards range
-        const mid = (min + max) / 2;
-        const currDist = Math.abs(curr - mid);
-        const prevDist = Math.abs(prev - mid);
-        return currDist < prevDist ? 'bg-emerald-500/10 text-emerald-500' : 'bg-rose-500/10 text-rose-500';
+        return isImproving ? 'bg-emerald-500/10 text-emerald-500' : 'bg-rose-500/10 text-rose-500';
       }
-      return 'bg-slate-500/10 text-slate-500'; // Both in range
+      
+      // Both Inside - if it's a known directional metric, follow heuristic
+      // e.g. An increase in LDL even within range is often negative.
+      if (lowerIsBetter) return diff < 0 ? 'bg-emerald-500/10 text-emerald-500' : 'bg-rose-500/10 text-rose-500';
+      if (higherIsBetter) return diff > 0 ? 'bg-emerald-500/10 text-emerald-500' : 'bg-rose-500/10 text-rose-500';
+
+      return 'bg-blue-500/10 text-blue-500';
     }
 
-    // Fallback: Lower is better logic
-    const lowerIsBetter = name.includes('blood pressure') || name.includes('weight') ||
-      name.includes('heart rate') || name.includes('pulse') ||
-      name.includes('glucose') || name.includes('cholesterol') ||
-      name.includes('bmi') || name.includes('sugar') ||
-      name.includes('temperature') || name.includes('fever');
+    // 3. Fallback Heuristics
+    if (lowerIsBetter) return diff < 0 ? 'bg-emerald-500/10 text-emerald-500' : 'bg-rose-500/10 text-rose-500';
+    if (higherIsBetter) return diff > 0 ? 'bg-emerald-500/10 text-emerald-500' : 'bg-rose-500/10 text-rose-500';
 
-    // Higher is better logic
-    const higherIsBetter = name.includes('spo2') || name.includes('oxygen') ||
-      name.includes('hemoglobin') || name.includes('lung') ||
-      name.includes('capacity') || name.includes('function');
-
-    if (lowerIsBetter) return isIncrease ? 'bg-rose-500/10 text-rose-500' : 'bg-emerald-500/10 text-emerald-500';
-    if (higherIsBetter) return isIncrease ? 'bg-emerald-500/10 text-emerald-500' : 'bg-rose-500/10 text-rose-500';
-
-    return isIncrease ? 'bg-blue-500/10 text-blue-500' : 'bg-slate-500/10 text-slate-500';
+    return 'bg-blue-500/10 text-blue-500';
   };
 
   // ─── Handlers ─────────────────────────────────────────────────────────────
@@ -676,7 +684,7 @@ export default function StructuredRecordEntry() {
   // ─── Render ───────────────────────────────────────────────────────────────
 
   return (
-    <div className="max-w-5xl mx-auto pb-24">
+    <div className="max-w-[1400px] mx-auto pb-24 px-4 md:px-8">
       <ProgressBar
         currentStep={currentStep}
         onStepClick={(step) => {
@@ -748,26 +756,35 @@ export default function StructuredRecordEntry() {
         )}
 
         {currentStep === 'vitals' && (
-          <div className="bg-white/70 dark:bg-slate-900/40 backdrop-blur-xl rounded-[2.5rem] p-8 md:p-12 shadow-premium border border-white/40 dark:border-slate-800/50 space-y-12">
-            <div className="flex items-center justify-between">
-              <div className="flex items-center gap-4">
-                <div className="w-12 h-12 bg-rose-500/10 rounded-2xl flex items-center justify-center text-rose-500">
-                  <Activity size={24} />
+          <div className="bg-white/80 dark:bg-slate-900/40 backdrop-blur-2xl rounded-[3rem] p-8 md:p-12 shadow-premium border border-white/40 dark:border-slate-800/50 space-y-10 animate-in fade-in slide-in-from-bottom-4 duration-700">
+            <div className="flex flex-col md:flex-row md:items-center justify-between gap-6 pb-8 border-b border-slate-100 dark:border-slate-800/50">
+              <div className="flex items-center gap-5">
+                <div className="w-14 h-14 bg-rose-500/10 rounded-2xl flex items-center justify-center text-rose-500 shadow-inner">
+                  <Activity size={28} />
                 </div>
                 <div>
-                  <h2 className="text-2xl font-black text-slate-900 dark:text-white leading-tight">Chief Complaint & Vitals</h2>
-                  <p className="text-xs font-bold text-slate-400 uppercase tracking-[0.2em] mt-1">Step 2: Core Observations</p>
+                  <h2 className="text-3xl font-black text-slate-900 dark:text-white leading-tight tracking-[0.02em]">Chief Complaint & Vitals</h2>
+                  <p className="text-[10px] font-black text-slate-400 uppercase tracking-[0.3em] mt-1 opacity-70">Step 2: Core Clinical Observations</p>
                 </div>
               </div>
 
               {visitContext?.type === 'FollowUp' && !overrideMode && (
-                <div className="px-4 py-2 bg-indigo-500/10 rounded-xl border border-indigo-500/20 text-indigo-500 text-[10px] font-black uppercase tracking-widest">
-                  Context-Aware Flow
+                <div className="bg-blue-600/5 border border-blue-500/10 rounded-xl p-3 flex items-center gap-3 backdrop-blur-sm shadow-sm animate-in fade-in zoom-in duration-500">
+                    <div className="w-8 h-8 bg-blue-600 rounded-lg flex items-center justify-center text-white shrink-0 shadow-md">
+                        <RefreshCw size={16} />
+                    </div>
+                    <div>
+                        <h3 className="text-[10px] font-black text-slate-900 dark:text-white uppercase tracking-[0.2em]">Follow-up Visit</h3>
+                        <p className="text-[9px] font-bold text-blue-600/70 dark:text-blue-400 leading-none mt-1 whitespace-nowrap">
+                            Last seen {visitContext.daysSinceLastVisit} days ago 
+                            {visitContext.lastDiagnosis && <span className="text-slate-400 font-medium ml-2">• Prev. Diagnosis: {visitContext.lastDiagnosis}</span>}
+                        </p>
+                    </div>
                 </div>
               )}
             </div>
 
-            <div className="space-y-12">
+            <div className="space-y-10">
               {/* Visit Selection for Follow-ups */}
               {visitContext?.type === 'FollowUp' && !overrideMode && (
                 <VisitTypeSelector
@@ -785,10 +802,13 @@ export default function StructuredRecordEntry() {
                 />
               )}
 
-              <div className="space-y-3">
-                <label className="text-[10px] font-black uppercase tracking-widest text-slate-400 px-1">What is the primary reason for visit?</label>
+              <div className="space-y-4">
+                <div className="flex items-center gap-2 px-1">
+                  <FileText size={14} className="text-blue-500" />
+                  <label className="text-[11px] font-black uppercase tracking-widest text-slate-400">Primary Reason for Visit</label>
+                </div>
                 <textarea
-                  className="w-full h-32 bg-slate-50/50 dark:bg-slate-950/20 border-2 border-slate-100/50 dark:border-slate-800/50 rounded-3xl p-6 text-xl font-bold text-slate-900 dark:text-white outline-none focus:border-blue-500/50 transition-all focus:ring-8 focus:ring-blue-500/5 placeholder:text-slate-200 resize-none backdrop-blur-sm"
+                  className="w-full h-32 bg-slate-50/50 dark:bg-slate-950/40 border-2 border-slate-100/50 dark:border-slate-800/50 rounded-[2rem] p-6 text-xl font-bold text-slate-900 dark:text-white outline-none focus:border-blue-500/50 transition-all focus:ring-8 focus:ring-blue-500/5 placeholder:text-slate-200 resize-none backdrop-blur-sm shadow-inner"
                   value={chiefComplaint}
                   placeholder={visitOption === 'continue' ? "Follow up on previous Diagnosis" : "E.g. Persistent cough for 3 days, sharp chest pain..."}
                   onChange={e => setChiefComplaint(e.target.value)}
@@ -838,42 +858,141 @@ export default function StructuredRecordEntry() {
         )}
 
         {currentStep === 'protocol' && (
-          <div className="bg-white dark:bg-slate-900 rounded-[2.5rem] p-8 md:p-12 shadow-premium border border-white dark:border-slate-800">
-            <div className={`transition-all duration-500 ${visitOption === 'continue' ? 'opacity-40 grayscale pointer-events-none scale-[0.98]' : 'opacity-100'}`}>
-              <SmartProtocolSuggestion
-                chiefComplaint={chiefComplaint}
-                patientId={patient?.id || ''}
-                onSelect={(id) => templatesApi.getTemplate(id).then(res => handleUseTemplate(res.data))}
-                onStartBlank={handleStartFromScratch}
-              />
+          <div className="space-y-6 animate-in fade-in slide-in-from-bottom-4 duration-700">
+            {/* Header for Step 3 */}
+            <div className="px-6 flex flex-col md:flex-row md:items-center justify-between gap-6">
+              <div className="flex items-center gap-4">
+                <div className="w-12 h-12 bg-amber-500/10 rounded-xl flex items-center justify-center text-amber-500 shadow-inner">
+                  <BookOpen size={24} />
+                </div>
+                <div>
+                  <h2 className="text-2xl font-black text-slate-900 dark:text-white leading-tight tracking-[0.02em]">Clinical Protocol</h2>
+                  <p className="text-[9px] font-black text-slate-400 uppercase tracking-[0.3em] mt-0.5 opacity-70">Step 3: Assessment Framework</p>
+                </div>
+              </div>
+              
+              <div className="flex items-center gap-3">
+                <div className="relative group max-w-xs">
+                  <Search className="absolute left-3.5 top-1/2 -translate-y-1/2 text-slate-400 group-focus-within:text-blue-500 transition-colors" size={16} />
+                  <input
+                    className="w-full h-10 bg-white/50 dark:bg-slate-900/50 border border-slate-100 dark:border-slate-800 rounded-xl pl-10 pr-4 text-xs font-bold text-slate-900 dark:text-white outline-none focus:border-blue-500/30 transition-all backdrop-blur-sm shadow-sm"
+                    placeholder="Search protocols..."
+                  />
+                </div>
+                <Button variant="ghost" size="compact" onClick={handleStartFromScratch} className="text-[9px] font-black uppercase tracking-widest text-slate-400 hover:text-blue-500">
+                  Skip to Blank Form <ChevronRight size={12} className="ml-1" />
+                </Button>
+              </div>
             </div>
 
-            {latestRecord && (
-              <div className="mt-8 flex justify-center">
-                <button
-                  onClick={handleCloneLastRecord}
-                  disabled={visitOption === 'new'}
-                  className={`group flex items-center gap-4 px-10 py-5 rounded-[2rem] border transition-all shadow-xl ${
-                    visitOption === 'new'
-                      ? 'bg-slate-500/5 border-slate-500/10 text-slate-400 opacity-40 grayscale cursor-not-allowed'
-                      : 'bg-blue-600/5 hover:bg-emerald-600 text-blue-500 hover:text-white border-blue-500/20 hover:border-emerald-400 hover:shadow-emerald-500/20'
-                  }`}
-                >
-                  <div className={`w-10 h-10 rounded-2xl flex items-center justify-center transition-colors ${
-                    visitOption === 'new' ? 'bg-slate-500/10' : 'bg-blue-500/10 group-hover:bg-white/20'
-                  }`}>
-                    <HistoryIcon className={visitOption === 'new' ? '' : 'group-hover:rotate-[-45deg] transition-transform'} size={20} />
+            <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 items-start">
+              {/* Primary Action (Hero) */}
+              <div className="lg:col-span-8 space-y-6">
+                {visitOption === 'continue' && latestRecord ? (
+                  <motion.div 
+                    initial={{ scale: 0.98, opacity: 0 }} 
+                    animate={{ scale: 1, opacity: 1 }}
+                    className="relative overflow-hidden group rounded-[2.5rem] border border-emerald-500/20 bg-gradient-to-br from-emerald-600/10 via-emerald-600/5 to-transparent backdrop-blur-xl p-8 shadow-xl shadow-emerald-500/5 hover:border-emerald-500/40 transition-all cursor-default"
+                  >
+                    <div className="relative z-10 flex flex-col md:flex-row md:items-center gap-8">
+                      <div className="w-20 h-20 bg-emerald-600 rounded-2xl flex items-center justify-center text-white shadow-2xl shadow-emerald-600/30 shrink-0 group-hover:scale-105 transition-transform duration-500">
+                        <HistoryIcon size={32} />
+                      </div>
+                      <div className="flex-grow space-y-3">
+                        <span className="px-3 py-1 bg-emerald-600 text-white text-[9px] font-black uppercase tracking-[0.2em] rounded-full shadow-lg shadow-emerald-600/20">Recommended Action</span>
+                        <h3 className="text-3xl font-black text-slate-900 dark:text-white tracking-tight">Clone Last Visit</h3>
+                        <p className="text-sm font-bold text-slate-500 dark:text-slate-400 leading-relaxed max-w-lg">
+                          Replicate the previous clinical structure from <span className="text-emerald-600 dark:text-emerald-400">{new Date(latestRecord.recordDate).toLocaleDateString()}</span> to maintain continuity.
+                        </p>
+                        <div className="pt-2 flex items-center gap-4">
+                          <Button 
+                            onClick={handleCloneLastRecord}
+                            className="h-12 px-8 bg-emerald-600 hover:bg-emerald-500 text-white rounded-xl font-black uppercase tracking-widest text-[11px] shadow-lg shadow-emerald-600/20 active:scale-95 transition-all"
+                          >
+                            Proceed with Clone <Plus size={16} className="ml-2" />
+                          </Button>
+                          <div className="flex -space-x-1.5">
+                             {latestRecord.sections?.slice(0, 4).map((s: any, i: number) => (
+                               <div key={i} className="w-8 h-8 rounded-full bg-white dark:bg-slate-800 border-2 border-emerald-500/20 flex items-center justify-center text-[9px] font-black text-slate-500 shadow-sm" title={s.sectionName}>
+                                 {s.sectionName[0]}
+                               </div>
+                             ))}
+                             {latestRecord.sections?.length > 4 && (
+                               <div className="w-8 h-8 rounded-full bg-slate-100 dark:bg-slate-900 border-2 border-emerald-500/20 flex items-center justify-center text-[9px] font-black text-slate-400">
+                                 +{latestRecord.sections.length - 4}
+                               </div>
+                             )}
+                          </div>
+                        </div>
+                      </div>
+                    </div>
+                    {/* Decorative Background Elements */}
+                    <div className="absolute -right-16 -bottom-16 w-48 h-48 bg-emerald-600/5 rounded-full blur-3xl opacity-50" />
+                    <div className="absolute -left-8 -top-8 w-32 h-32 bg-emerald-600/5 rounded-full blur-2xl opacity-50" />
+                  </motion.div>
+                ) : (
+                  <div className="bg-white/70 dark:bg-slate-900/40 backdrop-blur-xl rounded-[2.5rem] p-6 shadow-premium border border-white/40 dark:border-slate-800/50">
+                    <SmartProtocolSuggestion
+                      chiefComplaint={chiefComplaint}
+                      patientId={patient?.id || ''}
+                      onSelect={(id) => templatesApi.getTemplate(id).then(res => handleUseTemplate(res.data))}
+                      onStartBlank={handleStartFromScratch}
+                    />
                   </div>
-                  <div className="text-left">
-                    <p className="text-xs font-black uppercase tracking-[0.2em] mb-0.5">Clone Last Visit</p>
-                    <p className="text-[10px] opacity-60 font-medium">Replicate structure from {new Date(latestRecord.recordDate).toLocaleDateString()}</p>
-                  </div>
-                </button>
+                )}
               </div>
-            )}
 
-            <div className="mt-12 pt-8 border-t border-slate-100 dark:border-slate-800">
-              <Button variant="ghost" onClick={handlePrevStep} className="text-slate-400 hover:text-slate-600 font-bold">Back to Vitals</Button>
+              {/* Secondary Actions / Reference */}
+              <div className="lg:col-span-4 space-y-4">
+                <div className="bg-white/70 dark:bg-slate-900/40 backdrop-blur-xl rounded-[2rem] p-6 shadow-premium border border-white/40 dark:border-slate-800/50">
+                  <div className="flex items-center gap-3 mb-5 border-b border-slate-100 dark:border-slate-800/50 pb-4">
+                    <Sparkles size={16} className="text-blue-500" />
+                    <h4 className="text-[10px] font-black text-slate-900 dark:text-white uppercase tracking-[0.15em]">Alternative Paths</h4>
+                  </div>
+                  
+                  <div className="space-y-3">
+                    {visitOption === 'continue' ? (
+                      <button 
+                         onClick={() => setVisitOption('new')}
+                         className="w-full p-4 rounded-xl border border-dashed border-slate-200 dark:border-slate-800 hover:border-blue-500/50 hover:bg-blue-500/5 transition-all text-left group"
+                      >
+                         <h5 className="text-[12px] font-black text-slate-900 dark:text-white mb-0.5 group-hover:text-blue-500 transition-colors">Full Assessment</h5>
+                         <p className="text-[10px] font-bold text-slate-500 leading-tight opacity-70">Start fresh for new conditions.</p>
+                      </button>
+                    ) : (
+                      latestRecord && (
+                        <button 
+                           onClick={handleCloneLastRecord}
+                           className="w-full p-4 rounded-xl border border-emerald-500/20 bg-emerald-500/5 hover:bg-emerald-500/10 transition-all text-left group"
+                        >
+                           <div className="flex items-center justify-between mb-1">
+                             <h5 className="text-[12px] font-black text-emerald-600 dark:text-emerald-400">Reference Last Visit</h5>
+                             <HistoryIcon size={12} className="text-emerald-500 group-hover:rotate-12 transition-transform" />
+                           </div>
+                           <p className="text-[10px] font-bold text-emerald-600/70 leading-tight">View previous diagnostic structure.</p>
+                        </button>
+                      )
+                    )}
+                    
+                    <button 
+                       onClick={() => setIsTemplateBrowserOpen(true)}
+                       className="w-full p-4 rounded-xl border border-slate-100 dark:border-slate-800/50 bg-slate-50/50 dark:bg-slate-900/50 hover:border-blue-500/30 hover:bg-blue-500/5 transition-all text-left group"
+                    >
+                       <div className="flex items-center justify-between mb-1">
+                         <h5 className="text-[12px] font-black text-slate-900 dark:text-white group-hover:text-blue-500 transition-colors">Protocol Library</h5>
+                         <Layout size={12} className="text-blue-500" />
+                       </div>
+                       <p className="text-[10px] font-bold text-slate-500 leading-tight opacity-70">Browse standardized protocols.</p>
+                    </button>
+                  </div>
+                </div>
+
+                <div className="px-4 py-4 flex flex-col items-center">
+                  <Button variant="ghost" onClick={handlePrevStep} className="text-slate-400 hover:text-slate-600 font-bold uppercase tracking-widest text-[9px]">
+                    Back to Symptoms & Vitals
+                  </Button>
+                </div>
+              </div>
             </div>
           </div>
         )}
@@ -965,66 +1084,99 @@ export default function StructuredRecordEntry() {
                             && !isNaN(numValue) && (numValue < field.normal_range_min || numValue > field.normal_range_max);
 
                           return (
-                            <div key={field.field_name} className="space-y-2">
-                              <label className="text-[10px] font-black uppercase tracking-widest text-slate-500 px-1 flex items-center justify-between">
-                                <span>{field.field_label}{field.is_required && <span className="text-red-500 ml-0.5">*</span>}</span>
-                                {isAbnormal && <span className="text-red-500 flex items-center gap-1"><AlertTriangle size={10} /> Abnormal</span>}
-                              </label>
-
-                              <div className="relative group">
-                                {field.field_type === 'Dropdown' ? (
-                                  <select
-                                    className="w-full h-12 bg-slate-50 dark:bg-slate-950 border border-slate-100 dark:border-slate-800 rounded-xl px-4 text-sm font-bold text-slate-900 dark:text-white outline-none focus:border-blue-500/30 transition-all"
-                                    value={value}
-                                    onChange={e => handleFieldChange(section.section_name, field.field_name, e.target.value)}
-                                  >
-                                    <option value="">Select...</option>
-                                    {field.dropdown_options?.map(opt => <option key={opt} value={opt}>{opt}</option>)}
-                                  </select>
-                                ) : (
-                                  <input
-                                    type={field.field_type === 'Number' ? 'number' : 'text'}
-                                    className={`w-full h-12 bg-slate-50 dark:bg-slate-950 border rounded-xl px-4 text-sm font-bold placeholder:text-slate-200 outline-none transition-all ${isAbnormal
-                                        ? 'border-red-500/50 bg-red-500/5 focus:ring-4 focus:ring-red-500/5'
-                                        : 'border-slate-100 dark:border-slate-800 focus:border-blue-500/30'
-                                      }`}
-                                    placeholder="—"
-                                    value={value}
-                                    onChange={e => handleFieldChange(section.section_name, field.field_name, e.target.value)}
-                                  />
-                                )}
-                                {field.unit && (
-                                  <span className="absolute right-4 top-1/2 -translate-y-1/2 text-[10px] font-black text-slate-400 uppercase bg-white dark:bg-slate-900 px-1.5 py-0.5 rounded border border-slate-100 dark:border-slate-800">
-                                    {field.unit}
-                                  </span>
+                            <div key={field.field_name} className="group relative overflow-hidden bg-white/40 dark:bg-slate-900/40 backdrop-blur-md rounded-[2rem] border border-white/50 dark:border-slate-800/50 p-6 shadow-sm hover:shadow-xl hover:translate-y-[-2px] transition-all duration-300">
+                              <div className="flex items-center justify-between mb-4">
+                                <label className="text-[10px] font-black uppercase tracking-[0.2em] text-slate-400 group-hover:text-blue-500 transition-colors px-1">
+                                  {field.field_label}{field.is_required && <span className="text-rose-500 ml-1">*</span>}
+                                </label>
+                                {isAbnormal && (
+                                  <div className="flex items-center gap-1.5 px-2.5 py-1 bg-rose-500/10 border border-rose-500/20 rounded-full text-[9px] font-black text-rose-500 uppercase tracking-widest animate-pulse">
+                                    <AlertTriangle size={10} /> Abnormal
+                                  </div>
                                 )}
                               </div>
 
+                              <div className="relative mb-6">
+                                <div className="flex items-baseline gap-2">
+                                  {field.field_type === 'Dropdown' ? (
+                                    <select
+                                      className="bg-transparent text-3xl font-black text-slate-900 dark:text-white outline-none w-full appearance-none cursor-pointer"
+                                      value={value}
+                                      onChange={e => handleFieldChange(section.section_name, field.field_name, e.target.value)}
+                                    >
+                                      <option value="">—</option>
+                                      {field.dropdown_options?.map(opt => <option key={opt} value={opt}>{opt}</option>)}
+                                    </select>
+                                  ) : (
+                                    <input
+                                      type={field.field_type === 'Number' ? 'number' : 'text'}
+                                      className="bg-transparent text-3xl font-black text-slate-900 dark:text-white outline-none w-full placeholder:text-slate-200"
+                                      placeholder="—"
+                                      value={value}
+                                      onChange={e => handleFieldChange(section.section_name, field.field_name, e.target.value)}
+                                    />
+                                  )}
+                                  {field.unit && (
+                                    <span className="text-xs font-black text-slate-400 uppercase tracking-widest opacity-60">
+                                      {field.unit}
+                                    </span>
+                                  )}
+                                </div>
+                              </div>
+
+                              {/* Visual Range Indicator */}
+                              {field.normal_range_min !== undefined && field.normal_range_max !== undefined && (
+                                <div className="mb-6 space-y-2">
+                                  <div className="h-1.5 w-full bg-slate-100 dark:bg-slate-800 rounded-full overflow-hidden relative border border-slate-50 dark:border-slate-800/50 shadow-inner">
+                                    {/* Normal Range Area (Central 50% for visualization) */}
+                                    <div className="absolute inset-y-0 bg-blue-500/10 dark:bg-blue-500/20" style={{ 
+                                      left: '25%', 
+                                      right: '25%' 
+                                    }} />
+                                    {/* Current Value Marker */}
+                                    {value && !isNaN(numValue) && (
+                                      <motion.div 
+                                        initial={{ scale: 0 }}
+                                        animate={{ 
+                                          scale: 1,
+                                          left: `${Math.min(Math.max(((numValue - (field.normal_range_min * 0.5)) / (field.normal_range_max * 1.5 - field.normal_range_min * 0.5)) * 100, 2), 98)}%` 
+                                        }}
+                                        className={`absolute top-0 bottom-0 w-2 rounded-full shadow-lg z-10 transition-colors border border-white/40 ${isAbnormal ? 'bg-rose-500' : 'bg-emerald-500'}`}
+                                      />
+                                    )}
+                                  </div>
+                                  <div className="flex justify-between text-[9px] font-black text-slate-400 uppercase tracking-widest px-1 opacity-70 italic">
+                                    <span>{field.normal_range_min}</span>
+                                    <span className="text-slate-300">Reference Range</span>
+                                    <span>{field.normal_range_max}</span>
+                                  </div>
+                                </div>
+                              )}
+
                               {field.last_value && (
-                                <div className="flex items-start justify-between p-3 bg-blue-500/5 rounded-xl border border-blue-500/10 backdrop-blur-sm">
-                                  <div className="flex gap-2">
-                                    <Clock size={14} className="text-blue-400 shrink-0 mt-0.5" />
+                                <div className="flex items-center justify-between mt-auto pt-4 border-t border-slate-100 dark:border-white/5">
+                                  <div className="flex items-center gap-3">
+                                    <div className="w-8 h-8 rounded-xl bg-slate-50 dark:bg-slate-900/50 flex items-center justify-center text-slate-400">
+                                      <Clock size={14} />
+                                    </div>
                                     <div>
-                                      <p className="text-[10px] font-bold text-blue-400 uppercase tracking-tight">Previous Data</p>
-                                      <p className="text-[11px] font-black text-slate-500 dark:text-slate-400 mt-0.5">
+                                      <p className="text-[9px] font-black text-slate-400 uppercase tracking-widest">History</p>
+                                      <p className="text-[11px] font-black text-slate-900 dark:text-white mt-0.5">
                                         {field.last_value} {field.unit}
                                       </p>
                                     </div>
                                   </div>
-                                  {field.field_type === 'Number' && value && !isNaN(parseFloat(value)) && !isNaN(parseFloat(field.last_value)) && (
-                                    <div className={`flex items-center gap-1 text-[10px] font-black uppercase px-2 py-0.5 rounded-full ${getTrendColor(field.field_label, value, field.last_value, field.normal_range_min, field.normal_range_max)
-                                      }`}>
-                                      {parseFloat(value) > parseFloat(field.last_value) ? <ArrowUpRight size={12} /> :
-                                        parseFloat(value) < parseFloat(field.last_value) ? <ArrowDownRight size={12} /> : null}
+                                  
+                                  {value && !isNaN(parseFloat(value)) && field.last_value && !isNaN(parseFloat(field.last_value)) && (
+                                    <div className={`flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-[10px] font-black uppercase tracking-widest shadow-premium border border-white/20 ${
+                                      getTrendColor(field.field_label, value, field.last_value, field.normal_range_min, field.normal_range_max)
+                                    }`}>
+                                      {parseFloat(value) > parseFloat(field.last_value) ? <ArrowUpRight size={12} strokeWidth={3} /> :
+                                        parseFloat(value) < parseFloat(field.last_value) ? <ArrowDownRight size={12} strokeWidth={3} /> : <div className="w-3 h-0.5 bg-current rounded-full" />}
                                       {Math.abs(parseFloat(value) - parseFloat(field.last_value)).toFixed(1)}
                                     </div>
                                   )}
                                 </div>
-                              )}
-                              {field.normal_range_min !== undefined && (
-                                <p className="text-[9px] font-bold text-slate-400 uppercase tracking-tight px-1 italic">
-                                  Normal: {field.normal_range_min}–{field.normal_range_max} {field.unit}
-                                </p>
                               )}
                             </div>
                           );
@@ -1051,13 +1203,18 @@ export default function StructuredRecordEntry() {
               )}
 
               {/* Clinical Notes */}
-              <CollapsibleSection title="Clinical Assessment & Plan" icon={<FileText size={16} />} defaultOpen={true}>
+              <CollapsibleSection 
+                title="Clinical Assessment & Plan" 
+                icon={<FileText size={16} />} 
+                defaultOpen={true}
+                className="bg-white/70 dark:bg-slate-900/40 backdrop-blur-xl border-white/40 dark:border-slate-800/50"
+              >
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-8 py-4">
                   <div className="space-y-4">
                     <label className="text-[10px] font-black uppercase tracking-widest text-slate-400 px-1">Final Diagnosis</label>
                     <textarea
                       rows={4}
-                      className="w-full bg-slate-50 dark:bg-slate-950 border border-slate-100 dark:border-slate-800 rounded-2xl p-6 text-sm font-bold text-slate-900 dark:text-white outline-none focus:border-blue-500/30 transition-all resize-none placeholder:text-slate-200"
+                      className="w-full bg-white/50 dark:bg-slate-950/50 border border-white/50 dark:border-slate-800/50 rounded-2xl p-6 text-sm font-bold text-slate-900 dark:text-white outline-none focus:border-blue-500/30 transition-all resize-none placeholder:text-slate-300 shadow-inner"
                       placeholder="Describe the diagnosed condition..."
                       value={diagnosis}
                       onChange={e => setDiagnosis(e.target.value)}
@@ -1067,7 +1224,7 @@ export default function StructuredRecordEntry() {
                     <label className="text-[10px] font-black uppercase tracking-widest text-slate-400 px-1">Management Plan</label>
                     <textarea
                       rows={4}
-                      className="w-full bg-slate-50 dark:bg-slate-950 border border-slate-100 dark:border-slate-800 rounded-2xl p-6 text-sm font-bold font-mono text-slate-900 dark:text-white outline-none focus:border-blue-500/30 transition-all resize-none placeholder:text-slate-200"
+                      className="w-full bg-white/50 dark:bg-slate-950/50 border border-white/50 dark:border-slate-800/50 rounded-2xl p-6 text-sm font-bold font-mono text-slate-900 dark:text-white outline-none focus:border-blue-500/30 transition-all resize-none placeholder:text-slate-300 shadow-inner"
                       placeholder={"1. Medications\n2. Lifestyle advice\n3. Follow-up"}
                       value={treatmentPlan}
                       onChange={e => setTreatmentPlan(e.target.value)}
@@ -1079,7 +1236,7 @@ export default function StructuredRecordEntry() {
                     </label>
                     <textarea
                       rows={3}
-                      className="w-full bg-amber-500/5 border border-amber-500/10 rounded-2xl p-6 text-sm font-bold text-slate-900 dark:text-white outline-none focus:border-amber-500/30 transition-all resize-none placeholder:text-amber-200"
+                      className="w-full bg-amber-500/5 border border-amber-500/20 rounded-2xl p-6 text-sm font-bold text-slate-900 dark:text-white outline-none focus:border-amber-500/50 transition-all resize-none placeholder:text-amber-200/50 shadow-inner"
                       placeholder="Confidential clinical notes, internal thoughts, or mental health observations..."
                       value={doctorNotes}
                       onChange={e => setDoctorNotes(e.target.value)}
@@ -1090,19 +1247,25 @@ export default function StructuredRecordEntry() {
             </div>
 
             {/* Floating Action Menu */}
-            <div className="fixed bottom-10 left-1/2 -translate-x-1/2 z-50 flex items-center gap-3 p-2 bg-slate-900/90 backdrop-blur-xl border border-slate-800 rounded-3xl shadow-2xl">
+            <div className="fixed bottom-10 left-1/2 -translate-x-1/2 z-50 flex items-center gap-4 p-3 bg-white/70 dark:bg-slate-900/40 backdrop-blur-3xl border border-white/50 dark:border-slate-800/50 rounded-[2.5rem] shadow-[0_20px_50px_rgba(0,0,0,0.3)] animate-in slide-in-from-bottom-10 duration-500">
               <button
                 onClick={() => openAddCustomField()}
-                className="flex items-center gap-2 px-6 py-4 bg-blue-600 hover:bg-blue-500 text-white rounded-2xl font-black uppercase tracking-widest text-xs transition-all active:scale-95 shadow-lg shadow-blue-500/20"
+                className="group flex items-center gap-3 px-8 py-4 bg-blue-600 hover:bg-blue-500 text-white rounded-2xl font-black uppercase tracking-[0.1em] text-[11px] transition-all active:scale-95 shadow-xl shadow-blue-500/30"
               >
-                <Plus size={18} /> Add Measurement
+                <div className="w-6 h-6 bg-white/20 rounded-lg flex items-center justify-center group-hover:rotate-90 transition-transform">
+                  <Plus size={18} />
+                </div>
+                Add Measurement
               </button>
-              <div className="w-[1px] h-8 bg-slate-800 mx-2" />
+              <div className="w-[1px] h-10 bg-slate-200 dark:bg-white/10 mx-1" />
               <button
                 onClick={handleCompleteAndSave}
-                className="flex items-center gap-2 px-6 py-4 bg-emerald-600 hover:bg-emerald-500 text-white rounded-2xl font-black uppercase tracking-widest text-xs transition-all active:scale-95 shadow-lg shadow-emerald-500/20"
+                className="group flex items-center gap-3 px-8 py-4 bg-emerald-600 hover:bg-emerald-500 text-white rounded-2xl font-black uppercase tracking-[0.1em] text-[11px] transition-all active:scale-95 shadow-xl shadow-emerald-500/30"
               >
-                <Save size={18} /> Finish Record
+                <div className="w-6 h-6 bg-white/20 rounded-lg flex items-center justify-center group-hover:scale-110 transition-transform">
+                  <Save size={18} />
+                </div>
+                Finish Record
               </button>
             </div>
           </div>

@@ -18,14 +18,14 @@ const PREFETCH_MAP: Record<string, PrefetchFn> = {
   }),
 
   '/admin/users': (qc) => qc.prefetchQuery({
-    queryKey: queryKeys.admin.users.list(1),
-    queryFn: () => adminApi.getUsers({ page: 1 }),
+    queryKey: queryKeys.admin.users.list(1, undefined),
+    queryFn: () => adminApi.getUsers({ page: 1, searchTerm: undefined }),
     staleTime: 1000 * 60 * 2,
   }),
 
   '/admin/doctors': (qc) => qc.prefetchQuery({
-    queryKey: queryKeys.admin.doctors.list(1),
-    queryFn: () => adminApi.getDoctors({ page: 1 }),
+    queryKey: queryKeys.admin.doctors.list(1, undefined, undefined, undefined),
+    queryFn: () => adminApi.getDoctors({ page: 1, department: undefined, searchTerm: undefined, isActive: undefined }),
     staleTime: 1000 * 60 * 2,
   }),
 
@@ -36,8 +36,8 @@ const PREFETCH_MAP: Record<string, PrefetchFn> = {
   }),
 
   '/admin/patients': (qc) => qc.prefetchQuery({
-    queryKey: queryKeys.admin.patients.list(1),
-    queryFn: () => adminApi.getPatients({ page: 1 }),
+    queryKey: queryKeys.admin.patients.list(1, undefined, undefined),
+    queryFn: () => adminApi.getPatients({ page: 1, searchTerm: undefined, isActive: undefined }),
     staleTime: 1000 * 60 * 2,
   }),
 
@@ -73,8 +73,8 @@ const PREFETCH_MAP: Record<string, PrefetchFn> = {
   }),
 
   '/doctor/patients': (qc) => qc.prefetchQuery({
-    queryKey: queryKeys.doctor.patients.list(1),
-    queryFn: () => doctorApi.getMyPatients(1),
+    queryKey: queryKeys.doctor.patients.list(1, undefined),
+    queryFn: () => doctorApi.getMyPatients(1, undefined),
     staleTime: 1000 * 60 * 2,
   }),
 

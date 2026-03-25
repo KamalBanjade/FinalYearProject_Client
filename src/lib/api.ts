@@ -242,10 +242,16 @@ export interface ClinicalActivity {
 
 // ─── Admin API ────────────────────────────────────────────────────────────────
 
+import { doctorPatientsApi } from './api/doctorPatients';
+
 export const adminApi = {
     getDashboardStats: async () => {
         const response = await axiosInstance.get('admin/dashboard/stats');
         return response.data.data;
+    },
+
+    createPatient(data: any): Promise<any> {
+        return axiosInstance.post('/admin/patients', data).then(res => res.data);
     },
 
     getUsers: async (filters: { page?: number; pageSize?: number; searchTerm?: string; role?: string; isActive?: boolean }): Promise<PaginatedResponse<UserOverview>> => {

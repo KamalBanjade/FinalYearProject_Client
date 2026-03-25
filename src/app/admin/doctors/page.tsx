@@ -40,6 +40,7 @@ import { H1, H2, H3, Text } from '@/components/ui/Typography';
 import { ResponsiveTable } from '@/components/data-display/ResponsiveTable';
 import { Card } from '@/components/ui/Card';
 import { InviteDoctorModal } from '@/components/admin/InviteDoctorModal';
+import { Skeleton } from '@/components/ui/Skeleton';
 
 export default function DoctorListPage() {
     const queryClient = useQueryClient();
@@ -204,20 +205,13 @@ export default function DoctorListPage() {
                             }
                             columns={[
                                 {
-                                    header: 'Status',
-                                    className: 'text-center',
-                                    accessor: (doc: any) => doc.isActive ? (
-                                        <span className="inline-flex px-2 py-0.5 rounded text-[10px] font-black uppercase tracking-widest bg-emerald-50 dark:bg-emerald-500/10 text-emerald-600 dark:text-emerald-400">
-                                            Active
-                                        </span>
-                                    ) : (
-                                        <span className="inline-flex px-2 py-0.5 rounded text-[10px] font-black uppercase tracking-widest bg-slate-100 dark:bg-slate-800 text-slate-400 italic">
-                                            Inactive
-                                        </span>
-                                    )
-                                },
-                                {
                                     header: 'Name & Email',
+                                    skeleton: (
+                                        <div className="flex flex-col animate-pulse gap-1.5 pt-1">
+                                            <Skeleton className="h-4 w-32" />
+                                            <Skeleton className="h-3 w-40 opacity-60" />
+                                        </div>
+                                    ),
                                     accessor: (doc: any) => (
                                         <div className="flex flex-col">
                                             <p className="text-sm font-bold text-slate-700 dark:text-slate-200">Dr. {doc.firstName} {doc.lastName}</p>
@@ -227,6 +221,12 @@ export default function DoctorListPage() {
                                 },
                                 {
                                     header: 'Credentials',
+                                    skeleton: (
+                                        <div className="flex flex-col animate-pulse gap-1.5 pt-1">
+                                            <Skeleton className="h-4 w-24" />
+                                            <Skeleton className="h-3 w-20 opacity-60" />
+                                        </div>
+                                    ),
                                     accessor: (doc: any) => (
                                         <div className="flex flex-col">
                                             <span className="text-xs font-bold text-slate-600 dark:text-slate-300 flex items-center gap-1.5">
@@ -238,7 +238,22 @@ export default function DoctorListPage() {
                                     )
                                 },
                                 {
+                                    header: 'Status',
+                                    className: 'text-center',
+                                    skeleton: <div className="flex justify-center"><Skeleton className="h-5 w-16 rounded-md" /></div>,
+                                    accessor: (doc: any) => doc.isActive ? (
+                                        <span className="inline-flex px-2 py-0.5 rounded text-[10px] font-black uppercase tracking-widest bg-emerald-50 dark:bg-emerald-500/10 text-emerald-600 dark:text-emerald-400">
+                                            Active
+                                        </span>
+                                    ) : (
+                                        <span className="inline-flex px-2 py-0.5 rounded text-[10px] font-black uppercase tracking-widest bg-slate-100 dark:bg-slate-800 text-slate-400 italic">
+                                            Inactive
+                                        </span>
+                                    )
+                                },
+                                {
                                     header: 'Key State',
+                                    skeleton: <Skeleton className="h-4 w-20" />,
                                     accessor: (doc: any) => doc.hasKeys ? (
                                         <span className="inline-flex items-center gap-1.5 text-slate-500 dark:text-slate-400 text-[10px] font-black tracking-widest uppercase">
                                             <ShieldCheck size={14} className="text-emerald-500" />
@@ -253,6 +268,7 @@ export default function DoctorListPage() {
                                 },
                                 {
                                     header: 'Added',
+                                    skeleton: <Skeleton className="h-4 w-24" />,
                                     accessor: (doc: any) => (
                                         <span className="text-sm font-semibold text-slate-500 dark:text-slate-400">
                                             {format(new Date(doc.createdAt), 'MMM dd, yyyy')}
@@ -262,6 +278,7 @@ export default function DoctorListPage() {
                                 {
                                     header: 'Actions',
                                     className: 'text-right',
+                                    skeleton: <div className="flex justify-end gap-2"><Skeleton className="h-10 w-10 rounded-xl" /><Skeleton className="h-10 w-10 rounded-xl" /><Skeleton className="h-10 w-10 rounded-xl" /></div>,
                                     accessor: (doc: any) => (
                                         <div className="flex justify-end gap-2">
                                             <Button
@@ -308,6 +325,29 @@ export default function DoctorListPage() {
                                     )
                                 }
                             ]}
+                            renderMobileSkeleton={() => (
+                                <div className="p-6 space-y-5 animate-pulse">
+                                    <div className="flex items-start justify-between">
+                                        <div className="flex items-center gap-4">
+                                            <Skeleton className="w-12 h-12 rounded-2xl" />
+                                            <div className="space-y-2">
+                                                <Skeleton className="h-4 w-32" />
+                                                <Skeleton className="h-2 w-20" />
+                                            </div>
+                                        </div>
+                                        <div className="w-2 h-2 rounded-full bg-slate-200 dark:bg-slate-700" />
+                                    </div>
+                                    <div className="grid grid-cols-2 gap-3">
+                                        <Skeleton className="h-12 rounded-2xl" />
+                                        <Skeleton className="h-12 rounded-2xl" />
+                                    </div>
+                                    <div className="flex gap-2">
+                                        <Skeleton className="flex-1 h-12 rounded-xl" />
+                                        <Skeleton className="w-12 h-12 rounded-xl" />
+                                        <Skeleton className="w-12 h-12 rounded-xl" />
+                                    </div>
+                                </div>
+                            )}
                             renderMobileCard={(doc: any) => (
                                 <motion.div
                                     initial={{ opacity: 0, scale: 0.95 }}

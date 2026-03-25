@@ -118,9 +118,23 @@ export const RegisterForm = () => {
   const prevStep = () => setStep((s) => s - 1);
 
   const onSubmit = async (data: RegisterFormData) => {
+    const registrationToast = toast.loading('Creating your secure account...', {
+      style: {
+        borderRadius: '16px',
+        background: '#1e293b',
+        color: '#fff',
+      },
+    });
+
     try {
       const response = await registerUser(data);
       const registrationData = response.data;
+
+      // Update toast to success immediately
+      toast.success('Registration successful! Welcome aboard.', {
+        id: registrationToast,
+        duration: 5000,
+      });
 
       if (registrationData?.requiresSetup) {
         sessionStorage.setItem('registrationSetupData', JSON.stringify({
@@ -130,27 +144,39 @@ export const RegisterForm = () => {
           medicalAccessToken: registrationData.medicalAccessToken,
           expiresAt: registrationData.medicalAccessExpiresAt
         }));
-        // We'll still show the success message, but the "Continue" will go to setup
-        setSubmittedEmail(data.email);
-        setIsSubmitted(true);
-      } else {
-        setSubmittedEmail(data.email);
-        setIsSubmitted(true);
       }
-      toast.success('Registration successful! Please verify your email.');
-    } catch (err) {
-      toast.error('Registration failed. Please try again.');
+      
+      setSubmittedEmail(data.email);
+      setIsSubmitted(true);
+    } catch (err: any) {
+      const errorMessage = err.response?.data?.message || 'Registration failed. Please try again.';
+      toast.error(errorMessage, {
+        id: registrationToast,
+      });
     }
   };
 
   const handleResendEmail = async () => {
     if (!submittedEmail) return;
     setIsResending(true);
+    const resendToast = toast.loading('Resending verification email...', {
+      style: {
+        borderRadius: '16px',
+        background: '#1e293b',
+        color: '#fff',
+      },
+    });
+
     try {
       await resendVerificationEmail(submittedEmail);
-      toast.success('Verification email resent!');
+      toast.success('Verification email resent!', {
+        id: resendToast,
+        duration: 5000,
+      });
     } catch (err) {
-      toast.error('Failed to resend email. Please try again.');
+      toast.error('Failed to resend email. Please try again.', {
+        id: resendToast,
+      });
     } finally {
       setIsResending(false);
     }
@@ -459,10 +485,11 @@ export const RegisterForm = () => {
             <Button
               type="submit"
               variant="secondary"
-              className="w-full h-14 text-lg font-bold shadow-lg shadow-secondary/20 hover:scale-[1.02] active:scale-95 transition-all"
-              isLoading={isLoading}>
+              className="w-full h-14 text-lg font-bold shadow-lg shadow-secondary/20 hover:scale-[1.02] active:scale-95 transition-all relative z-10"
+              isLoading={isLoading}
+              disabled={isLoading}>
 
-              {isLoading ? 'Registering...' : 'Complete Registration'}
+              {isLoading ? 'Processing...' : 'Complete Registration'}
             </Button>
           }
 

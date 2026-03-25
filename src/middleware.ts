@@ -84,7 +84,7 @@ export function middleware(request: NextRequest) {
         }
 
         // Prevent authenticated users from visiting login/register
-        if (pathname === '/login' || pathname === '/register') {
+        if (pathname === '/login' || pathname === '/login/doctor' || pathname === '/login/admin' || pathname === '/register') {
             let redirectDashboard = '/dashboard';
             if (userRole === 'Admin') redirectDashboard = '/admin/dashboard';
             if (userRole === 'Doctor') redirectDashboard = '/doctor/dashboard';

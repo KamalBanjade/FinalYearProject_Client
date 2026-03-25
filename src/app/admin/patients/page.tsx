@@ -3,6 +3,7 @@
 import React, { useState } from 'react';
 import { useAdminPatients } from '@/hooks/useAdminQueries';
 import { useQueryClient } from '@tanstack/react-query';
+import { queryKeys } from '@/lib/queryKeys';
 import { adminApi } from '@/lib/api';
 import {
     Search,
@@ -14,7 +15,8 @@ import {
     Mail,
     Phone,
     Plus,
-    Filter
+    Filter,
+    UserPlus
 } from 'lucide-react';
 import { toast } from 'react-hot-toast';
 import { PageLayout, Section } from '@/components/layout/PageLayout';
@@ -23,6 +25,7 @@ import { Button } from '@/components/ui/Button';
 import { H1, H2, H3, Text } from '@/components/ui/Typography';
 import { ResponsiveTable } from '@/components/data-display/ResponsiveTable';
 import { motion, AnimatePresence } from 'framer-motion';
+import { CreatePatientModal } from '@/components/patients/CreatePatientModal';
 
 interface UserOverview {
     id: string;
@@ -42,6 +45,7 @@ export default function AdminPatientsPage() {
     const [searchTerm, setSearchTerm] = useState('');
     const [statusFilter, setStatusFilter] = useState<string>('');
     const [page, setPage] = useState(1);
+    const [isCreateModalOpen, setIsCreateModalOpen] = useState(false);
 
     const activeIsActive = statusFilter === 'active' ? true : statusFilter === 'inactive' ? false : undefined;
 
@@ -65,7 +69,7 @@ export default function AdminPatientsPage() {
             const res = await adminApi.updateUserStatus(user.id, !user.isActive);
             if (res.success) {
                 toast.success(res.message);
-                queryClient.invalidateQueries({ queryKey: ['admin', 'patients'] });
+                queryClient.invalidateQueries({ queryKey: queryKeys.admin.patients.all() });
             }
         } catch (error) {
             toast.error('Failed to update status');
@@ -102,9 +106,18 @@ export default function AdminPatientsPage() {
 
                             <div className="h-8 w-px bg-slate-100 dark:bg-slate-800 hidden lg:block" />
 
-                            <div className="px-4 py-2 bg-emerald-50 dark:bg-emerald-900/20 rounded-xl text-[10px] font-black uppercase text-emerald-600 dark:text-emerald-400 tracking-widest border border-emerald-100 dark:border-emerald-800/50">
-                                {pagination.totalCount} Registered Patients
+                            <div className="px-4 py-2 bg-emerald-50 dark:bg-emerald-900/20 rounded-xl text-[10px] font-black uppercase text-emerald-600 dark:text-emerald-400 tracking-widest border border-emerald-100 dark:border-emerald-800/50 whitespace-nowrap">
+                                {pagination.totalCount} Patients
                             </div>
+
+                            <button
+                                type="button"
+                                onClick={() => setIsCreateModalOpen(true)}
+                                className="h-10 px-5 bg-emerald-500 text-white rounded-xl font-bold text-sm shadow-md shadow-emerald-500/20 hover:shadow-emerald-500/40 hover:-translate-y-0.5 transition-all flex items-center gap-2 whitespace-nowrap active:scale-95"
+                            >
+                                <UserPlus className="w-4 h-4" />
+                                <span className="hidden sm:inline">Create Patient</span>
+                            </button>
                         </Stack>
                     </Stack>
 
@@ -279,6 +292,14 @@ export default function AdminPatientsPage() {
                     </div>
                 </Stack>
             </Section>
+            <CreatePatientModal 
+                isOpen={isCreateModalOpen}
+                onClose={() => setIsCreateModalOpen(false)}
+                onSuccess={() => {
+                    queryClient.invalidateQueries({ queryKey: queryKeys.admin.patients.all() });
+                }}
+                creatorRole="admin"
+            />
         </PageLayout>
     );
 }

@@ -35,12 +35,25 @@ export default function ForgotPasswordPage() {
 
   const onSubmit = async (data: ForgotPasswordData) => {
     setIsLoading(true);
+    const forgotToast = toast.loading('Searching for your account...', {
+      style: {
+        borderRadius: '16px',
+        background: '#1e293b',
+        color: '#fff',
+      },
+    });
+
     try {
       await axiosInstance.post('/auth/forgot-password', { email: data.email });
       setIsSuccess(true);
-      toast.success('Reset link sent to your email.');
+      toast.success('Reset link sent! Please check your inbox.', {
+        id: forgotToast,
+        duration: 5000,
+      });
     } catch (error: any) {
-      toast.error(error.response?.data?.message || 'Failed to send reset link. Please try again.');
+      toast.error(error.response?.data?.message || 'Failed to send reset link. Please try again.', {
+        id: forgotToast,
+      });
     } finally {
       setIsLoading(false);
     }

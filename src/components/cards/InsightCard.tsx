@@ -11,9 +11,24 @@ export interface InsightCardProps {
     icon: React.ElementType;
     color?: 'primary' | 'emerald' | 'amber' | 'rose';
     gradient?: string;
+    isLoading?: boolean;
 }
 
-export function InsightCard({ title, value, icon: Icon, color = 'primary', gradient }: InsightCardProps) {
+export function InsightCard({ title, value, icon: Icon, color = 'primary', gradient, isLoading }: InsightCardProps) {
+    if (isLoading) {
+        return (
+            <Card padding="md" variant="elevated" className="bg-white dark:bg-slate-900 overflow-hidden">
+                <Stack direction="row" align="center" justify="between" spacing="sm">
+                    <Stack direction="col" spacing="xs" className="min-w-0 flex-1 gap-1">
+                        <div className="w-20 h-3 bg-slate-100 dark:bg-slate-800 rounded animate-pulse" />
+                        <div className="w-12 h-8 bg-slate-50 dark:bg-slate-800/50 rounded-lg animate-pulse" />
+                    </Stack>
+                    <div className="w-14 h-14 rounded-2xl bg-slate-100 dark:bg-slate-800 animate-pulse" />
+                </Stack>
+            </Card>
+        );
+    }
+
     const colorStyles: Record<string, string> = {
         primary: 'text-primary bg-primary/5 border-primary/10',
         emerald: 'text-emerald-500 bg-emerald-500/5 border-emerald-500/10',

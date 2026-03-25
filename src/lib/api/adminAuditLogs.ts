@@ -56,6 +56,8 @@ export interface TimeSeriesDataPointDTO {
     value: number;
     value2: number;
     value3: number;
+    value4: number;
+    isActivityDay: boolean;
 }
 
 export interface SystemStatisticsDTO {

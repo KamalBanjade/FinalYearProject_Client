@@ -24,7 +24,12 @@ const twoFactorSchema = z.object({
 type LoginFormData = z.infer<typeof loginSchema>;
 type TwoFactorFormData = z.infer<typeof twoFactorSchema>;
 
-export const LoginForm = () => {
+interface LoginFormProps {
+  role?: 'doctor' | 'admin';
+}
+
+export const LoginForm = ({ role }: LoginFormProps = {}) => {
+  const isRoleSpecific = role === 'doctor' || role === 'admin';
   const { login, loginWithTwoFactor, requiresTwoFactor, isLoading, error, rememberedEmail } = useAuthStore();
   const [showPassword, setShowPassword] = useState(false);
   const [isGoogleLoading, setIsGoogleLoading] = useState(false);
@@ -195,21 +200,25 @@ export const LoginForm = () => {
             {isLoading ? 'Signing in...' : 'Sign In'}
           </Button>
 
-          <div className="relative flex items-center py-2">
-            <div className="flex-grow border-t border-slate-200 dark:border-slate-800"></div>
-            <span className="flex-shrink-0 mx-4 text-slate-400 dark:text-slate-500 text-sm font-medium">or</span>
-            <div className="flex-grow border-t border-slate-200 dark:border-slate-800"></div>
-          </div>
+          {!isRoleSpecific && (
+            <>
+              <div className="relative flex items-center py-2">
+                <div className="flex-grow border-t border-slate-200 dark:border-slate-800"></div>
+                <span className="flex-shrink-0 mx-4 text-slate-400 dark:text-slate-500 text-sm font-medium">or</span>
+                <div className="flex-grow border-t border-slate-200 dark:border-slate-800"></div>
+              </div>
 
-          <Button
-            type="button"
-            variant="outline"
-            className="w-full h-14 text-sm font-bold flex items-center justify-center gap-3 hover:bg-slate-50 dark:hover:bg-slate-800 transition-all border-slate-200 dark:border-slate-700 text-slate-700 dark:text-slate-200 cursor-pointer"
-            onClick={handleGoogleLogin}
-            isLoading={isGoogleLoading}>
-            <img src="https://www.svgrepo.com/show/475656/google-color.svg" alt="Google" className="w-5 h-5 drop-shadow-sm" />
-            Continue with Google
-          </Button>
+              <Button
+                type="button"
+                variant="outline"
+                className="w-full h-14 text-sm font-bold flex items-center justify-center gap-3 hover:bg-slate-50 dark:hover:bg-slate-800 transition-all border-slate-200 dark:border-slate-700 text-slate-700 dark:text-slate-200 cursor-pointer"
+                onClick={handleGoogleLogin}
+                isLoading={isGoogleLoading}>
+                <img src="https://www.svgrepo.com/show/475656/google-color.svg" alt="Google" className="w-5 h-5 drop-shadow-sm" />
+                Continue with Google
+              </Button>
+            </>
+          )}
         </form> :
 
         <form onSubmit={twoFactorForm.handleSubmit(onTwoFactorSubmit)} className="space-y-6 animate-in slide-in-from-right-4 duration-300">
@@ -269,14 +278,16 @@ export const LoginForm = () => {
         </form>
       }
 
-      <div className="mt-8 pt-6 border-t border-slate-50 dark:border-slate-800 text-center">
-        <p className="text-slate-400 dark:text-slate-500 text-sm font-medium">
-          New to Sajilo Swasthya?{' '}
-          <a href="/register" className="text-secondary dark:text-secondary-light font-bold hover:text-secondary/80 dark:hover:text-secondary-light/80 transition-all underline-offset-4 hover:underline">
-            Create Account
-          </a>
-        </p>
-      </div>
+      {!isRoleSpecific && (
+        <div className="mt-8 pt-6 border-t border-slate-50 dark:border-slate-800 text-center">
+          <p className="text-slate-400 dark:text-slate-500 text-sm font-medium">
+            New to Sajilo Swasthya?{' '}
+            <a href="/register" className="text-secondary dark:text-secondary-light font-bold hover:text-secondary/80 dark:hover:text-secondary-light/80 transition-all underline-offset-4 hover:underline">
+              Create Account
+            </a>
+          </p>
+        </div>
+      )}
     </div>);
 
 };

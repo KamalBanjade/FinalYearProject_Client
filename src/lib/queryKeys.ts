@@ -8,12 +8,12 @@ export const queryKeys = {
     dashboardStats: () => ['admin', 'dashboardStats'] as const,
     users: {
       all: () => ['admin', 'users'] as const,
-      list: (page: number, search?: string) => ['admin', 'users', 'list', page, search] as const,
+      list: (page: number, search?: string, role?: string, isActive?: boolean) => ['admin', 'users', 'list', page, search, role, isActive] as const,
       detail: (id: string) => ['admin', 'users', 'detail', id] as const,
     },
     doctors: {
       all: () => ['admin', 'doctors'] as const,
-      list: (page: number, dept?: string) => ['admin', 'doctors', 'list', page, dept] as const,
+      list: (page: number, dept?: string, search?: string, isActive?: boolean) => ['admin', 'doctors', 'list', page, dept, search, isActive] as const,
       detail: (id: string) => ['admin', 'doctors', 'detail', id] as const,
     },
     departments: {

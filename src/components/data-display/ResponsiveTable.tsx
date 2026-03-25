@@ -6,9 +6,11 @@ export interface ResponsiveTableProps<T> {
         header: string;
         accessor: (row: T) => React.ReactNode;
         className?: string; // Optional width/alignment overrides
+        skeleton?: React.ReactNode;
     }[];
     keyExtractor: (row: T) => string;
     renderMobileCard: (row: T) => React.ReactNode;
+    renderMobileSkeleton?: () => React.ReactNode;
     emptyState?: React.ReactNode;
     loading?: boolean;
 }
@@ -18,6 +20,7 @@ export function ResponsiveTable<T>({
     columns,
     keyExtractor,
     renderMobileCard,
+    renderMobileSkeleton,
     emptyState = (
         <div className="px-8 py-16 text-center">
             <p className="text-sm font-semibold text-slate-400 dark:text-slate-500 uppercase tracking-widest">No data available</p>
@@ -44,10 +47,10 @@ export function ResponsiveTable<T>({
                             </thead>
                             <tbody className="divide-y divide-slate-100/50 dark:divide-slate-700/50">
                                 {Array(5).fill(0).map((_, i) => (
-                                    <tr key={i} className="animate-pulse">
-                                        {columns.map((_, j) => (
-                                            <td key={j} className="px-8 py-5">
-                                                <div className="h-4 bg-slate-100 dark:bg-slate-800/60 rounded-full w-3/4" />
+                                    <tr key={i}>
+                                        {columns.map((col, j) => (
+                                            <td key={j} className={`px-8 py-5 ${col.className || ''}`}>
+                                                {col.skeleton || <div className="animate-pulse h-4 bg-slate-100 dark:bg-slate-800/60 rounded-full w-3/4" />}
                                             </td>
                                         ))}
                                     </tr>
@@ -59,13 +62,19 @@ export function ResponsiveTable<T>({
 
                 {/* Mobile skeleton */}
                 <div className="md:hidden flex flex-col gap-4">
-                    {Array(3).fill(0).map((_, i) => (
-                        <div key={i} className="bg-white/50 dark:bg-slate-900/40 backdrop-blur-2xl rounded-[2.5rem] border border-slate-200/50 dark:border-slate-800/50 shadow-xl dark:shadow-black/30 overflow-hidden p-6 animate-pulse space-y-3">
-                            <div className="h-4 bg-slate-100 dark:bg-slate-800/60 rounded-full w-1/2" />
-                            <div className="h-3 bg-slate-100 dark:bg-slate-800/60 rounded-full w-3/4" />
-                            <div className="h-3 bg-slate-100 dark:bg-slate-800/60 rounded-full w-1/3" />
-                        </div>
-                    ))}
+                    {renderMobileSkeleton ? (
+                        Array(3).fill(0).map((_, i) => (
+                            <div key={i}>{renderMobileSkeleton()}</div>
+                        ))
+                    ) : (
+                        Array(3).fill(0).map((_, i) => (
+                            <div key={i} className="bg-white/50 dark:bg-slate-900/40 backdrop-blur-2xl rounded-[2.5rem] border border-slate-200/50 dark:border-slate-800/50 shadow-xl dark:shadow-black/30 overflow-hidden p-6 animate-pulse space-y-3">
+                                <div className="h-4 bg-slate-100 dark:bg-slate-800/60 rounded-full w-1/2" />
+                                <div className="h-3 bg-slate-100 dark:bg-slate-800/60 rounded-full w-3/4" />
+                                <div className="h-3 bg-slate-100 dark:bg-slate-800/60 rounded-full w-1/3" />
+                            </div>
+                        ))
+                    )}
                 </div>
             </div>
         );

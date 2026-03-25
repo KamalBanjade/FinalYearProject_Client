@@ -12,7 +12,7 @@ import {
     Eye, ArrowUpRight
 } from 'lucide-react';
 import {
-    AreaChart, Area, BarChart, Bar, PieChart, Pie, Cell,
+    ComposedChart, Area, BarChart, Bar, PieChart, Pie, Cell,
     LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip,
     ResponsiveContainer
 } from 'recharts';
@@ -321,23 +321,76 @@ export default function AdminDashboard() {
                 <section className="space-y-6">
                     <SectionLabel icon={Users}>User Insights & Network Growth</SectionLabel>
                     <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-                        <ChartPanel title="Growth Trends" sub="User registration history & network growth" className="lg:col-span-2">
+                        <ChartPanel title="Growth Trends" sub="Cumulative network growth & daily activity spikes" className="lg:col-span-2">
                             <ResponsiveContainer width="100%" height={280}>
-                                <AreaChart data={stats?.userGrowthTrend || []} margin={{ top: 10, right: 10, bottom: 0, left: -20 }}>
+                                <ComposedChart data={stats?.userGrowthTrend || []} margin={{ top: 10, right: 10, bottom: 0, left: -20 }}>
                                     <defs>
                                         <linearGradient id="colorUsers" x1="0" y1="0" x2="0" y2="1">
-                                            <stop offset="5%" stopColor="var(--primary)" stopOpacity={0.2} />
+                                            <stop offset="5%" stopColor="var(--primary)" stopOpacity={0.15} />
                                             <stop offset="95%" stopColor="var(--primary)" stopOpacity={0} />
                                         </linearGradient>
                                     </defs>
                                     <CartesianGrid strokeDasharray="3 3" stroke="var(--border)" strokeOpacity={0.4} vertical={false} />
-                                    <XAxis dataKey="label" stroke="var(--muted)" tick={{ fontSize: 11, fontWeight: 700 }} axisLine={false} tickLine={false} />
-                                    <YAxis stroke="var(--muted)" tick={{ fontSize: 11, fontWeight: 700 }} axisLine={false} tickLine={false} />
+                                    <XAxis 
+                                        dataKey="label" 
+                                        stroke="var(--muted)" 
+                                        tick={{ fontSize: 9, fontWeight: 700 }} 
+                                        axisLine={false} 
+                                        tickLine={false}
+                                        interval="preserveStartEnd"
+                                        minTickGap={30}
+                                    />
+                                    <YAxis stroke="var(--muted)" tick={{ fontSize: 11, fontWeight: 700 }} axisLine={false} tickLine={false} tickCount={8} />
+                                    <YAxis yAxisId="spikes" orientation="right" hide domain={[0, 8]} />
                                     <Tooltip contentStyle={tooltipStyle} labelStyle={tooltipLabelStyle} itemStyle={{ color: 'var(--foreground)' }} />
-                                    <Area type="natural" dataKey="value" stroke="var(--primary)" strokeWidth={3} fillOpacity={1} fill="url(#colorUsers)" name="Total Users" animationDuration={2000} />
-                                    <Area type="natural" dataKey="value2" stroke="#00A388" strokeWidth={2} fill="transparent" name="Doctors" animationDuration={2200} />
-                                    <Area type="natural" dataKey="value3" stroke="#f63b3bff" strokeWidth={2} fill="transparent" name="Patients" animationDuration={2400} />
-                                </AreaChart>
+                                    
+
+
+                                    {/* Trend Lines (Areas) */}
+                                    <Area 
+                                        type="monotone" 
+                                        dataKey="value" 
+                                        stroke="var(--primary)" 
+                                        strokeWidth={3} 
+                                        fillOpacity={1} 
+                                        fill="url(#colorUsers)" 
+                                        name="Total Users" 
+                                        animationDuration={1500}
+                                        dot={false}
+                                        activeDot={{ r: 6, strokeWidth: 0 }}
+                                    />
+                                    <Area 
+                                        type="monotone" 
+                                        dataKey="value2" 
+                                        stroke="#00A388" 
+                                        strokeWidth={2} 
+                                        fill="transparent" 
+                                        name="Doctors" 
+                                        animationDuration={1700}
+                                        dot={false}
+                                    />
+                                    <Area 
+                                        type="monotone" 
+                                        dataKey="value3" 
+                                        stroke="#f63b3bff" 
+                                        strokeWidth={2} 
+                                        fill="transparent" 
+                                        name="Patients" 
+                                        animationDuration={1900}
+                                        dot={false}
+                                    />
+
+                                    {/* Activity Spikes (Bars) - Rendered on top for visibility */}
+                                    <Bar 
+                                        yAxisId="spikes"
+                                        dataKey="value4" 
+                                        barSize={2} 
+                                        fill="var(--primary)" 
+                                        radius={[2, 2, 0, 0]} 
+                                        name="Daily Activity" 
+                                        animationDuration={1000}
+                                    />
+                                </ComposedChart>
                             </ResponsiveContainer>
                             <div className="flex items-center gap-6 mt-6 pt-5 border-t border-border">
                                 {[{ l: 'Total Network', c: 'var(--primary)' }, { l: 'Medical Staff', c: '#00A388' }, { l: 'Patients', c: '#f63b3bff' }].map(x => (
@@ -493,15 +546,23 @@ export default function AdminDashboard() {
                         </ChartPanel>
 
                         {/* QR Activity Trends */}
-                        <ChartPanel title="Access Activity" sub="Daily QR scan volume (Last 7 Days)" className="lg:col-span-2">
+                        <ChartPanel title="Access Activity" sub="Full daily QR scan volume history" className="lg:col-span-2">
                             <ResponsiveContainer width="100%" height={240}>
                                 <LineChart data={stats?.qrScanTrend || []} margin={{ top: 10, right: 10, bottom: 0, left: -20 }}>
                                     <CartesianGrid strokeDasharray="3 3" stroke="var(--border)" strokeOpacity={0.4} vertical={false} />
-                                    <XAxis dataKey="label" stroke="var(--muted)" tick={{ fontSize: 11, fontWeight: 700 }} axisLine={false} tickLine={false} />
+                                    <XAxis 
+                                        dataKey="label" 
+                                        stroke="var(--muted)" 
+                                        tick={{ fontSize: 9, fontWeight: 700 }} 
+                                        axisLine={false} 
+                                        tickLine={false}
+                                        interval="preserveStartEnd"
+                                        minTickGap={30}
+                                    />
                                     <YAxis stroke="var(--muted)" tick={{ fontSize: 11, fontWeight: 700 }} axisLine={false} tickLine={false} />
                                     <Tooltip contentStyle={tooltipStyle} labelStyle={tooltipLabelStyle} />
-                                    <Line type="monotone" dataKey="value" stroke="#EF4444" strokeWidth={4} dot={{ r: 6, fill: "#EF4444", strokeWidth: 0 }} activeDot={{ r: 8 }} name="Emergency" animationDuration={2000} />
-                                    <Line type="monotone" dataKey="value2" stroke="#00A388" strokeWidth={3} dot={{ r: 4, fill: "#00A388", strokeWidth: 0 }} name="Normal" animationDuration={1800} />
+                                    <Line type="monotone" dataKey="value" stroke="#EF4444" strokeWidth={3} dot={{ r: 3, fill: "#EF4444", strokeWidth: 0 }} activeDot={{ r: 6 }} name="Emergency" animationDuration={1800} />
+                                    <Line type="monotone" dataKey="value2" stroke="#00A388" strokeWidth={2} dot={{ r: 2, fill: "#00A388", strokeWidth: 0 }} name="Normal" animationDuration={1600} />
                                 </LineChart>
                             </ResponsiveContainer>
                             <div className="flex items-center gap-6 mt-6 pt-5 border-t border-border">

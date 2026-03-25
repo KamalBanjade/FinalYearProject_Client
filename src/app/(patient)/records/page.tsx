@@ -459,11 +459,7 @@ function ActivityTimeline({
 
     return (
         <div className="pt-6 border-t border-slate-100 dark:border-slate-800">
-            <div className="flex items-center justify-between mb-4 px-2">
-                <div className="flex items-center gap-2">
-                    <Clock className="w-3.5 h-3.5 text-slate-400" />
-                    <span className="text-[10px] font-black text-slate-400 uppercase tracking-[0.2em]">Activity History</span>
-                </div>
+            <div className="flex items-center justify-end mb-4 px-2">
                 <div className="flex items-center gap-6">
                     <div className="flex items-center gap-2">
                         <div className="w-2.5 h-2.5 rounded-full bg-secondary shadow-md shadow-secondary/20" />

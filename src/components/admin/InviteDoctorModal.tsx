@@ -43,24 +43,37 @@ const STEPS = [
 
 export const InviteDoctorModal: React.FC<InviteDoctorModalProps> = ({ isOpen, onClose, onSuccess }) => {
     const { inviteDoctor } = useAuthStore();
-    const [isLoading, setIsLoading] = useState(false);
     const [step, setStep] = useState(1);
     const [departments, setDepartments] = useState<DeptEntity[]>([]);
     const [isFetchingDepts, setIsFetchingDepts] = useState(false);
-    const [invitationResult, setInvitationResult] = useState<{ email: string; tempPass: string; invitationSent: boolean; message: string } | null>(null);
 
     const queryClient = useQueryClient();
 
     const mutation = useMutation({
-        mutationFn: (data: InviteDoctorFormData) => inviteDoctor(data),
+        mutationFn: async (data: InviteDoctorFormData) => {
+            const loadingToast = toast.loading('Preparing invitation and generating RSA keys...', {
+                style: {
+                    borderRadius: '16px',
+                    background: '#1e293b',
+                    color: '#fff',
+                },
+            });
+            try {
+                const result = await inviteDoctor(data);
+                toast.success('Doctor invitation sent successfully!', {
+                    id: loadingToast,
+                });
+                return result;
+            } catch (error: any) {
+                toast.error(error.response?.data?.message || 'Failed to send invitation.', {
+                    id: loadingToast,
+                });
+                throw error;
+            }
+        },
         onMutate: async () => {
-            // Cancel any outgoing refetches so they don't overwrite our optimistic update
             await queryClient.cancelQueries({ queryKey: ['admin', 'statistics'] });
-
-            // Snapshot the previous value
             const previousStats = queryClient.getQueryData(['admin', 'statistics']);
-
-            // Optimistically update to the new value
             queryClient.setQueryData(['admin', 'statistics'], (old: any) => {
                 if (!old) return old;
                 return {
@@ -69,27 +82,18 @@ export const InviteDoctorModal: React.FC<InviteDoctorModalProps> = ({ isOpen, on
                     totalUsers: (old.totalUsers || 0) + 1,
                 };
             });
-
-            // Return a context object with the snapshotted value
             return { previousStats };
         },
         onError: (err, newDoctor, context: any) => {
-            // Roll back if mutation fails
             if (context?.previousStats) {
                 queryClient.setQueryData(['admin', 'statistics'], context.previousStats);
             }
         },
-        onSuccess: (response) => {
-            toast.success('Doctor invited successfully!');
-            setInvitationResult({
-                email: response.data.email,
-                tempPass: response.data.temporaryPassword,
-                invitationSent: response.data.invitationSent,
-                message: response.data.message
-            });
+        onSuccess: () => {
+            onSuccess?.();
+            handleClose();
         },
         onSettled: () => {
-            // Always refetch after error or success to sync with server
             queryClient.invalidateQueries({ queryKey: ['admin', 'statistics'] });
         },
     });
@@ -149,11 +153,7 @@ export const InviteDoctorModal: React.FC<InviteDoctorModalProps> = ({ isOpen, on
     const handleClose = () => {
         reset();
         setStep(1);
-        setInvitationResult(null);
         onClose();
-        if (invitationResult && onSuccess) {
-            onSuccess();
-        }
     };
 
     const goToNext = async () => {
@@ -179,277 +179,226 @@ export const InviteDoctorModal: React.FC<InviteDoctorModalProps> = ({ isOpen, on
                 <div className="absolute top-0 right-0 w-32 h-32 bg-indigo-500/10 rounded-full blur-3xl -mr-16 -mt-16" />
                 <div className="absolute bottom-0 left-0 w-32 h-32 bg-emerald-500/10 rounded-full blur-3xl -ml-16 -mb-16" />
 
-                {invitationResult ? (
-                    <div className="p-8 text-center space-y-6 relative z-10">
-                        <div className="w-20 h-20 bg-emerald-50 dark:bg-emerald-500/10 rounded-3xl flex items-center justify-center mx-auto mb-2 animate-bounce">
-                            <CheckCircleIcon className="w-12 h-12 text-emerald-500" />
-                        </div>
-                        <div className="space-y-2">
-                            <h2 className="text-2xl font-black text-slate-900 dark:text-white uppercase tracking-tight">Invitation Sent!</h2>
-                            <p className="text-slate-500 dark:text-slate-400 font-medium">A doctor account has been created for <span className="text-indigo-600 font-bold">{invitationResult.email}</span></p>
-                        </div>
-
-                        <div className={`p-4 rounded-2xl border text-left flex items-start gap-3 ${invitationResult.invitationSent ? 'bg-emerald-50/50 border-emerald-100 text-emerald-800' : 'bg-amber-50/50 border-amber-100 text-amber-800'}`}>
-                            <div className={`p-2 rounded-xl ${invitationResult.invitationSent ? 'bg-white' : 'bg-white'}`}>
-                                {invitationResult.invitationSent ? <CheckCircleIcon className="w-5 h-5" /> : <IdentificationIcon className="w-5 h-5" />}
-                            </div>
-                            <div>
-                                <p className="text-xs font-black uppercase tracking-widest">{invitationResult.invitationSent ? 'Email Delivered' : 'Delivery Note'}</p>
-                                <p className="text-xs font-medium opacity-80">{invitationResult.message}</p>
-                            </div>
-                        </div>
-
-                        <div className="bg-slate-50 dark:bg-slate-800/50 p-6 rounded-[2rem] border border-slate-100 dark:border-slate-700/50 text-left relative group">
-                            <p className="text-[10px] font-black text-slate-400 dark:text-slate-500 uppercase tracking-[0.2em] mb-2">Temporary Password</p>
-                            <div className="flex items-center justify-between">
-                                <p className="text-2xl font-mono font-black text-slate-900 dark:text-white tracking-widest break-all">
-                                    {invitationResult.tempPass}
-                                </p>
-                                <button
-                                    onClick={() => {
-                                        navigator.clipboard.writeText(invitationResult.tempPass);
-                                        toast.success('Password copied!');
-                                    }}
-                                    className="p-2 hover:bg-white dark:hover:bg-slate-700 rounded-lg transition-colors text-slate-400"
-                                >
-                                    <IdentificationIcon className="w-5 h-5" />
-                                </button>
-                            </div>
-                            <p className="text-[10px] text-rose-500 mt-4 font-bold uppercase tracking-wider flex items-center gap-2">
-                                <span className="w-1 h-1 rounded-full bg-rose-500 animate-pulse" />
-                                Copy now — this will not be shown again
-                            </p>
-                        </div>
-
-                        <Button
+                <div className="relative z-10 w-full">
+                    {/* Header */}
+                    <div className="bg-gradient-to-br from-slate-900 via-slate-800 to-indigo-950 px-8 pt-10 pb-8 relative overflow-hidden">
+                        <button
                             onClick={handleClose}
-                            className="w-full py-4 bg-slate-900 dark:bg-white dark:text-slate-900 text-white rounded-2xl font-black text-xs uppercase tracking-[0.2em] shadow-xl hover:scale-[1.02] transition-transform h-auto"
+                            className="absolute top-5 right-5 w-10 h-10 flex items-center justify-center rounded-2xl bg-white/5 hover:bg-white/10 text-white/50 hover:text-white transition-all z-20 backdrop-blur-md border border-white/10"
                         >
-                            Complete Onboarding
-                        </Button>
-                    </div>
-                ) : (
-                    <>
-                        {/* Header */}
-                        <div className="bg-gradient-to-br from-slate-900 via-slate-800 to-indigo-950 px-8 pt-10 pb-8 relative overflow-hidden">
-                            <button
-                                onClick={handleClose}
-                                className="absolute top-5 right-5 w-10 h-10 flex items-center justify-center rounded-2xl bg-white/5 hover:bg-white/10 text-white/50 hover:text-white transition-all z-20 backdrop-blur-md border border-white/10"
-                            >
-                                <XMarkIcon className="w-5 h-5" />
-                            </button>
+                            <XMarkIcon className="w-5 h-5" />
+                        </button>
 
-                            <div className="relative z-10">
-                                <span className="px-3 py-1 bg-indigo-500 text-white text-[10px] font-black uppercase tracking-widest rounded-lg">Clinical Access</span>
-                                <h2 className="text-3xl font-black text-white mt-4 tracking-tighter uppercase italic">Onboard Doctor</h2>
-                                <p className="text-slate-400 text-sm mt-1 font-medium">Provision system credentials & secure keys</p>
+                        <div className="relative z-10">
+                            <span className="px-3 py-1 bg-indigo-500 text-white text-[10px] font-black uppercase tracking-widest rounded-lg">Clinical Access</span>
+                            <h2 className="text-3xl font-black text-white mt-4 tracking-tighter uppercase italic">Onboard Doctor</h2>
+                            <p className="text-slate-400 text-sm mt-1 font-medium">Provision system credentials & secure keys</p>
 
-                                {/* Step Progress */}
-                                <div className="flex items-center mt-8 gap-3">
-                                    {STEPS.map((s, i) => {
-                                        const Icon = s.icon;
-                                        const isActive = step === s.id;
-                                        const isDone = step > s.id;
-                                        return (
-                                            <React.Fragment key={s.id}>
-                                                <div className="flex flex-col items-center gap-2 group cursor-pointer" onClick={() => step > s.id && setStep(s.id)}>
-                                                    <div className={`w-10 h-10 rounded-2xl flex items-center justify-center transition-all duration-500 border-2 ${isDone ? 'bg-emerald-500 border-emerald-500 shadow-[0_0_15px_rgba(16,185,129,0.3)]' :
-                                                        isActive ? 'bg-white border-white shadow-[0_0_15px_rgba(255,255,255,0.2)]' :
-                                                            'bg-white/5 border-white/10'
-                                                        }`}>
-                                                        {isDone
-                                                            ? <CheckCircleIcon className="w-5 h-5 text-white" />
-                                                            : <Icon className={`w-5 h-5 ${isActive ? 'text-slate-900' : 'text-white/20'}`} />
-                                                        }
-                                                    </div>
+                            {/* Step Progress */}
+                            <div className="flex items-center mt-8 gap-3">
+                                {STEPS.map((s, i) => {
+                                    const Icon = s.icon;
+                                    const isActive = step === s.id;
+                                    const isDone = step > s.id;
+                                    return (
+                                        <React.Fragment key={s.id}>
+                                            <div className="flex flex-col items-center gap-2 group cursor-pointer" onClick={() => step > s.id && setStep(s.id)}>
+                                                <div className={`w-10 h-10 rounded-2xl flex items-center justify-center transition-all duration-500 border-2 ${isDone ? 'bg-emerald-500 border-emerald-500 shadow-[0_0_15px_rgba(16,185,129,0.3)]' :
+                                                    isActive ? 'bg-white border-white shadow-[0_0_15px_rgba(255,255,255,0.2)]' :
+                                                        'bg-white/5 border-white/10'
+                                                    }`}>
+                                                    {isDone
+                                                        ? <CheckCircleIcon className="w-5 h-5 text-white" />
+                                                        : <Icon className={`w-5 h-5 ${isActive ? 'text-slate-900' : 'text-white/20'}`} />
+                                                    }
                                                 </div>
-                                                {i < STEPS.length - 1 && (
-                                                    <div className={`flex-1 h-0.5 rounded-full transition-all duration-700 ${isDone ? 'bg-emerald-500' : 'bg-white/10'}`} />
-                                                )}
-                                            </React.Fragment>
-                                        );
-                                    })}
-                                </div>
+                                            </div>
+                                            {i < STEPS.length - 1 && (
+                                                <div className={`flex-1 h-0.5 rounded-full transition-all duration-700 ${isDone ? 'bg-emerald-500' : 'bg-white/10'}`} />
+                                            )}
+                                        </React.Fragment>
+                                    );
+                                })}
                             </div>
                         </div>
+                    </div>
 
-                        {/* Form Body */}
-                        <form onSubmit={handleSubmit(onSubmit)}>
-                            <div className="px-8 py-8 space-y-5 min-h-[320px] bg-white dark:bg-slate-900 relative z-10">
-                                {step === 1 && (
-                                    <div className="space-y-4 animate-in slide-in-from-right-4 duration-500">
-                                        <Input
-                                            label="Digital Identity (Email)"
-                                            type="email"
-                                            placeholder="doctor.name@hospital.com"
-                                            required
-                                            {...register('email')}
-                                            error={errors.email?.message}
-                                            success={isFieldValid('email')}
-                                            className="h-12 rounded-2xl border-slate-200 focus:ring-indigo-500/20"
-                                        />
-                                        <Input
-                                            label="First Name"
-                                            placeholder="Legal First Name"
-                                            required
-                                            {...register('firstName')}
-                                            error={errors.firstName?.message}
-                                            success={isFieldValid('firstName')}
-                                            className="h-12 rounded-2xl border-slate-200"
-                                        />
-                                        <Input
-                                            label="Last Name"
-                                            placeholder="Surname"
-                                            required
-                                            {...register('lastName')}
-                                            error={errors.lastName?.message}
-                                            success={isFieldValid('lastName')}
-                                            className="h-12 rounded-2xl border-slate-200"
-                                        />
-                                    </div>
-                                )}
+                    {/* Form Body */}
+                    <form onSubmit={handleSubmit(onSubmit)}>
+                        <div className="px-8 py-8 space-y-5 min-h-[320px] bg-white dark:bg-slate-900 relative z-10">
+                            {step === 1 && (
+                                <div className="space-y-4 animate-in slide-in-from-right-4 duration-500">
+                                    <Input
+                                        label="Digital Identity (Email)"
+                                        type="email"
+                                        placeholder="doctor.name@hospital.com"
+                                        required
+                                        {...register('email')}
+                                        error={errors.email?.message}
+                                        success={isFieldValid('email')}
+                                        className="h-12 rounded-2xl border-slate-200 focus:ring-indigo-500/20"
+                                    />
+                                    <Input
+                                        label="First Name"
+                                        placeholder="Legal First Name"
+                                        required
+                                        {...register('firstName')}
+                                        error={errors.firstName?.message}
+                                        success={isFieldValid('firstName')}
+                                        className="h-12 rounded-2xl border-slate-200"
+                                    />
+                                    <Input
+                                        label="Last Name"
+                                        placeholder="Surname"
+                                        required
+                                        {...register('lastName')}
+                                        error={errors.lastName?.message}
+                                        success={isFieldValid('lastName')}
+                                        className="h-12 rounded-2xl border-slate-200"
+                                    />
+                                </div>
+                            )}
 
-                                {step === 2 && (
-                                    <div className="space-y-4 animate-in slide-in-from-right-4 duration-500">
-                                        <Input
-                                            label="Clinical License (NMC)"
-                                            placeholder="NMC-XXXXX"
-                                            required
-                                            {...register('nmcLicense', {
-                                                onChange: (e) => {
-                                                    const value = e.target.value;
-                                                    if (!value.startsWith('NMC-')) {
-                                                        setValue('nmcLicense', 'NMC-', { shouldDirty: true, shouldValidate: true });
-                                                        return;
-                                                    }
-                                                    const suffix = value.slice(4).replace(/\D/g, '');
-                                                    setValue('nmcLicense', 'NMC-' + suffix, { shouldDirty: true, shouldValidate: true });
+                            {step === 2 && (
+                                <div className="space-y-4 animate-in slide-in-from-right-4 duration-500">
+                                    <Input
+                                        label="Clinical License (NMC)"
+                                        placeholder="NMC-XXXXX"
+                                        required
+                                        {...register('nmcLicense', {
+                                            onChange: (e) => {
+                                                const value = e.target.value;
+                                                if (!value.startsWith('NMC-')) {
+                                                    setValue('nmcLicense', 'NMC-', { shouldDirty: true, shouldValidate: true });
+                                                    return;
                                                 }
-                                            })}
-                                            error={errors.nmcLicense?.message}
-                                            success={isFieldValid('nmcLicense')}
-                                            className="h-12 rounded-2xl"
-                                        />
-                                        <Input
-                                            label="Verified Phone"
-                                            type="tel"
-                                            placeholder="+977-98XXXXXXXX"
-                                            required
-                                            maxLength={15}
-                                            {...register('phoneNumber', {
-                                                onChange: (e) => {
-                                                    const value = e.target.value;
-                                                    if (!value.startsWith('+977-')) {
-                                                        setValue('phoneNumber', '+977-', { shouldDirty: true, shouldValidate: true });
-                                                        return;
-                                                    }
-                                                    const suffix = value.slice(5).replace(/\D/g, '').slice(0, 10);
-                                                    setValue('phoneNumber', '+977-' + suffix, { shouldDirty: true, shouldValidate: true });
+                                                const suffix = value.slice(4).replace(/\D/g, '');
+                                                setValue('nmcLicense', 'NMC-' + suffix, { shouldDirty: true, shouldValidate: true });
+                                            }
+                                        })}
+                                        error={errors.nmcLicense?.message}
+                                        success={isFieldValid('nmcLicense')}
+                                        className="h-12 rounded-2xl"
+                                    />
+                                    <Input
+                                        label="Verified Phone"
+                                        type="tel"
+                                        placeholder="+977-98XXXXXXXX"
+                                        required
+                                        maxLength={15}
+                                        {...register('phoneNumber', {
+                                            onChange: (e) => {
+                                                const value = e.target.value;
+                                                if (!value.startsWith('+977-')) {
+                                                    setValue('phoneNumber', '+977-', { shouldDirty: true, shouldValidate: true });
+                                                    return;
                                                 }
-                                            })}
-                                            error={errors.phoneNumber?.message}
-                                            success={isFieldValid('phoneNumber')}
-                                            className="h-12 rounded-2xl"
+                                                const suffix = value.slice(5).replace(/\D/g, '').slice(0, 10);
+                                                setValue('phoneNumber', '+977-' + suffix, { shouldDirty: true, shouldValidate: true });
+                                            }
+                                        })}
+                                        error={errors.phoneNumber?.message}
+                                        success={isFieldValid('phoneNumber')}
+                                        className="h-12 rounded-2xl"
+                                    />
+                                    <div>
+                                        <label className="block text-[10px] font-black text-slate-400 uppercase tracking-widest mb-1.5 ml-1">Professional Qualifications</label>
+                                        <textarea
+                                            rows={2}
+                                            placeholder="e.g. MBBS, MD (Cardiology) — IOM, TUTH"
+                                            className="w-full px-5 py-4 rounded-[1.5rem] border border-slate-100 dark:border-slate-800 bg-slate-50/50 dark:bg-slate-800/30 text-slate-900 dark:text-white text-sm placeholder-slate-400 focus:outline-none focus:ring-4 focus:ring-indigo-500/10 focus:border-indigo-500 resize-none transition-all font-medium"
+                                            {...register('qualificationDetails')}
                                         />
-                                        <div>
-                                            <label className="block text-[10px] font-black text-slate-400 uppercase tracking-widest mb-1.5 ml-1">Professional Qualifications</label>
-                                            <textarea
-                                                rows={2}
-                                                placeholder="e.g. MBBS, MD (Cardiology) — IOM, TUTH"
-                                                className="w-full px-5 py-4 rounded-[1.5rem] border border-slate-100 dark:border-slate-800 bg-slate-50/50 dark:bg-slate-800/30 text-slate-900 dark:text-white text-sm placeholder-slate-400 focus:outline-none focus:ring-4 focus:ring-indigo-500/10 focus:border-indigo-500 resize-none transition-all font-medium"
-                                                {...register('qualificationDetails')}
-                                            />
-                                        </div>
                                     </div>
-                                )}
+                                </div>
+                            )}
 
-                                {step === 3 && (
-                                    <div className="space-y-4 animate-in slide-in-from-right-4 duration-500">
-                                        <div className="space-y-1.5">
-                                            <label className="block text-[10px] font-black text-slate-400 uppercase tracking-widest mb-1.5 ml-1">
-                                                Clinical Department
-                                                <span className="text-rose-500 ml-1 font-black">*</span>
-                                            </label>
-                                            <div className="relative group">
-                                                <select
-                                                    {...register('department')}
-                                                    className={`w-full px-5 py-4 rounded-2xl border appearance-none transition-all font-bold text-sm bg-slate-50/50 dark:bg-slate-800/30 cursor-pointer ${errors.department ? 'border-rose-500 text-rose-600' : 'border-slate-100 dark:border-slate-800 text-slate-900 dark:text-white focus:ring-4 focus:ring-indigo-500/10 focus:border-indigo-500'}`}
-                                                    disabled={isFetchingDepts}
-                                                >
-                                                    <option value="">Select Department</option>
-                                                    {departments.filter(d => d.isActive).map(dept => (
-                                                        <option key={dept.id} value={dept.name}>{dept.name}</option>
-                                                    ))}
-                                                </select>
-                                                <div className="absolute right-5 top-1/2 -translate-y-1/2 pointer-events-none text-slate-400">
-                                                    <IdentificationIcon className="w-5 h-5 opacity-20" />
-                                                </div>
+                            {step === 3 && (
+                                <div className="space-y-4 animate-in slide-in-from-right-4 duration-500">
+                                    <div className="space-y-1.5">
+                                        <label className="block text-[10px] font-black text-slate-400 uppercase tracking-widest mb-1.5 ml-1">
+                                            Clinical Department
+                                            <span className="text-rose-500 ml-1 font-black">*</span>
+                                        </label>
+                                        <div className="relative group">
+                                            <select
+                                                {...register('department')}
+                                                className={`w-full px-5 py-4 rounded-2xl border appearance-none transition-all font-bold text-sm bg-slate-50/50 dark:bg-slate-800/30 cursor-pointer ${errors.department ? 'border-rose-500 text-rose-600' : 'border-slate-100 dark:border-slate-800 text-slate-900 dark:text-white focus:ring-4 focus:ring-indigo-500/10 focus:border-indigo-500'}`}
+                                                disabled={isFetchingDepts}
+                                            >
+                                                <option value="">Select Department</option>
+                                                {departments.filter(d => d.isActive).map(dept => (
+                                                    <option key={dept.id} value={dept.name}>{dept.name}</option>
+                                                ))}
+                                            </select>
+                                            <div className="absolute right-5 top-1/2 -translate-y-1/2 pointer-events-none text-slate-400">
+                                                <IdentificationIcon className="w-5 h-5 opacity-20" />
                                             </div>
-                                            {errors.department && <p className="text-[10px] text-rose-500 font-bold uppercase tracking-wider ml-1">{errors.department.message as string}</p>}
                                         </div>
-                                        <Input
-                                            label="Specialization Field"
-                                            placeholder="e.g. Pediatric Neurosurgeon"
-                                            required
-                                            {...register('specialization')}
-                                            error={errors.specialization?.message}
-                                            success={isFieldValid('specialization')}
-                                            className="h-12 rounded-2xl"
-                                        />
-                                        <div className="p-5 rounded-[2rem] bg-indigo-50/50 dark:bg-indigo-500/5 border border-indigo-100 dark:border-indigo-500/20 flex gap-4">
-                                            <div className="w-8 h-8 rounded-full bg-indigo-100 dark:bg-indigo-500/20 flex items-center justify-center shrink-0">
-                                                <IdentificationIcon className="w-4 h-4 text-indigo-600 dark:text-indigo-400" />
-                                            </div>
-                                            <p className="text-xs text-indigo-700 dark:text-indigo-300 font-bold leading-relaxed">
-                                                Automatic RSA Key Generation and invitation SMTP protocol will be triggered upon submission.
-                                            </p>
-                                        </div>
+                                        {errors.department && <p className="text-[10px] text-rose-500 font-bold uppercase tracking-wider ml-1">{errors.department.message as string}</p>}
                                     </div>
-                                )}
-                            </div>
+                                    <Input
+                                        label="Specialization Field"
+                                        placeholder="e.g. Pediatric Neurosurgeon"
+                                        required
+                                        {...register('specialization')}
+                                        error={errors.specialization?.message}
+                                        success={isFieldValid('specialization')}
+                                        className="h-12 rounded-2xl"
+                                    />
+                                    <div className="p-5 rounded-[2rem] bg-indigo-50/50 dark:bg-indigo-500/5 border border-indigo-100 dark:border-indigo-500/20 flex gap-4">
+                                        <div className="w-8 h-8 rounded-full bg-indigo-100 dark:bg-indigo-500/20 flex items-center justify-center shrink-0">
+                                            <IdentificationIcon className="w-4 h-4 text-indigo-600 dark:text-indigo-400" />
+                                        </div>
+                                        <p className="text-xs text-indigo-700 dark:text-indigo-300 font-bold leading-relaxed">
+                                            Automatic RSA Key Generation and invitation SMTP protocol will be triggered upon submission.
+                                        </p>
+                                    </div>
+                                </div>
+                            )}
+                        </div>
 
-                            {/* Footer Actions */}
-                            <div className="px-8 pb-10 flex items-center gap-4 bg-white dark:bg-slate-900 relative z-10">
-                                {step > 1 ? (
-                                    <button
-                                        type="button"
-                                        onClick={() => setStep((s) => s - 1)}
-                                        className="h-14 px-8 rounded-2xl bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-400 font-black text-[10px] uppercase tracking-widest hover:bg-slate-200 dark:hover:bg-slate-700 transition-all flex items-center justify-center gap-2 cursor-pointer"
-                                    >
-                                        Back
-                                    </button>
-                                ) : (
-                                    <button
-                                        type="button"
-                                        onClick={handleClose}
-                                        className="h-14 px-8 rounded-2xl bg-white dark:bg-slate-900 border-2 border-slate-100 dark:border-slate-800 text-slate-400 dark:text-slate-500 font-black text-[10px] uppercase tracking-widest hover:bg-slate-50 dark:hover:bg-slate-800 transition-all cursor-pointer"
-                                    >
-                                        Cancel
-                                    </button>
-                                )}
+                        {/* Footer Actions */}
+                        <div className="px-8 pb-10 flex items-center gap-4 bg-white dark:bg-slate-900 relative z-10">
+                            {step > 1 ? (
+                                <button
+                                    type="button"
+                                    onClick={() => setStep((s) => s - 1)}
+                                    className="h-14 px-8 rounded-2xl bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-400 font-black text-[10px] uppercase tracking-widest hover:bg-slate-200 dark:hover:bg-slate-700 transition-all flex items-center justify-center gap-2 cursor-pointer"
+                                >
+                                    Back
+                                </button>
+                            ) : (
+                                <button
+                                    type="button"
+                                    onClick={handleClose}
+                                    className="h-14 px-8 rounded-2xl bg-white dark:bg-slate-900 border-2 border-slate-100 dark:border-slate-800 text-slate-400 dark:text-slate-500 font-black text-[10px] uppercase tracking-widest hover:bg-slate-50 dark:hover:bg-slate-800 transition-all cursor-pointer"
+                                >
+                                    Cancel
+                                </button>
+                            )}
 
-                                {step < 3 ? (
-                                    <button
-                                        type="button"
-                                        onClick={goToNext}
-                                        className="flex-1 h-14 bg-slate-900 dark:bg-white text-white dark:text-slate-900 rounded-2xl font-black text-[10px] uppercase tracking-widest hover:shadow-2xl hover:bg-indigo-950 dark:hover:bg-emerald-300 transition-all flex items-center justify-center gap-2 cursor-pointer"
-                                    >
-                                        Next Step
-                                        <CheckCircleIcon className="w-4 h-4" />
-                                    </button>
-                                ) : (
-                                    <Button
-                                        type="submit"
-                                        className="flex-1 h-14 bg-indigo-600 text-white rounded-2xl font-black text-[10px] uppercase tracking-[0.2em] shadow-xl shadow-indigo-500/20 hover:scale-[1.02] transition-transform cursor-pointer"
-                                        isLoading={mutation.isPending}
-                                    >
-                                        Send Invitation
-                                    </Button>
-                                )}
-                            </div>
-                        </form>
-                    </>
-                )}
+                            {step < 3 ? (
+                                <button
+                                    type="button"
+                                    onClick={goToNext}
+                                    className="flex-1 h-14 bg-slate-900 dark:bg-white text-white dark:text-slate-900 rounded-2xl font-black text-[10px] uppercase tracking-widest hover:shadow-2xl hover:bg-indigo-950 dark:hover:bg-emerald-300 transition-all flex items-center justify-center gap-2 cursor-pointer"
+                                >
+                                    Next Step
+                                    <CheckCircleIcon className="w-4 h-4" />
+                                </button>
+                            ) : (
+                                <Button
+                                    type="submit"
+                                    className="flex-1 h-14 bg-indigo-600 text-white rounded-2xl font-black text-[10px] uppercase tracking-[0.2em] shadow-xl shadow-indigo-500/20 hover:scale-[1.02] transition-transform cursor-pointer"
+                                    isLoading={mutation.isPending}
+                                >
+                                    Send Invitation
+                                </Button>
+                            )}
+                        </div>
+                    </form>
+                </div>
             </div>
         </div>
     );

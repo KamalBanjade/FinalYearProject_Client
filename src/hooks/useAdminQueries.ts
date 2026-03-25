@@ -29,9 +29,11 @@ export function useAdminDashboardStats() {
 export interface UserFilters { page?: number; pageSize?: number; searchTerm?: string; role?: string; isActive?: boolean }
 
 export function useAdminUsers(filters: UserFilters = { page: 1 }) {
+  const searchTerm = filters.searchTerm || undefined;
   return useQuery({
-    queryKey: queryKeys.admin.users.list(filters.page || 1, filters.searchTerm),
-    queryFn: () => adminApi.getUsers(filters),
+    queryKey: queryKeys.admin.users.list(filters.page || 1, searchTerm, filters.role || undefined, filters.isActive),
+    queryFn: () => adminApi.getUsers({ ...filters, searchTerm }),
+    staleTime: STALE.default,
     placeholderData: (prev) => prev,
   });
 }
@@ -47,9 +49,12 @@ export function useAdminUser(id: string) {
 export interface DoctorFilters { page?: number; pageSize?: number; searchTerm?: string; department?: string; isActive?: boolean }
 
 export function useAdminDoctors(filters: DoctorFilters = { page: 1 }) {
+  const searchTerm = filters.searchTerm || undefined;
+  const department = filters.department || undefined;
   return useQuery({
-    queryKey: queryKeys.admin.doctors.list(filters.page || 1, filters.department),
-    queryFn: () => adminApi.getDoctors(filters),
+    queryKey: queryKeys.admin.doctors.list(filters.page || 1, department, searchTerm, filters.isActive),
+    queryFn: () => adminApi.getDoctors({ ...filters, searchTerm, department }),
+    staleTime: STALE.default,
     placeholderData: (prev) => prev,
   });
 }
@@ -63,9 +68,11 @@ export function useAdminDepartments() {
 }
 
 export function useAdminPatients(page = 1, search?: string, isActive?: boolean) {
+  const searchTerm = search || undefined;
   return useQuery({
-    queryKey: queryKeys.admin.patients.list(page, search, isActive),
-    queryFn: () => adminApi.getPatients({ page, searchTerm: search, isActive }),
+    queryKey: queryKeys.admin.patients.list(page, searchTerm, isActive),
+    queryFn: () => adminApi.getPatients({ page, searchTerm, isActive }),
+    staleTime: STALE.default,
     placeholderData: (prev) => prev,
   });
 }
@@ -130,9 +137,11 @@ export function useDoctorCertifiedRecords(page = 1) {
 }
 
 export function useDoctorPatients(page = 1, search?: string) {
+  const searchTerm = search || undefined;
   return useQuery({
-    queryKey: queryKeys.doctor.patients.list(page, search),
-    queryFn: () => doctorApi.getMyPatients(page, search),
+    queryKey: queryKeys.doctor.patients.list(page, searchTerm),
+    queryFn: () => doctorApi.getMyPatients(page, searchTerm),
+    staleTime: STALE.default,
     placeholderData: (prev) => prev,
   });
 }

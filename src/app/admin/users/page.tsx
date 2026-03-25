@@ -32,6 +32,7 @@ import { Button } from '@/components/ui/Button';
 import { H1, H2, H3, Text } from '@/components/ui/Typography';
 import { ResponsiveTable } from '@/components/data-display/ResponsiveTable';
 import { Card } from '@/components/ui/Card';
+import { Skeleton } from '@/components/ui/Skeleton';
 
 
 import { useAdminUsers } from '@/hooks/useAdminQueries';
@@ -176,15 +177,6 @@ export default function AdminUsersPage() {
                                 </select>
                             </Stack>
 
-                            <div className="h-8 w-px bg-slate-100 dark:bg-slate-800 hidden lg:block" />
-
-                            <Button
-                                onClick={() => { }}
-                                className="w-full lg:w-auto h-12 px-6 bg-blue-600 text-white rounded-2xl font-bold shadow-lg shadow-blue-500/20"
-                            >
-                                <Plus className="w-4 h-4 mr-2" />
-                                Add New User
-                            </Button>
                         </Stack>
                     </Stack>
 
@@ -203,6 +195,15 @@ export default function AdminUsersPage() {
                             columns={[
                                 {
                                     header: 'User',
+                                    skeleton: (
+                                        <div className="flex items-center gap-3 animate-pulse">
+                                            <Skeleton className="w-9 h-9 rounded-xl" />
+                                            <div className="space-y-1.5 pt-1">
+                                                <Skeleton className="h-3 w-28" />
+                                                <Skeleton className="h-2 w-32 opacity-60" />
+                                            </div>
+                                        </div>
+                                    ),
                                     accessor: (user) => (
                                         <div className="flex items-center gap-3">
                                             <div className={`w-9 h-9 rounded-xl flex items-center justify-center text-sm font-black ${user.role === 'Admin' ? 'bg-purple-50 dark:bg-purple-500/10 text-purple-600 dark:text-purple-400' :
@@ -219,6 +220,7 @@ export default function AdminUsersPage() {
                                 },
                                 {
                                     header: 'Role',
+                                    skeleton: <Skeleton className="h-6 w-20 rounded-lg" />,
                                     accessor: (user) => (
                                         <span className={`inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg text-[10px] font-black uppercase tracking-widest border ${getRoleBadgeColor(user.role)}`}>
                                             {getRoleIcon(user.role)}
@@ -228,6 +230,7 @@ export default function AdminUsersPage() {
                                 },
                                 {
                                     header: 'Status',
+                                    skeleton: <Skeleton className="h-5 w-16 rounded-md" />,
                                     accessor: (user) => (
                                         <button
                                             onClick={() => handleToggleStatus(user)}
@@ -242,6 +245,7 @@ export default function AdminUsersPage() {
                                 },
                                 {
                                     header: 'Joined',
+                                    skeleton: <Skeleton className="h-4 w-24" />,
                                     accessor: (user) => (
                                         <span className="text-sm font-semibold text-slate-500 dark:text-slate-400">
                                             {new Date(user.createdAt).toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' })}
@@ -250,6 +254,7 @@ export default function AdminUsersPage() {
                                 },
                                 {
                                     header: 'Actions',
+                                    skeleton: <Skeleton className="h-8 w-8 rounded-lg" />,
                                     accessor: (user) => (
                                         <div className="flex items-center gap-2">
                                             <button
@@ -262,6 +267,33 @@ export default function AdminUsersPage() {
                                     )
                                 }
                             ]}
+                            renderMobileSkeleton={() => (
+                                <div className="p-6 space-y-5 animate-pulse">
+                                    <div className="flex items-start justify-between">
+                                        <div className="flex items-center gap-4">
+                                            <Skeleton className="w-12 h-12 rounded-2xl" />
+                                            <div className="space-y-2">
+                                                <Skeleton className="h-4 w-32" />
+                                                <div className="flex items-center gap-1">
+                                                    <Skeleton className="w-3 h-3 rounded-full" />
+                                                    <Skeleton className="h-2 w-40" />
+                                                </div>
+                                            </div>
+                                        </div>
+                                        <Skeleton className="w-10 h-10 rounded-xl" />
+                                    </div>
+                                    <div className="flex items-center justify-between pt-1">
+                                        <div className="flex gap-2">
+                                            <Skeleton className="h-8 w-24 rounded-xl" />
+                                            <Skeleton className="h-8 w-24 rounded-xl" />
+                                        </div>
+                                        <div className="space-y-1">
+                                            <Skeleton className="h-2 w-12 ml-auto" />
+                                            <Skeleton className="h-5 w-20 rounded-lg" />
+                                        </div>
+                                    </div>
+                                </div>
+                            )}
                             renderMobileCard={(user) => (
                                 <div className="p-4 space-y-4">
                                     <div className="flex items-start justify-between">
