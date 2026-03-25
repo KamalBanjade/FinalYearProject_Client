@@ -2,6 +2,7 @@ import axiosInstance from "../utils/axios";
 
 export interface PatientListResponseDTO {
     id: string; // Patient ID
+    userId: string; // Identity User ID
     firstName: string;
     lastName: string;
     email: string;

@@ -1,6 +1,7 @@
 import axiosInstance from './utils/axios';
 export * from './api/medicalRecords';
 export * from './api/patient';
+export * from './api/chatApi';
 
 // ─── Standardized Types ──────────────────────────────────────────────────────────
 

@@ -19,8 +19,11 @@ import { motion, AnimatePresence } from 'framer-motion';
 import toast from 'react-hot-toast';
 import { FullScreenRecordModal } from '@/components/ui/FullScreenRecordModal';
 import { useQuery } from '@tanstack/react-query';
+import { useAuthStore } from '@/store/authStore';
+import { ChatPanel } from '@/components/chat/ChatPanel';
 
 function ProfileContent() {
+    const { user } = useAuthStore();
     const params = useParams();
     const router = useRouter();
     const pathname = usePathname();
@@ -479,6 +482,16 @@ function ProfileContent() {
                         setPreviewUrl(null);
                         setPreviewRecord(null);
                     }} 
+                />
+            )}
+
+            {/* Chat Integration */}
+            {user && patient && (
+                <ChatPanel 
+                    currentUserId={user.id}
+                    otherUserId={patient.userId}
+                    otherUserName={`${patient.firstName} ${patient.lastName}`}
+                    otherUserRole="Patient"
                 />
             )}
         </div>

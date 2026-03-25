@@ -40,6 +40,15 @@ console.info(`\n======================================================
 ======================================================\n`);
 
 const nextConfig: NextConfig = {
+  images: {
+    remotePatterns: [
+      {
+        protocol: 'https',
+        hostname: 'res.cloudinary.com',
+        pathname: '/**',
+      },
+    ],
+  },
   async rewrites() {
     return [
       {

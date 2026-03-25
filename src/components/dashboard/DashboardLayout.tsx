@@ -28,7 +28,8 @@ import {
     QuestionMarkCircleIcon,
     Cog6ToothIcon,
     BuildingOfficeIcon,
-    IdentificationIcon
+    IdentificationIcon,
+    ChatBubbleLeftEllipsisIcon
 } from
     '@heroicons/react/24/outline';
 import { FadeIn } from '@/components/ui/FadeIn';
@@ -123,6 +124,7 @@ export const DashboardLayout = ({ children, role }: { children: React.ReactNode;
         { icon: DocumentTextIcon, label: 'Medical Records', desc: 'Secure repository of your medical documents', href: '/records', section: 'Health' },
         { icon: FolderPlusIcon, label: 'Upload Record', desc: 'Add new documents to your secure vault', href: '/records/upload', section: 'Health' },
         { icon: CalendarIcon, label: 'Appointments', desc: 'Schedule and manage your doctor visits', href: '/appointments', section: 'Health' },
+        { icon: ChatBubbleLeftEllipsisIcon, label: 'Messages', desc: 'Securely communicate with your doctors', href: '/messages', section: 'Health' },
         { icon: QrCodeIcon, label: 'QR Codes', desc: 'Manage access links to your medical records', href: '/qr-codes', section: 'Tools' },
         { icon: ExclamationTriangleIcon, label: 'Emergency', desc: 'Critical medical information for first responders', href: '/emergency-settings', section: 'Tools' },
         { icon: IdentificationIcon, label: 'My Profile', desc: 'Manage your personal and medical identity', href: '/profile', section: 'Account' },
@@ -134,6 +136,7 @@ export const DashboardLayout = ({ children, role }: { children: React.ReactNode;
         { icon: DocumentTextIcon, label: 'Pending Records', desc: 'Vault documents awaiting your certification', href: '/doctor/pending-records', section: 'Records' },
         { icon: ShieldCheckIcon, label: 'Certified Records', desc: 'Official registry of cryptographically signed medical documents', href: '/doctor/certified-records', section: 'Records' },
         { icon: UsersIcon, label: 'My Patients', desc: 'Manage shared access from your patient directory', href: '/doctor/patients', section: 'Patients' },
+        { icon: ChatBubbleLeftEllipsisIcon, label: 'Messages', desc: 'Secure real-time patient communication', href: '/doctor/messages', section: 'Patients' },
         { icon: CalendarIcon, label: 'Appointments', desc: 'Overview of today\'s clinical schedule', href: '/doctor/appointments', section: 'Patients' },
         { icon: ClockIcon, label: 'Availability', desc: 'Manage your clinical working hours and blocked slots', href: '/doctor/availability', section: 'Patients' },
         { icon: IdentificationIcon, label: 'My Profile', desc: 'Manage your professional identity and license', href: '/doctor/profile', section: 'Account' },

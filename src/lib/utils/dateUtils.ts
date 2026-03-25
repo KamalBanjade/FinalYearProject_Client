@@ -41,11 +41,11 @@ export function getRelativeTimeString(dateString: string): string {
     if (isNaN(date.getTime())) return 'Unknown time';
 
     if (isToday(date)) {
-        return `Today at ${format(date, DATE_FORMATS.TIME_ONLY)}`;
+        return `Today`;
     }
 
     if (isYesterday(date)) {
-        return `Yesterday at ${format(date, DATE_FORMATS.TIME_ONLY)}`;
+        return `Yesterday`;
     }
 
     const daysDiff = differenceInDays(new Date(), date);
@@ -87,4 +87,17 @@ export function formatTime(dateString: string): string {
  */
 export function formatDateTime(dateString: string): string {
     return formatLocalTime(dateString, DATE_FORMATS.DATE_TIME);
+}
+
+/**
+ * Returns 'Today', 'Yesterday', or a formatted date string for chat dividers.
+ */
+export function formatMessageDate(dateString: string): string {
+    if (!dateString) return '';
+    const date = new Date(normalizeUTC(dateString));
+    if (isNaN(date.getTime())) return '';
+
+    if (isToday(date)) return 'Today';
+    if (isYesterday(date)) return 'Yesterday';
+    return format(date, DATE_FORMATS.DATE_ONLY);
 }

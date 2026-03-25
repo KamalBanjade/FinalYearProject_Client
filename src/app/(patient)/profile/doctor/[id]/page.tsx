@@ -13,6 +13,8 @@ import toast from 'react-hot-toast';
 import { motion } from 'framer-motion';
 import { usePatientDoctorDetail } from '@/hooks/useAdminQueries';
 import { ProfileSkeleton } from '@/components/profile/ProfileSkeleton';
+import { useAuthStore } from '@/store/authStore';
+import { ChatPanel } from '@/components/chat/ChatPanel';
 
 // ── Helpers ───────────────────────────────────────────────────────────────────
 
@@ -83,6 +85,7 @@ export default function PatientDoctorProfilePage() {
     const params = useParams();
     const router = useRouter();
     const doctorId = params.id as string;
+    const { user } = useAuthStore();
 
     const { data: doctorRes, isLoading, isError } = usePatientDoctorDetail(doctorId);
     const doctor = doctorRes?.data;
@@ -423,6 +426,16 @@ export default function PatientDoctorProfilePage() {
                     </div>
                 </div>
             </div>
+
+            {/* Chat Integration */}
+            {user && doctor && (
+                <ChatPanel 
+                    currentUserId={user.id}
+                    otherUserId={doctor.userId}
+                    otherUserName={`Dr. ${doctor.firstName} ${doctor.lastName}`}
+                    otherUserRole="Doctor"
+                />
+            )}
         </div>
     );
 }

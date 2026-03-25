@@ -72,4 +72,12 @@ export const queryKeys = {
     profile: () => ['patient', 'profile'] as const,
     doctorDetail: (id: string) => ['patient', 'doctors', 'detail', id] as const,
   },
+
+  // ── Chat ─────────────────────────────────────────────────────────────────
+  chat: {
+    conversations: () => ['chat', 'conversations'] as const,
+    conversation: (otherUserId: string, page: number) => ['chat', 'conversation', otherUserId, page] as const,
+    unreadCount: () => ['chat', 'unreadCount'] as const,
+    onlineStatus: (userId: string) => ['chat', 'onlineStatus', userId] as const,
+  },
 };
