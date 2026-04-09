@@ -35,6 +35,7 @@ import { useConfirm } from '@/context/ConfirmContext';
 import html2canvas from 'html2canvas';
 import { EmergencyIDCard } from '@/components/patient/EmergencyIDCard';
 import { patientApi, PatientProfileData } from '@/lib/api/patient';
+import { PageLayout } from '@/components/layout/PageLayout';
 
 export default function QRCodesPage() {
     const { confirm } = useConfirm();
@@ -245,7 +246,8 @@ export default function QRCodesPage() {
     }
 
     return (
-        <div className="max-w-7xl mx-auto space-y-8">
+        <PageLayout>
+            <div className="space-y-8">
             {/* Page Actions */}
             <div className="flex flex-col md:flex-row md:items-center justify-end gap-3">
                 <Button
@@ -600,7 +602,7 @@ export default function QRCodesPage() {
                             initial={{ opacity: 0, scale: 0.95, y: 20 }}
                             animate={{ opacity: 1, scale: 1, y: 0 }}
                             exit={{ opacity: 0, scale: 0.95, y: 20 }}
-                            className="bg-white rounded-[2.5rem] shadow-2xl w-full max-w-md relative z-10 overflow-hidden border border-slate-100">
+                            className="bg-white rounded-[2.5rem] shadow-2xl w-full max-md relative z-10 overflow-hidden border border-slate-100">
 
                             <div className="p-8 pb-4">
                                 <div className="flex items-center justify-between mb-6">
@@ -715,6 +717,7 @@ export default function QRCodesPage() {
                     />
                 </div>
             )}
-        </div>);
-
+            </div>
+        </PageLayout>
+    );
 }

@@ -251,6 +251,15 @@ export const adminApi = {
         return response.data.data;
     },
 
+    getAuditLogs: async (filters: { page?: number; pageSize?: number; action?: string; searchTerm?: string }) => {
+        const response = await axiosInstance.get('admin/audit-logs', { params: filters });
+        const result = response.data.data;
+        return {
+            data: result.logs,
+            pagination: { totalCount: result.totalCount, page: result.page, pageSize: result.pageSize }
+        };
+    },
+
     createPatient(data: any): Promise<any> {
         return axiosInstance.post('/admin/patients', data).then(res => res.data);
     },
@@ -311,13 +320,6 @@ export const adminApi = {
             data: result.users,
             pagination: result.pagination
         };
-    },
-
-    getAuditLogs: async (page = 1) => {
-        const response = await axiosInstance.get('admin/audit-logs', {
-            params: { page }
-        });
-        return response.data.data;
     },
 
     getSystemStats: async () => {
@@ -455,7 +457,31 @@ export const doctorApi = {
     deleteProfilePicture: async () => {
         const response = await axiosInstance.delete('doctor/profile/picture');
         return response.data;
-    }
+    },
+
+    getVitalTrends: (patientId: string) =>
+        axiosInstance.get(`analysis/patient/${patientId}/trends`),
+
+    getMedicationCorrelations: (patientId: string) =>
+        axiosInstance.get(`analysis/patient/${patientId}/medication-correlation`),
+
+    getAbnormalityPatterns: (patientId: string) =>
+        axiosInstance.get(`analysis/patient/${patientId}/abnormality-patterns`),
+
+    getStabilityTimeline: (patientId: string) =>
+        axiosInstance.get(`analysis/patient/${patientId}/stability-timeline`),
+
+    getAnalysisSummary: (patientId: string) =>
+        axiosInstance.get(`analysis/patient/${patientId}/summary`),
+
+    generateAnalysisReport: (patientId: string, fullName: string) =>
+        axiosInstance.post(`analysis/patient/${patientId}/report/generate?patientFullName=${encodeURIComponent(fullName)}`),
+
+    listAnalysisReports: (patientId: string) =>
+        axiosInstance.get(`analysis/patient/${patientId}/report/list`),
+
+    downloadAnalysisReport: (reportId: string) =>
+        axiosInstance.get(`analysis/report/${reportId}/download`, { responseType: 'blob' })
 };
 
 // ─── Patient API ──────────────────────────────────────────────────────────────

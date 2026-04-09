@@ -50,8 +50,8 @@ export function SectionCard({
     className = "" 
 }: SectionCardProps) {
     return (
-        <div className={`group bg-white/70 dark:bg-slate-900/50 backdrop-blur-xl border border-slate-100 dark:border-white/5 rounded-[3rem] p-10 shadow-sm hover:shadow-premium transition-all duration-500 relative overflow-hidden ${className}`}>
-            <div className={`absolute top-0 left-0 w-2 h-0 group-hover:h-full ${themes[accent]} transition-all duration-700`} />
+        <div className={`group/card bg-white/70 dark:bg-slate-900/50 backdrop-blur-xl border border-slate-100 dark:border-white/5 rounded-[3rem] p-10 shadow-sm hover:shadow-premium transition-all duration-500 relative overflow-hidden ${className}`}>
+            <div className={`absolute top-0 left-0 w-2 h-0 group-hover/card:h-full ${themes[accent]} transition-all duration-700`} />
             <div className="flex items-center justify-between gap-4 mb-8">
                 <div className="flex items-center gap-4">
                     <div className={`w-12 h-12 rounded-[1.25rem] ${lightThemes[accent]} flex items-center justify-center group-hover:scale-110 transition-transform duration-500`}>

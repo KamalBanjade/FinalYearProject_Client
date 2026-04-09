@@ -684,7 +684,7 @@ export default function StructuredRecordEntry() {
   // ─── Render ───────────────────────────────────────────────────────────────
 
   return (
-    <div className="max-w-[1400px] mx-auto pb-24 px-4 md:px-8">
+    <div className="w-full flex-1 flex flex-col pb-24">
       <ProgressBar
         currentStep={currentStep}
         onStepClick={(step) => {

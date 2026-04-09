@@ -139,7 +139,7 @@ export default function PatientDataTablePage() {
     ];
 
     return (
-        <div className="max-w-[1600px] mx-auto px-6 md:px-10 py-8 space-y-8 animate-in fade-in slide-in-from-bottom-4 duration-700">
+        <div className="w-full flex-1 flex flex-col space-y-8 animate-in fade-in slide-in-from-bottom-4 duration-700">
             {/* ── HEADER ── */}
             <div className="flex flex-col md:flex-row md:items-center justify-between gap-6">
                 <div className="flex items-center gap-4">

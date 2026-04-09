@@ -174,10 +174,30 @@ export const patientApi = {
         return response.data;
     },
 
-    deleteProfilePicture: async () => {
-        const response = await axiosInstance.delete('patient/profile/picture');
-        return response.data;
-    },
+    deleteProfilePicture: () =>
+        axiosInstance.delete('/patient/profile/picture'),
+
+    // ── Health Analysis ───────────────────────────────────────────────────────
+    getAnalysisSummary: (patientId: string) =>
+        axiosInstance.get(`analysis/patient/${patientId}/summary`),
+
+    getVitalTrends: (patientId: string) =>
+        axiosInstance.get(`analysis/patient/${patientId}/trends`),
+
+    getMedicationCorrelations: (patientId: string) =>
+        axiosInstance.get(`analysis/patient/${patientId}/medication-correlation`),
+
+    getAbnormalityPatterns: (patientId: string) =>
+        axiosInstance.get(`analysis/patient/${patientId}/abnormality-patterns`),
+
+    getStabilityTimeline: (patientId: string) =>
+        axiosInstance.get(`analysis/patient/${patientId}/stability-timeline`),
+
+    generateAnalysisReport: (patientId: string, fullName: string) =>
+        axiosInstance.post(`analysis/patient/${patientId}/report/generate?patientFullName=${encodeURIComponent(fullName)}`),
+
+    downloadAnalysisReport: (reportId: string) =>
+        axiosInstance.get(`analysis/report/${reportId}/download`, { responseType: 'blob' }),
 
     getDashboardStats: async (): Promise<{ success: boolean; message: string; data: PatientStatisticsDTO }> => {
         const response = await axiosInstance.get('patient/statistics/dashboard');

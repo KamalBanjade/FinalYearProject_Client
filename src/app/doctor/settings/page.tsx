@@ -33,6 +33,7 @@ import { motion, AnimatePresence } from 'framer-motion';
 import { SettingsSkeleton } from '@/components/ui/SettingsSkeleton';
 import { useDoctorProfile, useUserDevices } from '@/hooks/useAdminQueries';
 import { useQueryClient } from '@tanstack/react-query';
+import { PageLayout } from '@/components/layout/PageLayout';
 
 // --- Shared Components ---
 
@@ -151,7 +152,7 @@ export default function DoctorSettingsPage() {
     if (loadingProfile || loadingDevices) return <SettingsSkeleton />;
 
     return (
-        <div className="max-w-7xl mx-auto py-12 px-6 lg:px-8 space-y-12">
+        <PageLayout className="space-y-12">
 
             <div className="grid grid-cols-1 lg:grid-cols-12 gap-10">
 
@@ -429,6 +430,6 @@ export default function DoctorSettingsPage() {
                 </div>
             </div>
 
-        </div>
+        </PageLayout>
     );
 }

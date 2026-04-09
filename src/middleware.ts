@@ -24,6 +24,7 @@ const publicRoutes = [
     '/unauthorized',
     '/google/callback',
     '/auth/google/callback',
+    '/policies',
 ];
 
 export function middleware(request: NextRequest) {
@@ -60,7 +61,7 @@ export function middleware(request: NextRequest) {
     if (!token) {
         // If not authenticated and trying to access protected route
         if (!isPublicRoute) {
-            console.info(`[Middleware Diagnostic] Unauthorized access attempt to "${pathname}". Redirecting to /login.`);
+            console.warn(`[Middleware Auth] BLOCKED: No auth_token cookie for protected route "${pathname}". Client must have valid session cookie.`);
             const redirectUrl = new URL('/login', request.url);
             redirectUrl.searchParams.set('returnUrl', pathname);
             return NextResponse.redirect(redirectUrl);

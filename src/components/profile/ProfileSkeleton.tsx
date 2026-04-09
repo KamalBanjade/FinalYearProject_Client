@@ -3,10 +3,11 @@
 import React from 'react';
 import { Skeleton } from '@/components/ui/Skeleton';
 import { User, GraduationCap, Briefcase, Award, Star, Activity, Sparkles, Clock, Phone, Globe, ShieldCheck } from 'lucide-react';
+import { PageLayout } from '@/components/layout/PageLayout';
 
 export function ProfileSkeleton() {
     return (
-        <div className="max-w-7xl mx-auto py-12 px-6 lg:px-8 space-y-12 animate-in fade-in duration-700">
+        <PageLayout className="space-y-12 animate-in fade-in duration-700">
             {/* Header Skeleton */}
             <div className="rounded-[4rem] p-12 bg-white/70 dark:bg-slate-900/70 border border-white/20 dark:border-white/5 shadow-premium flex flex-col lg:flex-row items-center gap-10">
                 <Skeleton className="w-48 h-48 rounded-[3rem]" />
@@ -105,6 +106,6 @@ export function ProfileSkeleton() {
                     </div>
                 </div>
             </div>
-        </div>
+        </PageLayout>
     );
 }

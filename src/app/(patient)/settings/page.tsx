@@ -130,7 +130,7 @@ export default function SettingsHubPage() {
     if (isLoading) return <SettingsSkeleton />;
 
     return (
-        <div className="max-w-4xl mx-auto py-12 px-6 space-y-12 animate-in fade-in duration-700">
+        <div className="w-full flex-1 flex flex-col space-y-12 animate-in fade-in duration-700">
             <div>
                 <h1 className="text-3xl font-black text-slate-900 dark:text-white tracking-tight flex items-center gap-3">
                     <ShieldCheckIcon className="w-8 h-8 text-primary" />

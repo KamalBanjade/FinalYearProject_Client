@@ -80,7 +80,7 @@ export function useAdminPatients(page = 1, search?: string, isActive?: boolean) 
 export function useAuditLogs(page = 1) {
   return useQuery({
     queryKey: queryKeys.admin.auditLogs.list(page),
-    queryFn: () => adminApi.getAuditLogs(page),
+    queryFn: () => adminApi.getAuditLogs({ page }),
     staleTime: STALE.short,
     placeholderData: (prev) => prev,
   });

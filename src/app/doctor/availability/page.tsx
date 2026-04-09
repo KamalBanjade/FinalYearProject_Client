@@ -31,6 +31,7 @@ import { useDoctorSchedule } from '@/hooks/useAdminQueries';
 import { useQueryClient } from '@tanstack/react-query';
 import { queryKeys } from '@/lib/queryKeys';
 import { AvailabilitySkeleton } from '@/components/doctor/AvailabilitySkeleton';
+import { PageLayout } from '@/components/layout/PageLayout';
 
 const DAYS = [
     { value: '0', label: 'Sunday' },
@@ -173,7 +174,7 @@ export default function AvailabilityPage() {
     if (queryLoading || !scheduleRes) return <AvailabilitySkeleton />;
 
     return (
-        <div className="max-w-7xl mx-auto py-12 px-6 lg:px-8 space-y-12 relative overflow-hidden">
+        <PageLayout className="space-y-12 relative overflow-hidden">
             {/* Background Blurs */}
             <div className="absolute top-0 left-1/4 w-[500px] h-[500px] bg-emerald-500/[0.03] rounded-full blur-[120px] -z-10 animate-pulse" />
             <div className="absolute bottom-1/4 right-0 w-[600px] h-[600px] bg-sky-500/[0.03] rounded-full blur-[140px] -z-10" />
@@ -382,6 +383,6 @@ export default function AvailabilityPage() {
                     <span className="text-[9px] font-black text-slate-500 uppercase tracking-[0.4em]">HIPAA Compliant Schedule</span>
                 </div>
             </div>
-        </div>
+        </PageLayout>
     );
 }

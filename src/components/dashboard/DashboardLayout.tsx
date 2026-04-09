@@ -8,6 +8,7 @@ import { useAuthStore } from '@/store/authStore';
 import { ThemeToggle } from '@/components/theme/ThemeToggle';
 import { BottomNav } from '@/components/dashboard/BottomNav';
 import toast from 'react-hot-toast';
+import { NotificationBell } from '@/components/notifications/NotificationBell';
 import {
     DocumentTextIcon,
     CalendarIcon,
@@ -35,6 +36,7 @@ import {
 import { FadeIn } from '@/components/ui/FadeIn';
 import { Card } from '@/components/ui/Card';
 import { Text } from '@/components/ui/Typography';
+import { GlobalFooter } from '@/components/layout/GlobalFooter';
 
 interface SidebarItemProps {
     icon: React.ComponentType<{ className?: string; }>;
@@ -125,6 +127,7 @@ export const DashboardLayout = ({ children, role }: { children: React.ReactNode;
         { icon: FolderPlusIcon, label: 'Upload Record', desc: 'Add new documents to your secure vault', href: '/records/upload', section: 'Health' },
         { icon: CalendarIcon, label: 'Appointments', desc: 'Schedule and manage your doctor visits', href: '/appointments', section: 'Health' },
         { icon: ChatBubbleLeftEllipsisIcon, label: 'Messages', desc: 'Securely communicate with your doctors', href: '/messages', section: 'Health' },
+        { icon: ChartBarIcon, label: 'Health Intelligence', desc: 'Deep-dive clinical analysis of your vitals and medications', href: '/intelligence', section: 'Health' },
         { icon: QrCodeIcon, label: 'QR Codes', desc: 'Manage access links to your medical records', href: '/qr-codes', section: 'Tools' },
         { icon: ExclamationTriangleIcon, label: 'Emergency', desc: 'Critical medical information for first responders', href: '/emergency-settings', section: 'Tools' },
         { icon: IdentificationIcon, label: 'My Profile', desc: 'Manage your personal and medical identity', href: '/profile', section: 'Account' },
@@ -140,7 +143,6 @@ export const DashboardLayout = ({ children, role }: { children: React.ReactNode;
         { icon: CalendarIcon, label: 'Appointments', desc: 'Overview of today\'s clinical schedule', href: '/doctor/appointments', section: 'Patients' },
         { icon: ClockIcon, label: 'Availability', desc: 'Manage your clinical working hours and blocked slots', href: '/doctor/availability', section: 'Patients' },
         { icon: IdentificationIcon, label: 'My Profile', desc: 'Manage your professional identity and license', href: '/doctor/profile', section: 'Account' },
-        { icon: QuestionMarkCircleIcon, label: 'Help Center', desc: 'System documentation and support resources', href: '/doctor/help', section: 'Account' },
         { icon: Cog6ToothIcon, label: 'Settings', desc: 'Manage application and security preferences', href: '/doctor/settings', section: 'Account' }];
 
 
@@ -189,7 +191,7 @@ export const DashboardLayout = ({ children, role }: { children: React.ReactNode;
                 `}>
 
                 {/* Logo Area */}
-                <div className={`flex items-center shrink-0 transition-all duration-500 ease-[cubic-bezier(0.4,0,0.2,1)] border-b border-[var(--border)] ${isCollapsed ? 'h-16 justify-center px-0' : 'h-[100px] px-3 gap-0'}`}>
+                <div className={`flex items-center shrink-0 transition-all duration-500 ease-[cubic-bezier(0.4,0,0.2,1)] border-b border-[var(--border)] h-20 ${isCollapsed ? 'justify-center px-0' : 'px-3 gap-0'}`}>
                     {isCollapsed ?
                         <img src="/images/logo.webp" alt="Logo" className="h-9 w-9 object-contain transition-all duration-500" /> :
 
@@ -266,7 +268,7 @@ export const DashboardLayout = ({ children, role }: { children: React.ReactNode;
                 <header
                     className={`
                         h-20 flex items-center justify-between px-4 md:px-6 shrink-0 
-                        border-b backdrop-blur-md z-10
+                        border-b backdrop-blur-md z-40
                         transition-all duration-500 ease-[cubic-bezier(0.4,0,0.2,1)]
                         rounded-t-2xl mx-1 mt-1 border-x border-t shadow-sm shadow-black/[0.02]
                     `}
@@ -293,6 +295,9 @@ export const DashboardLayout = ({ children, role }: { children: React.ReactNode;
                             <QrCodeIcon className="w-5 h-5" />
                         </button>
 
+                        {/* Notifications (Doctor only) */}
+                        {role === 'Doctor' && <NotificationBell />}
+
                         {/* Dark Mode Toggle */}
                         <ThemeToggle />
 
@@ -304,18 +309,12 @@ export const DashboardLayout = ({ children, role }: { children: React.ReactNode;
                 </header>
 
                 {/* Page Content */}
-                <div
-                    className={`flex-1 flex flex-col overflow-hidden relative z-10 transition-all duration-500 mx-1 mb-1 border-x border-b rounded-b-2xl p-1 md:p-2`}
-                    style={{
-                        background: 'color-mix(in srgb, var(--background) 40%, var(--surface))',
-                        borderColor: 'var(--border)'
-                    }}>
-
-                    <div className="flex-1 w-full overflow-y-auto no-scrollbar rounded-2xl p-4 md:p-6 pb-24 lg:pb-6">
-                        <FadeIn direction="down" distance={10} duration={0.6} key={pathname}>
+                <div className="flex-1 w-full overflow-y-auto no-scrollbar rounded-2xl p-4 md:p-6 pb-32 lg:pb-12">
+                    <FadeIn direction="down" distance={10} duration={0.6} key={pathname}>
+                        <div className="flex flex-col w-full group min-h-full">
                             {children}
-                        </FadeIn>
-                    </div>
+                        </div>
+                    </FadeIn>
                 </div>
 
                 <BottomNav items={items} />

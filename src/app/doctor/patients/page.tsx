@@ -105,7 +105,7 @@ function PatientsContent() {
         }
         return result;
     }, [patients, searchQuery, sortConfig]);    return (
-        <PageLayout className="px-6 md:px-8 max-w-[1800px] mx-auto">
+        <PageLayout>
             <Section>
                 {/* Search, Count & Create Row */}
                 <div className="flex items-center gap-4 bg-white/50 dark:bg-slate-900/50 backdrop-blur-md p-3 rounded-[32px] border border-slate-100 dark:border-slate-800 shadow-sm mb-6">
@@ -228,28 +228,34 @@ function PatientsContent() {
                                 header: 'Actions',
                                 className: 'pr-8 text-right',
                                 accessor: (p: PatientListResponseDTO) => (
-                                    <div className="flex items-center justify-end gap-2.5">
+                                    <div className="flex items-center justify-end gap-2">
                                         <button
                                             onClick={() => router.push(`/doctor/records/new?patientId=${p.id}&source=directory`)}
-                                            className="w-10 h-10 rounded-2xl bg-primary text-white flex items-center justify-center shadow-lg shadow-primary/20 hover:shadow-primary/40 hover:-translate-y-1 transition-all active:scale-90 group/btn"
-                                            title="New Consultation"
+                                            className="h-10 px-3 rounded-2xl bg-primary text-white flex items-center justify-center shadow-lg shadow-primary/20 hover:shadow-primary/40 hover:-translate-y-1 transition-all duration-300 active:scale-90 group/btn"
                                         >
-                                            <FilePlus className="w-4 h-4 group-hover/btn:scale-110 transition-transform" />
+                                            <FilePlus className="w-4 h-4 shrink-0 group-hover/btn:scale-110 transition-transform" />
+                                            <div className="max-w-0 opacity-0 group-hover/btn:max-w-[100px] group-hover/btn:opacity-100 transition-all duration-300 overflow-hidden whitespace-nowrap">
+                                                <span className="font-bold text-[10px] uppercase tracking-widest pl-2 block mt-px">New Record</span>
+                                            </div>
                                         </button>
                                         <button
                                             onClick={() => router.push(`/doctor/patients/${p.id}`)}
-                                            className="w-10 h-10 rounded-2xl bg-white dark:bg-slate-800 border border-slate-100 dark:border-slate-700 text-slate-400 hover:text-primary hover:border-primary/30 flex items-center justify-center shadow-sm hover:shadow-md hover:-translate-y-1 transition-all active:scale-90 group/btn"
-                                            title="View Profile"
+                                            className="h-10 px-3 rounded-2xl bg-white dark:bg-slate-800 border border-slate-100 dark:border-slate-700 text-slate-400 hover:text-primary hover:border-primary/30 flex items-center justify-center shadow-sm hover:shadow-md hover:-translate-y-1 transition-all duration-300 active:scale-90 group/btn"
                                         >
-                                            <Eye className="w-4 h-4 group-hover/btn:scale-110 transition-transform" />
+                                            <Eye className="w-4 h-4 shrink-0 group-hover/btn:scale-110 transition-transform" />
+                                            <div className="max-w-0 opacity-0 group-hover/btn:max-w-[100px] group-hover/btn:opacity-100 transition-all duration-300 overflow-hidden whitespace-nowrap">
+                                                <span className="font-bold text-[10px] uppercase tracking-widest pl-2 block mt-px">Profile</span>
+                                            </div>
                                         </button>
                                         <button
                                             onClick={() => handleDeletePatient(p)}
                                             disabled={isDeleting}
-                                            className="w-10 h-10 rounded-2xl bg-red-50 dark:bg-red-900/20 text-red-500 hover:bg-red-500 hover:text-white flex items-center justify-center shadow-sm transition-all active:scale-90 group/btn disabled:opacity-50"
-                                            title="Delete Patient Entirely"
+                                            className="h-10 px-3 rounded-2xl bg-rose-50 dark:bg-rose-900/20 text-rose-500 hover:bg-rose-500 hover:text-white flex items-center justify-center shadow-sm transition-all duration-300 active:scale-90 group/btn disabled:opacity-50"
                                         >
-                                            <Trash2 className="w-4 h-4 group-hover/btn:scale-110 transition-transform" />
+                                            <Trash2 className="w-4 h-4 shrink-0 group-hover/btn:scale-110 transition-transform" />
+                                            <div className="max-w-0 opacity-0 group-hover/btn:max-w-[100px] group-hover/btn:opacity-100 transition-all duration-300 overflow-hidden whitespace-nowrap">
+                                                <span className="font-bold text-[10px] uppercase tracking-widest pl-2 block mt-px">Remove</span>
+                                            </div>
                                         </button>
                                     </div>
                                 )

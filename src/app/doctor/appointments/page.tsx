@@ -30,6 +30,7 @@ import { DayPicker } from 'react-day-picker';
 import { Activity, CalendarDays, ChevronLeft } from 'lucide-react';
 import { AppointmentSkeleton } from '@/components/ui/AppointmentSkeleton';
 import { Skeleton } from '@/components/ui/Skeleton';
+import { PageLayout } from '@/components/layout/PageLayout';
 
 export default function DoctorAppointmentsDashboard() {
     const router = useRouter();
@@ -89,7 +90,7 @@ export default function DoctorAppointmentsDashboard() {
     };
 
     return (
-        <div className="max-w-7xl mx-auto px-4 py-2 space-y-10 animate-in fade-in slide-in-from-bottom-6 duration-700">
+        <PageLayout className="space-y-10 animate-in fade-in slide-in-from-bottom-6 duration-700">
             {/* Insight Cards */}
             <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
                 <InsightCard title="Total Consults" value={stats.totalAppointments} icon={User} color="primary" isLoading={statsLoading} />
@@ -480,7 +481,7 @@ export default function DoctorAppointmentsDashboard() {
                     }}
                 />
             )}
-        </div>
+        </PageLayout>
     );
 }
 
@@ -541,9 +542,14 @@ function DoctorAppointmentCard({
             : cleanedRelative
         : '';
 
+    // ── Appointment time gate ──────────────────────────────────────────────
+    const appointmentTime = new Date(appointment.appointmentDate);
+    const now = new Date();
+    const isConsultable = now >= appointmentTime && !isHistory;
+
     return (
         <div className="group bg-white dark:bg-slate-900 rounded-[2.5rem] border border-slate-200/60 dark:border-slate-800 px-8 py-7 flex flex-col md:flex-row items-center gap-8 hover:shadow-xl hover:border-primary/30 transition-all duration-300 relative shadow-premium dark:shadow-none overflow-hidden">
-            <div className={`absolute left-0 top-0 bottom-0 w-1.5 ${statusStyles[appointment.status]?.split(' ')[0] || 'bg-slate-100 dark:bg-slate-800'}`} />
+            <div className={`absolute left-0 top-4 bottom-4 w-1.5 rounded-full ${statusStyles[appointment.status]?.split(' ')[0] || 'bg-slate-100 dark:bg-slate-800'}`} />
             <div className="absolute top-0 right-0 w-32 h-32 bg-primary/5 rounded-full blur-3xl -mr-16 -mt-16 opacity-0 group-hover:opacity-100 transition-opacity" />
 
             <div className="flex flex-col items-center justify-center w-28 shrink-0 py-4 bg-slate-50 dark:bg-slate-800/80 rounded-[2.5rem] border border-slate-100 dark:border-slate-700 transition-all group-hover:bg-primary/5 group-hover:border-primary/20 shadow-inner">
@@ -615,24 +621,25 @@ function DoctorAppointmentCard({
 
             <div className="flex flex-col sm:flex-row md:flex-col gap-3 shrink-0 w-full md:w-44">
                 <button
-                    onClick={() => router.push(`/doctor/records/new?patientId=${appointment.patientId}&appointmentId=${appointment.id}&source=appointment`)}
-                    className="
+                    onClick={() => isConsultable && router.push(`/doctor/records/new?patientId=${appointment.patientId}&appointmentId=${appointment.id}&source=appointment`)}
+                    disabled={!isConsultable}
+                    title={!isConsultable ? `Available at ${formatLocalTime(appointment.appointmentDate, 'h:mm a, MMM d')}` : 'Add consultation notes'}
+                    className={`
                         group/btn relative flex-1 h-14 rounded-xl
-                        bg-secondary text-white
-                        border border-primary
-                        hover:bg-primary/90 hover:scale-[1.02]
+                        border
                         transition-all duration-300
                         font-black text-[10px] uppercase tracking-[0.2em]
                         flex items-center justify-center gap-3
-                        active:scale-95
-                        shadow-lg shadow-primary/20
                         overflow-hidden
-                        cursor-pointer
                         p-2
-                    "
+                        ${isConsultable
+                            ? 'bg-secondary text-white border-primary hover:bg-primary/90 hover:scale-[1.02] active:scale-95 shadow-lg shadow-primary/20 cursor-pointer'
+                            : 'bg-slate-100 dark:bg-slate-800/50 text-slate-400 dark:text-slate-600 border-slate-200 dark:border-slate-700 cursor-not-allowed opacity-60'
+                        }
+                    `}
                 >
                     <div className="absolute inset-0 bg-white/10 opacity-0 group-hover/btn:opacity-100 transition-opacity duration-300 pointer-events-none" />
-                    <Stethoscope className="w-4 h-4 transition-transform duration-500 group-hover/btn:rotate-12" />
+                    <Stethoscope className={`w-4 h-4 transition-transform duration-500 ${isConsultable ? 'group-hover/btn:rotate-12' : ''}`} />
                     <span className="relative">Add Consultation</span>
                 </button>
                 <button

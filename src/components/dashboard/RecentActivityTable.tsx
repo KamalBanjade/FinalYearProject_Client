@@ -37,7 +37,7 @@ export function RecentActivityTable() {
 
     const { data, isLoading } = useAuditLogs(1);
 
-    const logs = data?.logs || [];
+    const logs = data?.data || [];
     const loading = isLoading;
 
     return (

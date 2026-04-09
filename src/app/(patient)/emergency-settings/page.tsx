@@ -28,6 +28,7 @@ import { zodResolver } from '@hookform/resolvers/zod';
 import * as z from 'zod';
 import { patientApi, EmergencySettingsDTO } from '@/lib/api/patient';
 import { EmergencySkeleton } from '@/components/ui/EmergencySkeleton';
+import { PageLayout } from '@/components/layout/PageLayout';
 
 // ── Schema ────────────────────────────────────────────────────────────────
 const emergencySchema = z.object({
@@ -227,12 +228,8 @@ export default function EmergencySettingsPage() {
     }
 
     return (
-        <motion.div
-            initial="hidden"
-            animate="visible"
-            variants={container}
-            className="max-w-7xl mx-auto px-5 sm:px-8 lg:px-12 py-10 lg:py-16 space-y-16 pb-40"
-        >
+        <PageLayout>
+            <div className="space-y-16 pb-40">
             <form onSubmit={handleSubmit(onSubmit)} className="space-y-16">
                 <div className="grid lg:grid-cols-12 gap-10 xl:gap-12">
                     {/* ── Left ── Medical Info ──────────────────────────────────────── */}
@@ -607,6 +604,7 @@ export default function EmergencySettingsPage() {
                     </div>
                 )}
             </AnimatePresence>
-        </motion.div>
+            </div>
+        </PageLayout>
     );
 }

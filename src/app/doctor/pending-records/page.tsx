@@ -13,6 +13,7 @@ import { ChevronRight } from 'lucide-react';
 import { useDoctorPendingRecords } from '@/hooks/useAdminQueries';
 import { ResponsiveTable } from '@/components/data-display/ResponsiveTable';
 import { DirectorySkeleton } from '@/components/ui/DirectorySkeleton';
+import { PageLayout } from '@/components/layout/PageLayout';
 
 function PendingRecordsContent() {
     const [selectedRecord, setSelectedRecord] = useState<MedicalRecordResponseDTO | null>(null);
@@ -32,7 +33,7 @@ function PendingRecordsContent() {
     );
 
     return (
-        <div className="max-w-7xl mx-auto px-4 md:px-8 pt-2 pb-12 space-y-6 animate-in fade-in duration-500">
+        <PageLayout className="space-y-6">
             {/* Toolbar */}
             <div className="flex flex-col lg:flex-row items-center gap-4 bg-white/50 dark:bg-slate-900/50 backdrop-blur-md p-4 rounded-3xl border border-slate-100 dark:border-slate-800 shadow-sm">
                 <div className="relative flex-1 group w-full">
@@ -162,7 +163,7 @@ function PendingRecordsContent() {
                     onSuccess={handleReviewSuccess}
                 />
             )}
-        </div>
+        </PageLayout>
     );
 }
 

@@ -43,7 +43,7 @@ const PREFETCH_MAP: Record<string, PrefetchFn> = {
 
   '/admin/audit-logs': (qc) => qc.prefetchQuery({
     queryKey: queryKeys.admin.auditLogs.list(1),
-    queryFn: () => adminApi.getAuditLogs(1),
+    queryFn: () => adminApi.getAuditLogs({ page: 1 }),
     staleTime: 1000 * 30,
   }),
 

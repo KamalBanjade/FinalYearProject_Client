@@ -65,7 +65,7 @@ function RecordContent() {
     ];
 
     return (
-        <div className="max-w-5xl mx-auto px-6 py-10 space-y-8 animate-in fade-in duration-500 print:p-0 print:m-0 print:max-w-none">
+        <div className="w-full flex-1 flex flex-col space-y-8 animate-in fade-in duration-500 print:p-0 print:m-0">
             {/* ── HEADER ACTION BAR ── */}
             <div className="flex flex-col md:flex-row md:items-center justify-between gap-6 print:hidden">
                 <div className="flex items-center gap-4">

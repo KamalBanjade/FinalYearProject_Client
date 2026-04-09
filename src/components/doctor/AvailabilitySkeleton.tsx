@@ -3,10 +3,11 @@
 import React from 'react';
 import { Skeleton } from '@/components/ui/Skeleton';
 import { Timer, XCircle } from 'lucide-react';
+import { PageLayout } from '@/components/layout/PageLayout';
 
 export function AvailabilitySkeleton() {
     return (
-        <div className="max-w-7xl mx-auto py-12 px-6 lg:px-8 space-y-12 animate-in fade-in duration-700">
+        <PageLayout className="space-y-12 animate-in fade-in duration-700">
             <div className="grid grid-cols-1 lg:grid-cols-12 gap-10">
                 {/* Left: Schedule Skeleton */}
                 <div className="lg:col-span-8 space-y-10">
@@ -97,6 +98,6 @@ export function AvailabilitySkeleton() {
                     </div>
                 </div>
             </div>
-        </div>
+        </PageLayout>
     );
 }

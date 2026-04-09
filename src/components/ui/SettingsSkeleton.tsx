@@ -6,7 +6,7 @@ import { ShieldCheck, Palette, Building2 } from 'lucide-react';
 
 export function SettingsSkeleton() {
     return (
-        <div className="max-w-7xl mx-auto py-12 px-6 lg:px-8 space-y-12 animate-in fade-in duration-700">
+        <div className="py-12 space-y-12 animate-in fade-in duration-700">
             <div className="grid grid-cols-1 lg:grid-cols-12 gap-10">
                 {/* Left Column: Security Hub Skeleton */}
                 <div className="lg:col-span-8 space-y-10">

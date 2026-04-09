@@ -5,7 +5,7 @@ import { Skeleton } from './Skeleton';
 
 export function EmergencySkeleton() {
     return (
-        <div className="max-w-7xl mx-auto px-5 sm:px-8 lg:px-12 py-10 lg:py-16 space-y-16 pb-40">
+        <div className="py-10 lg:py-16 space-y-16 pb-40">
             <div className="grid lg:grid-cols-12 gap-10 xl:gap-12">
                 {/* ── Left ── Medical Info Skeleton ──────────────────────────────── */}
                 <div className="lg:col-span-8 space-y-12">

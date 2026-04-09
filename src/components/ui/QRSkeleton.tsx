@@ -5,7 +5,7 @@ import { Skeleton } from './Skeleton';
 
 export function QRSkeleton() {
     return (
-        <div className="max-w-7xl mx-auto space-y-8 animate-in fade-in duration-500">
+        <div className="space-y-8 animate-in fade-in duration-500">
             {/* Action Bar Skeleton */}
             <div className="flex flex-col md:flex-row md:items-center justify-end gap-3">
                 <Skeleton className="h-11 w-40 rounded-xl" />

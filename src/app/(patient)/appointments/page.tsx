@@ -31,6 +31,7 @@ import { motion, AnimatePresence } from 'framer-motion';
 import { InsightCard } from '@/components/cards/InsightCard';
 import { PatientAppointmentCard } from '@/components/patient/PatientAppointmentCard';
 import { AppointmentSkeleton } from '@/components/ui/AppointmentSkeleton';
+import { PageLayout } from '@/components/layout/PageLayout';
 
 export default function PatientAppointmentsPage() {
     const queryClient = useQueryClient();
@@ -131,7 +132,8 @@ export default function PatientAppointmentsPage() {
     };
 
     return (
-        <div className="max-w-7xl mx-auto px-4 py-8 space-y-10">
+        <PageLayout>
+            <div className="space-y-10">
 
             {/* Insight Cards */}
             <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 md:gap-6">
@@ -268,7 +270,8 @@ export default function PatientAppointmentsPage() {
                     />
                 )}
             </AnimatePresence>
-        </div>
+            </div>
+        </PageLayout>
     );
 }
 

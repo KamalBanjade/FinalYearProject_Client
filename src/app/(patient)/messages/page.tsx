@@ -13,6 +13,7 @@ import { OnlineStatus } from '@/components/chat/OnlineStatus';
 import { NewChatModal } from '@/components/chat/NewChatModal';
 import { Modal } from '@/components/ui/Modal';
 import Image from 'next/image';
+import { PageLayout } from '@/components/layout/PageLayout';
 
 export default function PatientMessagesPage() {
   const { user } = useAuthStore();
@@ -129,7 +130,8 @@ export default function PatientMessagesPage() {
   if (!user) return null;
 
   return (
-    <div className="flex flex-col h-[calc(100vh-180px)] max-w-7xl mx-auto w-full animate-in fade-in duration-500">
+    <PageLayout withPadding={false}>
+      <div className="flex flex-col h-[calc(100vh-180px)] w-full animate-in fade-in duration-500">
       {/* Premium Chat Card */}
       <div className="flex-1 flex bg-white dark:bg-slate-900 rounded-[2.5rem] border border-slate-100 dark:border-slate-800 shadow-2xl shadow-indigo-500/5 overflow-hidden">
 
@@ -383,6 +385,7 @@ export default function PatientMessagesPage() {
           </div>
         </div>
       </Modal>
-    </div>
+      </div>
+    </PageLayout>
   );
 }

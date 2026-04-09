@@ -129,7 +129,7 @@ export default function DoctorMessagesPage() {
   if (!user) return null;
 
   return (
-    <div className="flex flex-col h-[calc(100vh-180px)] max-w-7xl mx-auto w-full animate-in fade-in duration-500">
+    <div className="flex flex-col h-[calc(100vh-180px)] w-full animate-in fade-in duration-500">
       {/* Premium Chat Card */}
       <div className="flex-1 flex bg-white dark:bg-slate-900 rounded-[2.5rem] border border-slate-100 dark:border-slate-800 shadow-2xl shadow-indigo-500/5 overflow-hidden">
 

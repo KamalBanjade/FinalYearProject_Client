@@ -13,6 +13,7 @@ import Link from 'next/link';
 import { templatesApi } from '@/lib/api/templatesApi';
 import { TemplateDTO } from '@/lib/api/templates';
 import toast from 'react-hot-toast';
+import { PageLayout } from '@/components/layout/PageLayout';
 
 export default function TemplatesPage() {
   const [activeTab, setActiveTab] = useState<'my' | 'dept' | 'hosp'>('my');
@@ -136,7 +137,7 @@ export default function TemplatesPage() {
   );
 
   return (
-    <div className="max-w-7xl mx-auto space-y-10 pb-20 px-4">
+    <PageLayout className="space-y-10 pb-20">
       {/* Header Section */}
       <div className="flex flex-col lg:flex-row lg:items-end justify-between gap-6">
         <div>
@@ -249,6 +250,6 @@ export default function TemplatesPage() {
            </div>
         </div>
       </div>
-    </div>
+    </PageLayout>
   );
 }

@@ -4,6 +4,7 @@ import React, { useEffect, useState, useMemo } from 'react';
 import { useRouter } from 'next/navigation';
 import { useAuthStore } from '@/store/authStore';
 import { patientApi, PatientProfileData, UpdatePatientProfileRequest, SmartDoctorSuggestionDTO, DoctorSuggestionItem } from '@/lib/api/patient';
+import { PageLayout } from '@/components/layout/PageLayout';
 import { Button } from '@/components/ui/Button';
 import { Input } from '@/components/ui/Input';
 import {
@@ -206,7 +207,8 @@ export default function PatientProfilePage() {
     }
 
     return (
-        <div className="max-w-7xl mx-auto py-12 px-6 lg:px-8 space-y-16">
+        <PageLayout>
+            <div className="space-y-16">
 
             {/* Premium Header */}
             <div className={`flex flex-col md:flex-row items-center justify-between gap-8 border-b transition-all duration-700 pb-12 ${isEditing ? 'border-primary/20 bg-primary/5 rounded-[3rem] p-12 -mx-12' : 'border-slate-100 dark:border-slate-800'}`}>
@@ -488,6 +490,7 @@ export default function PatientProfilePage() {
                     </motion.div>
                 )}
             </AnimatePresence>
-        </div>
+            </div>
+        </PageLayout>
     );
 }

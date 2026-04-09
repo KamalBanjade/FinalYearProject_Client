@@ -24,6 +24,7 @@ import { useDoctorProfile } from '@/hooks/useAdminQueries';
 import { useQueryClient } from '@tanstack/react-query';
 import { queryKeys } from '@/lib/queryKeys';
 import { ProfileSkeleton } from '@/components/profile/ProfileSkeleton';
+import { PageLayout } from '@/components/layout/PageLayout';
 
 // ── Helpers ───────────────────────────────────────────────────────────────────
 
@@ -306,7 +307,7 @@ export default function DoctorProfilePage() {
     if (!profile) return null;
 
     return (
-        <div className="relative max-w-7xl mx-auto py-12 px-6 lg:px-8 space-y-12 overflow-hidden">
+        <PageLayout className="relative space-y-12 overflow-hidden">
             {/* Background Decorative Blurs */}
             <motion.div 
                 animate={{ 
@@ -785,6 +786,6 @@ export default function DoctorProfilePage() {
                     </button>
                 </motion.div>
             )}
-        </div>
+        </PageLayout>
     );
 }

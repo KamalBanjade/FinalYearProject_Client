@@ -5,7 +5,7 @@ import { Skeleton } from './Skeleton';
 
 export function VaultSkeleton() {
     return (
-        <div className="max-w-6xl mx-auto space-y-8 pb-16">
+        <div className="space-y-8 pb-16">
             {/* Action Bar Skeleton */}
             <div className="flex flex-col md:flex-row justify-end items-center gap-3">
                 <Skeleton className="h-12 w-full md:w-48 rounded-xl" />

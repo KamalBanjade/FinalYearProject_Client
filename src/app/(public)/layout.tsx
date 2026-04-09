@@ -2,24 +2,28 @@
 
 import React from 'react';
 import Link from 'next/link';
-
+import { GlobalFooter } from '@/components/layout/GlobalFooter';
 export default function PublicLayout({ children }: { children: React.ReactNode }) {
     return (
-        <div className="min-h-screen flex flex-col bg-slate-50">
-            <header className="bg-white border-b border-slate-200">
-                <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 h-16 flex items-center justify-between">
-                    <Link href="/" className="flex items-center gap-2">
-                        <div className="w-8 h-8 bg-indigo-600 rounded-lg flex items-center justify-center font-bold text-white text-sm">
-                            MR
+        <div className="min-h-screen flex flex-col bg-slate-50 dark:bg-slate-900 transition-colors">
+            <header className="bg-white/80 dark:bg-slate-900/80 backdrop-blur-md border-b border-slate-200 dark:border-white/5 sticky top-0 z-50">
+                <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 h-20 flex items-center justify-between">
+                    <Link href="/" className="flex items-center gap-3">
+                        <img src="/images/logo.webp" alt="Logo" className="h-9 w-auto object-contain" />
+                        <div className="flex flex-col">
+                            <div className="flex items-center gap-1">
+                                <span className="text-lg font-black text-slate-900 dark:text-white tracking-tight uppercase">Sajilo</span>
+                                <span className="text-lg font-black text-indigo-600 tracking-tight uppercase">स्वास्थ्य</span>
+                            </div>
                         </div>
-                        <span className="font-bold text-xl text-slate-900 tracking-tight">MedRecord</span>
                     </Link>
 
                     <nav className="hidden md:flex items-center gap-8">
-                        <Link href="/about" className="text-sm font-medium text-slate-600 hover:text-slate-900 transition-colors">About</Link>
-                        <Link href="/contact" className="text-sm font-medium text-slate-600 hover:text-slate-900 transition-colors">Contact</Link>
-                        <Link href="/login" className="px-4 py-2 text-sm font-bold text-indigo-600 border border-indigo-200 rounded-full hover:bg-slate-50 transition-all">Sign In</Link>
-                        <Link href="/register" className="px-4 py-2 text-sm font-bold text-white bg-indigo-600 rounded-full hover:bg-indigo-700 shadow-md transition-all">Get Started</Link>
+                        <Link href="/about" className="text-[10px] font-black uppercase tracking-widest text-slate-500 hover:text-indigo-600 transition-colors">About</Link>
+                        <Link href="/contact" className="text-[10px] font-black uppercase tracking-widest text-slate-500 hover:text-indigo-600 transition-colors">Contact</Link>
+                        <div className="h-6 w-px bg-slate-200 dark:bg-white/10" />
+                        <Link href="/login" className="px-5 py-2 text-[10px] font-black uppercase tracking-widest text-slate-600 dark:text-slate-300 border border-slate-200 dark:border-slate-800 rounded-xl hover:bg-slate-50 dark:hover:bg-white/5 transition-all">Sign In</Link>
+                        <Link href="/register" className="px-5 py-2 text-[10px] font-black uppercase tracking-widest text-white bg-indigo-600 rounded-xl hover:bg-indigo-700 shadow-lg shadow-indigo-100 dark:shadow-none transition-all">Get Started</Link>
                     </nav>
                 </div>
             </header>
@@ -28,35 +32,7 @@ export default function PublicLayout({ children }: { children: React.ReactNode }
                 {children}
             </main>
 
-            <footer className="bg-slate-900 text-slate-400 py-12">
-                <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-                    <div className="grid grid-cols-2 md:grid-cols-4 gap-8 mb-12">
-                        <div className="col-span-2">
-                            <span className="text-white font-bold text-xl mb-4 block">MedRecord</span>
-                            <p className="max-w-xs text-sm">
-                                Secure, decentralized, and accessible medical records management system for modern healthcare.
-                            </p>
-                        </div>
-                        <div>
-                            <h4 className="text-white font-bold mb-4 text-sm uppercase tracking-wider">Legal</h4>
-                            <ul className="space-y-2 text-sm">
-                                <li><Link href="/privacy" className="hover:text-white transition-colors">Privacy Policy</Link></li>
-                                <li><Link href="/terms" className="hover:text-white transition-colors">Terms of Service</Link></li>
-                            </ul>
-                        </div>
-                        <div>
-                            <h4 className="text-white font-bold mb-4 text-sm uppercase tracking-wider">Help</h4>
-                            <ul className="space-y-2 text-sm">
-                                <li><Link href="/contact" className="hover:text-white transition-colors">Contact Support</Link></li>
-                                <li><Link href="/about" className="hover:text-white transition-colors">About Us</Link></li>
-                            </ul>
-                        </div>
-                    </div>
-                    <div className="pt-8 border-t border-slate-800 text-center text-xs">
-                        © {new Date().getFullYear()} Medical Record System. All rights reserved.
-                    </div>
-                </div>
-            </footer>
+            <GlobalFooter />
         </div>
     );
 }

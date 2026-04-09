@@ -34,6 +34,7 @@ import Link from 'next/link';
 import { useConfirm } from '@/context/ConfirmContext';
 import { formatDate, normalizeUTC } from '@/lib/utils/dateUtils';
 import { VaultSkeleton } from '@/components/ui/VaultSkeleton';
+import { PageLayout } from '@/components/layout/PageLayout';
 
 function PatientRecordsPageInner() {
     const queryClient = useQueryClient();
@@ -178,7 +179,8 @@ function PatientRecordsPageInner() {
     }, [allRecords]);
 
     return (
-        <div className="max-w-6xl mx-auto space-y-10 pb-16">
+        <PageLayout>
+            <div className="space-y-10 pb-16">
             {error && (
                 <div className="p-4 bg-rose-50 dark:bg-rose-900/10 text-rose-600 dark:text-rose-400 rounded-xl flex items-center gap-3 text-sm font-bold border border-rose-100 dark:border-rose-900/50">
                     <AlertCircle className="w-5 h-5" />
@@ -378,7 +380,8 @@ function PatientRecordsPageInner() {
                     </div>
                 </div>
             )}
-        </div>
+            </div>
+        </PageLayout>
     );
 }
 
