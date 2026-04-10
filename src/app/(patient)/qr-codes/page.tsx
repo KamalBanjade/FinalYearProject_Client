@@ -345,7 +345,9 @@ export default function QRCodesPage() {
                                         <div className="grid grid-cols-2 gap-4 pt-2">
                                             <div className="space-y-1">
                                                 <p className="text-[10px] font-black text-slate-400 dark:text-slate-500 uppercase tracking-widest">Expires</p>
-                                                <p className="text-sm font-bold text-slate-700 dark:text-slate-300">{format(new Date(normalCode.expiresAt), 'MMM dd, yyyy')}</p>
+                                                <p className="text-sm font-bold text-slate-700 dark:text-slate-300">
+                                                    {format(new Date(normalCode.expiresAt), 'MMM dd, yyyy • hh:mm a')}
+                                                </p>
                                             </div>
                                             <div className="space-y-1">
                                                 <p className="text-[10px] font-black text-slate-400 dark:text-slate-500 uppercase tracking-widest">Scans</p>
@@ -457,11 +459,13 @@ export default function QRCodesPage() {
                                         <div className="grid grid-cols-2 gap-4 pt-2">
                                             <div className="space-y-1">
                                                 <p className="text-[10px] font-black text-rose-400 dark:text-rose-500 uppercase tracking-widest">Expires</p>
-                                                <p className="text-sm font-bold text-slate-700 dark:text-slate-300">{format(new Date(emergencyCode.expiresAt), 'MMM dd, yyyy')}</p>
+                                                <p className="text-sm font-bold text-slate-700 dark:text-slate-300">
+                                                    {format(new Date(emergencyCode.expiresAt), 'MMM dd, yyyy • hh:mm a')}
+                                                </p>
                                             </div>
                                             <div className="space-y-1">
                                                 <p className="text-[10px] font-black text-rose-400 dark:text-rose-500 uppercase tracking-widest">Safety Scan</p>
-                                                <p className="text-sm font-bold text-slate-700 dark:text-slate-300">{emergencyCode.lastAccessedAt ? format(new Date(emergencyCode.lastAccessedAt), 'MMM dd') : 'Never used'}</p>
+                                                <p className="text-sm font-bold text-slate-700 dark:text-slate-300">{emergencyCode.lastAccessedAt ? format(new Date(emergencyCode.lastAccessedAt), 'MMM dd, yyyy • hh:mm a') : 'Never used'}</p>
                                             </div>
                                         </div>
 
@@ -560,10 +564,16 @@ export default function QRCodesPage() {
                                                 }
                                             </td>
                                             <td className="px-8 py-5 text-sm font-semibold text-slate-600 dark:text-slate-400">
-                                                {format(new Date(code.createdAt), 'MMM dd, HH:mm')}
+                                                <div className="flex flex-col">
+                                                    <span className="text-slate-900 dark:text-slate-200">{format(new Date(code.createdAt), 'MMM dd, yyyy')}</span>
+                                                    <span className="text-[10px] text-slate-400 font-bold uppercase tracking-tighter">{format(new Date(code.createdAt), 'hh:mm a')}</span>
+                                                </div>
                                             </td>
                                             <td className="px-8 py-5 text-sm font-semibold text-slate-600 dark:text-slate-400">
-                                                {format(new Date(code.expiresAt), 'MMM dd, yyyy')}
+                                                <div className="flex flex-col">
+                                                    <span className="text-slate-900 dark:text-slate-200">{format(new Date(code.expiresAt), 'MMM dd, yyyy')}</span>
+                                                    <span className="text-[10px] text-slate-400 font-bold uppercase tracking-tighter">{format(new Date(code.expiresAt), 'hh:mm a')}</span>
+                                                </div>
                                             </td>
                                             <td className="px-8 py-5">
                                                 <div className="flex items-center gap-2">
@@ -602,7 +612,7 @@ export default function QRCodesPage() {
                             initial={{ opacity: 0, scale: 0.95, y: 20 }}
                             animate={{ opacity: 1, scale: 1, y: 0 }}
                             exit={{ opacity: 0, scale: 0.95, y: 20 }}
-                            className="bg-white rounded-[2.5rem] shadow-2xl w-full max-md relative z-10 overflow-hidden border border-slate-100">
+                            className="bg-white rounded-[2.5rem] shadow-2xl w-full max-w-md relative z-10 overflow-hidden border border-slate-100">
 
                             <div className="p-8 pb-4">
                                 <div className="flex items-center justify-between mb-6">

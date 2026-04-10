@@ -52,6 +52,9 @@ export interface UpdatePatientProfileRequest {
     emergencyContactRelationship?: string;
     allergies?: string;
     chronicConditions?: string;
+    gender?: string;
+    phoneNumber?: string;
+    dateOfBirth?: string;
 }
 
 export interface EmergencySettingsDTO {
