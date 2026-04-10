@@ -33,12 +33,6 @@ const apiUrl = process.env.NEXT_PUBLIC_API_URL ?? `http://${localIp}:5004/api`;
 const appUrl = process.env.NEXT_PUBLIC_APP_URL ?? `http://${localIp}:3000`;
 const backendOrigin = apiUrl.replace(/\/api$/, "");
 
-console.info(`\n======================================================
-🌐 [Sajilo Swasthya] Quick Access Links:
-   ↳ App: ${appUrl}
-   ↳ API: ${apiUrl}
-======================================================\n`);
-
 const nextConfig: NextConfig = {
   images: {
     remotePatterns: [

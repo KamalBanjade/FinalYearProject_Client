@@ -711,8 +711,8 @@ function MedicationImpactCard({ med }: { med: MedicationCorrelation }) {
         <div className="space-y-4">
           <p className="text-[10px] font-black text-muted uppercase tracking-widest">Vital Signs: Before vs After</p>
           <div className="h-[280px] w-full">
-            <ResponsiveContainer width="99%" height="100%">
-              {radarData.length >= 3 ? (
+            {radarData.length >= 3 ? (
+              <ResponsiveContainer width="99%" height="100%">
                 <RadarChart data={radarData}>
                   <PolarGrid stroke="var(--border)" strokeOpacity={0.5} />
                   <PolarAngleAxis dataKey="vital" tick={{ fontSize: 10, fill: 'var(--muted)', fontWeight: 700 }} />
@@ -721,14 +721,14 @@ function MedicationImpactCard({ med }: { med: MedicationCorrelation }) {
                   <Radar name="After" dataKey="after" stroke="var(--primary)" fill="var(--primary)" fillOpacity={0.15} strokeWidth={3} />
                   <Tooltip contentStyle={tooltipStyle} isAnimationActive={false} />
                 </RadarChart>
-              ) : (
-                <div className="flex flex-col items-center justify-center h-full text-center p-8 bg-surface-2/30 rounded-3xl border border-dashed border-border">
-                  <Activity size={24} className="text-muted/40 mb-3" />
-                  <p className="text-[10px] font-black text-muted uppercase tracking-widest">Radar Mapping Disabled</p>
-                  <p className="text-[9px] text-muted/60 mt-1 max-w-[200px]">Requires at least 3 clinical parameters for structural analysis.</p>
-                </div>
-              )}
-            </ResponsiveContainer>
+              </ResponsiveContainer>
+            ) : (
+              <div className="flex flex-col items-center justify-center h-full text-center p-8 bg-surface-2/30 rounded-3xl border border-dashed border-border">
+                <Activity size={24} className="text-muted/40 mb-3" />
+                <p className="text-[10px] font-black text-muted uppercase tracking-widest">Radar Mapping Disabled</p>
+                <p className="text-[9px] text-muted/60 mt-1 max-w-[200px]">Requires at least 3 clinical parameters for structural analysis.</p>
+              </div>
+            )}
           </div>
         </div>
 
