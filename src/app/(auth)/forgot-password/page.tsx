@@ -60,14 +60,14 @@ export default function ForgotPasswordPage() {
   };
 
   return (
-    <div className="relative z-10 w-full max-w-[500px] bg-white p-10 rounded-[40px] shadow-xl border border-slate-50 space-y-10 transition-all duration-500">
+    <div className="relative z-10 w-full max-w-[500px] bg-white dark:bg-slate-900 p-10 rounded-[40px] shadow-xl border border-slate-50 dark:border-slate-800 space-y-10 transition-all duration-500">
             <div className="text-center space-y-4 mb-10">
                 <div className="flex justify-center mb-6">
-                    <div className="p-4 bg-gradient-to-b from-secondary/10 to-white/0 rounded-[24px] relative group transition-all duration-500 hover:scale-105">
+                    <div className="p-4 bg-gradient-to-b from-secondary/10 to-white/0 dark:from-secondary/20 dark:to-transparent rounded-[24px] relative group transition-all duration-500 hover:scale-105">
                         <img
               src="/images/logo.webp"
               alt="सजिलो स्वास्थ्य"
-              className="h-20 w-auto object-contain drop-shadow-sm" />
+              className="h-20 w-auto object-contain drop-shadow-sm dark:brightness-110" />
             
                     </div>
                 </div>
@@ -76,16 +76,16 @@ export default function ForgotPasswordPage() {
                         <img
               src="/images/sajilo.webp"
               alt="सजिलो"
-              className="h-20 w-36 object-contain translate-x-[-32px]" />
+              className="h-20 w-36 object-contain translate-x-[-32px] dark:brightness-110" />
             
                         <span
-              className="absolute text-[18px] font-semibold text-secondary tracking-[0.05em] font-amita inline-block scale-x-110"
+              className="absolute text-[18px] font-semibold text-secondary dark:text-secondary-light tracking-[0.05em] font-amita inline-block scale-x-110"
               style={{ bottom: '8px', right: '2px' }}>
               
                             स्वास्थ्य
                         </span>
                     </div>
-                    <p className="text-slate-400 font-bold text-[12px] uppercase tracking-[0.25em] opacity-80 mt-2">
+                    <p className="text-slate-400 dark:text-slate-500 font-bold text-[12px] uppercase tracking-[0.25em] opacity-80 mt-2">
                         {isSuccess ?
             "Reset link sent successfully" :
             "Recover your account access"}

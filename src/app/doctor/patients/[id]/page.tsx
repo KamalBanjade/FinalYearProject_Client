@@ -181,8 +181,16 @@ function ProfileContent() {
                 {/* Left: Identity Block */}
                 <div className="p-6 sm:p-8 lg:p-10 flex flex-col sm:flex-row items-center gap-6 lg:border-r border-slate-50 dark:border-slate-800 lg:min-w-[400px]">
                     <div className="relative shrink-0">
-                        <div className="w-20 h-20 sm:w-24 sm:h-24 rounded-[2rem] sm:rounded-3xl bg-indigo-600 flex items-center justify-center text-white text-2xl sm:text-3xl font-black shadow-lg shadow-indigo-100 dark:shadow-none">
-                            {patient.firstName[0]}{patient.lastName[0]}
+                        <div className="w-20 h-20 sm:w-24 sm:h-24 rounded-[2rem] sm:rounded-3xl bg-indigo-600 flex items-center justify-center text-white text-2xl sm:text-3xl font-black shadow-lg shadow-indigo-100 dark:shadow-none overflow-hidden">
+                            {patient.profilePictureUrl ? (
+                                <img 
+                                    src={patient.profilePictureUrl} 
+                                    alt={`${patient.firstName} ${patient.lastName}`}
+                                    className="w-full h-full object-cover"
+                                />
+                            ) : (
+                                <>{patient.firstName[0]}{patient.lastName[0]}</>
+                            )}
                         </div>
                         <div className="absolute -bottom-1 -right-1 w-6 h-6 bg-emerald-500 border-4 border-white dark:border-slate-900 rounded-full" />
                     </div>
@@ -479,7 +487,7 @@ function ProfileContent() {
 
 function PatientProfileSkeleton() {
     return (
-        <div className="max-w-[1600px] mx-auto px-6 md:px-10 py-8 space-y-8 animate-in fade-in duration-700">
+        <div className="w-full flex-1 flex flex-col space-y-8 animate-in fade-in duration-700">
             {/* Header Skeleton */}
             <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
                 <div className="flex items-center gap-4">
@@ -508,35 +516,50 @@ function PatientProfileSkeleton() {
                 <div className="flex-1 p-8 grid grid-cols-2 md:grid-cols-4 gap-8">
                     {[1, 2, 3, 4].map(i => (
                         <div key={i} className="space-y-3">
-                            <Skeleton className="w-16 h-3 rounded-md" />
+                            <Skeleton className="w-12 h-3 rounded-md" />
                             <Skeleton className="w-full h-6 rounded-lg" />
                         </div>
                     ))}
                 </div>
+                {/* Identity Actions Skeleton */}
+                <div className="p-8 bg-slate-50/30 dark:bg-slate-800/20 flex flex-row lg:flex-col justify-center gap-3">
+                    <Skeleton className="w-24 h-12 rounded-xl" />
+                    <Skeleton className="w-24 h-12 rounded-xl" />
+                </div>
             </div>
 
-            {/* Content Area Skeleton */}
-            <div className="grid grid-cols-1 lg:grid-cols-12 gap-10">
-                <div className="lg:col-span-8 space-y-6">
-                    <div className="bg-white dark:bg-slate-900 rounded-[2.5rem] border border-slate-100 dark:border-slate-800 p-8 space-y-8">
-                        <div className="flex justify-between items-center">
-                            <div className="space-y-2">
-                                <Skeleton className="w-40 h-8 rounded-lg" />
-                                <Skeleton className="w-64 h-3 rounded-md" />
-                            </div>
-                            <Skeleton className="w-48 h-12 rounded-2xl" />
+            {/* Content Area Skeleton - Now Full Width */}
+            <div className="lg:col-span-12 space-y-6">
+                <div className="bg-white dark:bg-slate-900 rounded-[2.5rem] border border-slate-100 dark:border-slate-800 p-8 space-y-8">
+                    <div className="flex justify-between items-center">
+                        <div className="space-y-2">
+                            <Skeleton className="w-40 h-8 rounded-lg" />
+                            <Skeleton className="w-64 h-3 rounded-md" />
                         </div>
-                        <Skeleton className="w-full h-12 rounded-2xl" />
-                        <div className="space-y-4">
-                            {[1, 2, 3].map(i => (
-                                <Skeleton key={i} className="w-full h-32 rounded-[2rem]" />
-                            ))}
-                        </div>
+                        <Skeleton className="w-48 h-12 rounded-2xl" />
+                    </div>
+                    <Skeleton className="w-full h-12 rounded-2xl" />
+                    <div className="space-y-4">
+                        {[1, 2, 3].map(i => (
+                            <Skeleton key={i} className="w-full h-32 rounded-[2rem]" />
+                        ))}
                     </div>
                 </div>
-                <div className="lg:col-span-4 space-y-8">
-                    <Skeleton className="w-full h-80 rounded-[2.5rem]" />
-                    <Skeleton className="w-full h-60 rounded-[2.5rem]" />
+            </div>
+
+            {/* Visit History Skeleton */}
+            <div className="bg-slate-900 rounded-[2.5rem] p-8 sm:p-10 space-y-8">
+                <div className="flex justify-between items-center">
+                    <div className="space-y-2">
+                        <Skeleton className="w-32 h-6 rounded-lg opacity-20" />
+                        <Skeleton className="w-48 h-3 rounded-md opacity-20" />
+                    </div>
+                    <Skeleton className="w-40 h-10 rounded-xl opacity-20" />
+                </div>
+                <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                    {[1, 2, 3].map(i => (
+                        <Skeleton key={i} className="w-full h-32 rounded-[2rem] opacity-10" />
+                    ))}
                 </div>
             </div>
         </div>

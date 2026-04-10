@@ -21,7 +21,7 @@ export interface TemplateDTO {
     templateName: string;
     description: string;
     visibility: string;
-    creatorId: string;
+    createdBy: string;
     creatorName?: string;
     usageCount: number;
     lastUsedAt?: string;

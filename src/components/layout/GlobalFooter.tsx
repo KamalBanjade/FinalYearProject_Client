@@ -4,7 +4,7 @@ import React from 'react';
 
 export function GlobalFooter() {
     return (
-        <footer className="w-full pb-12 pt-8 flex flex-col items-center justify-center gap-4">
+        <footer className="w-full pb-4 pt-2 flex flex-col items-center justify-center gap-4">
             {/* Minimal Policy Links */}
             <div className="flex items-center gap-6 text-[10px] font-black text-slate-400 dark:text-slate-600 uppercase tracking-[0.2em] transition-opacity">
                 <a href="/policies/privacy" className="hover:text-slate-600 dark:hover:text-slate-400 transition-colors">Privacy</a>

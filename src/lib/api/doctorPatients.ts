@@ -19,6 +19,7 @@ export interface PatientListResponseDTO {
     latestSharedRecordDate?: string;
     lastAppointmentDate?: string;
     isPrimary: boolean;
+    profilePictureUrl?: string;
 }
 
 

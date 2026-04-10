@@ -8,6 +8,7 @@ import { formatDistanceToNow, format, differenceInDays } from 'date-fns';
 import { useConfirm } from '@/context/ConfirmContext';
 import { useUserDevices } from '@/hooks/useAdminQueries';
 import { useQueryClient } from '@tanstack/react-query';
+import { useRouter } from 'next/navigation';
 import { SettingsSkeleton } from '@/components/ui/SettingsSkeleton';
 import { motion, AnimatePresence } from 'framer-motion';
 import { 
@@ -24,6 +25,7 @@ import {
 } from 'lucide-react';
 
 export default function SettingsHubPage() {
+    const router = useRouter();
     const queryClient = useQueryClient();
     const { confirm } = useConfirm();
     const { user, revokeDevice, revokeAllDevices, changePassword, deleteAccount } = useAuthStore();
@@ -120,9 +122,12 @@ export default function SettingsHubPage() {
         try {
             setIsDeletingAccount(true);
             await deleteAccount();
+            toast.success('Your account has been deleted successfully.');
+            setTimeout(() => {
+                router.push('/login');
+            }, 1500);
         } catch (error: any) {
             toast.error(error.message || 'Failed to delete account');
-        } finally {
             setIsDeletingAccount(false);
         }
     };

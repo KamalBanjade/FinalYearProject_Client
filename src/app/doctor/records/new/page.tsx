@@ -1,7 +1,7 @@
 'use client';
 
 import React, { useState, useEffect } from 'react';
-import { useRouter, useSearchParams } from 'next/navigation';
+import { useRouter, useSearchParams, usePathname } from 'next/navigation';
 import { format } from 'date-fns';
 import { formatLocalTime, formatTime } from '@/lib/utils/dateUtils';
 import { doctorApi } from '@/lib/api';
@@ -134,6 +134,7 @@ const VitalInput = ({ label, field, icon: Icon, type, unit, value, onChange }: {
 export default function StructuredRecordEntry() {
   const router = useRouter();
   const searchParams = useSearchParams();
+  const pathname = usePathname();
 
   // — Modal States
   const [isCustomFieldModalOpen, setIsCustomFieldModalOpen] = useState(false);
@@ -257,6 +258,7 @@ export default function StructuredRecordEntry() {
     const source = searchParams.get('source');
     const apptId = searchParams.get('appointmentId');
     const fromQR = searchParams.get('fromQR');
+    const stepParam = searchParams.get('step');
 
     if (source) setEntrySource(source as any);
     else if (fromQR === 'true') setEntrySource('qr');
@@ -266,7 +268,11 @@ export default function StructuredRecordEntry() {
     }
     if (pId) {
       loadPatientData(pId);
-      setCurrentStep('vitals');
+      if (!stepParam) setCurrentStep('vitals');
+    }
+
+    if (stepParam) {
+      setCurrentStep(stepParam as FlowStep);
     }
   }, [searchParams]);
 
@@ -556,8 +562,14 @@ export default function StructuredRecordEntry() {
     }
   };
 
+  const navigateToStep = (step: FlowStep) => {
+    const params = new URLSearchParams(searchParams.toString());
+    params.set('step', step);
+    router.push(`${pathname}?${params.toString()}`);
+  };
+
   const handleNextStep = () => {
-    if (currentStep === 'patient' && patient) setCurrentStep('vitals');
+    if (currentStep === 'patient' && patient) navigateToStep('vitals');
     else if (currentStep === 'vitals') {
       const defaultValue = "Follow up on previous Diagnosis";
       const actualReason = chiefComplaint || (visitOption === 'continue' ? defaultValue : "");
@@ -572,17 +584,17 @@ export default function StructuredRecordEntry() {
         setChiefComplaint("Follow up on previous Diagnosis");
       }
 
-      setCurrentStep('protocol');
+      navigateToStep('protocol');
     }
     else if (currentStep === 'protocol' && (selectedTemplateName || localSections.length > 0)) {
-      setCurrentStep('summary');
+      navigateToStep('summary');
     }
   };
 
   const handlePrevStep = () => {
-    if (currentStep === 'vitals') setCurrentStep('patient');
-    else if (currentStep === 'protocol') setCurrentStep('vitals');
-    else if (currentStep === 'summary') setCurrentStep('protocol');
+    if (currentStep === 'vitals') navigateToStep('patient');
+    else if (currentStep === 'protocol') navigateToStep('vitals');
+    else if (currentStep === 'summary') navigateToStep('protocol');
   };
 
   // Keyboard Shortcuts
@@ -693,7 +705,7 @@ export default function StructuredRecordEntry() {
           const targetIdx = steps.indexOf(step);
           const currentIdx = steps.indexOf(currentStep);
           if (targetIdx < currentIdx || patient) {
-            setCurrentStep(step);
+            navigateToStep(step);
           }
         }}
       />

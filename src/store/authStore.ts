@@ -450,7 +450,7 @@ export const useAuthStore = create<AuthState>()(
                             sameSite: isHttp ? 'Lax' : 'None',
                             path: '/'
                         });
-                        window.location.href = '/login';
+                        // Client component will handle redirection to preserve toasts
                     } catch (err: any) {
                         const message = err.response?.data?.message || 'Failed to delete account.';
                         throw new Error(message);

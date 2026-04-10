@@ -52,7 +52,7 @@ export function Modal({ isOpen, onClose, children, title, description, maxWidth 
                         animate={{ opacity: 1 }}
                         exit={{ opacity: 0 }}
                         transition={{ duration: 0.3 }}
-                        className="absolute inset-0 backdrop-blur-md bg-slate-900/10 cursor-pointer"
+                        className="absolute inset-0 backdrop-blur-md bg-slate-900/60 cursor-pointer"
                         onClick={onClose}
                         aria-hidden="true"
                     />
@@ -68,7 +68,7 @@ export function Modal({ isOpen, onClose, children, title, description, maxWidth 
                             stiffness: 400,
                             mass: 0.8
                         }}
-                        className={`relative w-full ${maxWidthClass} bg-white dark:bg-slate-900 rounded-3xl shadow-2xl overflow-hidden z-10`}
+                        className={`relative w-full ${maxWidthClass} bg-white dark:bg-slate-900 rounded-[2.5rem] shadow-2xl overflow-hidden z-10 border border-white/5 dark:border-slate-800/50`}
                     >
                         {(title || description) && (
                             <div className="px-6 py-5 border-b border-slate-100 dark:border-slate-800">
