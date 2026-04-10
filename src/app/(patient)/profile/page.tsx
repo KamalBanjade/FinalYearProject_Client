@@ -7,6 +7,7 @@ import { patientApi, PatientProfileData, UpdatePatientProfileRequest, SmartDocto
 import { PageLayout } from '@/components/layout/PageLayout';
 import { Button } from '@/components/ui/Button';
 import { Input } from '@/components/ui/Input';
+import { Select } from '@/components/ui/Select';
 import {
     User,
     Mail,
@@ -115,7 +116,10 @@ export default function PatientProfilePage() {
         emergencyContactName: '',
         emergencyContactPhone: '',
         allergies: '',
-        chronicConditions: ''
+        chronicConditions: '',
+        gender: '',
+        phoneNumber: '',
+        dateOfBirth: ''
     });
 
     useEffect(() => {
@@ -127,7 +131,10 @@ export default function PatientProfilePage() {
                 emergencyContactName: profile.emergencyContactName || '',
                 emergencyContactPhone: profile.emergencyContactPhone || '',
                 allergies: profile.allergies || '',
-                chronicConditions: profile.chronicConditions || ''
+                chronicConditions: profile.chronicConditions || '',
+                gender: profile.gender || '',
+                phoneNumber: profile.phoneNumber || '',
+                dateOfBirth: profile.dateOfBirth ? format(new Date(profile.dateOfBirth), 'yyyy-MM-dd') : ''
             });
         }
     }, [profile]);
@@ -262,7 +269,21 @@ export default function PatientProfilePage() {
                             <div className="group p-6 bg-white dark:bg-slate-900/50 backdrop-blur-xl border border-slate-100 dark:border-white/5 rounded-[2rem] shadow-sm hover:shadow-xl transition-all duration-500">
                                 <label className="text-[9px] font-black uppercase tracking-[0.2em] text-slate-400 mb-3 block">Biological Sex</label>
                                 <div className="flex items-center gap-4">
-                                    <div className="text-sm font-black text-slate-900 dark:text-white">{profile?.gender || 'Unspecified'}</div>
+                                    {isEditing ? (
+                                        <Select
+                                            options={[
+                                                { value: '', label: 'Select' },
+                                                { value: 'Male', label: 'Male' },
+                                                { value: 'Female', label: 'Female' },
+                                                { value: 'Other', label: 'Other' }
+                                            ]}
+                                            value={formData.gender}
+                                            onChange={e => setFormData({ ...formData, gender: e.target.value })}
+                                            className="bg-transparent border-none font-black text-slate-900 dark:text-white"
+                                        />
+                                    ) : (
+                                        <div className="text-sm font-black text-slate-900 dark:text-white">{profile?.gender || 'Unspecified'}</div>
+                                    )}
                                 </div>
                             </div>
 
@@ -271,9 +292,18 @@ export default function PatientProfilePage() {
                                 <label className="text-[9px] font-black uppercase tracking-[0.2em] text-slate-400 mb-3 block">Date of Birth</label>
                                 <div className="flex items-center gap-4">
                                     <Calendar size={16} className="text-sky-500 opacity-50" />
-                                    <div className="text-sm font-black text-slate-900 dark:text-white">
-                                        {profile?.dateOfBirth ? format(new Date(profile.dateOfBirth), 'dd MMMM, yyyy') : 'Establish Index'}
-                                    </div>
+                                    {isEditing ? (
+                                        <Input
+                                            type="date"
+                                            value={formData.dateOfBirth}
+                                            onChange={(e) => setFormData({ ...formData, dateOfBirth: e.target.value })}
+                                            className="bg-transparent border-none font-black text-slate-900 dark:text-white"
+                                        />
+                                    ) : (
+                                        <div className="text-sm font-black text-slate-900 dark:text-white">
+                                            {profile?.dateOfBirth ? format(new Date(profile.dateOfBirth), 'dd MMMM, yyyy') : 'Establish Index'}
+                                        </div>
+                                    )}
                                 </div>
                             </div>
 
@@ -283,8 +313,22 @@ export default function PatientProfilePage() {
                                 <div className="flex items-center gap-4">
                                     <Droplets size={20} className="text-rose-500" fill="currentColor" />
                                     {isEditing ? (
-                                        <input className="bg-transparent border-none text-lg font-black text-slate-900 dark:text-white w-full outline-none focus:ring-0"
-                                            value={formData.bloodType} onChange={e => setFormData({...formData, bloodType: e.target.value})} placeholder="Type" />
+                                        <Select
+                                            options={[
+                                                { value: '', label: 'Select Type' },
+                                                { value: 'A+', label: 'A+' },
+                                                { value: 'A-', label: 'A-' },
+                                                { value: 'B+', label: 'B+' },
+                                                { value: 'B-', label: 'B-' },
+                                                { value: 'AB+', label: 'AB+' },
+                                                { value: 'AB-', label: 'AB-' },
+                                                { value: 'O+', label: 'O+' },
+                                                { value: 'O-', label: 'O-' }
+                                            ]}
+                                            value={formData.bloodType}
+                                            onChange={e => setFormData({ ...formData, bloodType: e.target.value })}
+                                            className="bg-transparent border-none font-black text-slate-900 dark:text-white"
+                                        />
                                     ) : (
                                         <div className="text-lg font-black text-rose-500 uppercase tracking-tighter">{profile?.bloodType || 'A+'}</div>
                                     )}
@@ -296,7 +340,24 @@ export default function PatientProfilePage() {
                                 <label className="text-[9px] font-black uppercase tracking-[0.2em] text-slate-400 mb-3 block">Contact Number</label>
                                 <div className="flex items-center gap-4">
                                     <Smartphone size={16} className="text-sky-500 opacity-50" />
-                                    <div className="text-sm font-black text-slate-900 dark:text-white">{profile?.phoneNumber || 'Linked Required'}</div>
+                                    {isEditing ? (
+                                        <input
+                                            className="bg-transparent border-none text-sm font-black text-slate-900 dark:text-white w-full outline-none focus:ring-0"
+                                            value={formData.phoneNumber || ''}
+                                            onChange={(e) => {
+                                                const value = e.target.value;
+                                                if (!value.startsWith('+977-')) {
+                                                    setFormData({ ...formData, phoneNumber: '+977-' });
+                                                    return;
+                                                }
+                                                const suffix = value.slice(5).replace(/\D/g, '').slice(0, 10);
+                                                setFormData({ ...formData, phoneNumber: '+977-' + suffix });
+                                            }}
+                                            placeholder="+977-"
+                                        />
+                                    ) : (
+                                        <div className="text-sm font-black text-slate-900 dark:text-white">{profile?.phoneNumber || 'Linked Required'}</div>
+                                    )}
                                 </div>
                             </div>
 
@@ -339,45 +400,6 @@ export default function PatientProfilePage() {
                         </div>
                     </SectionCard>
 
-                    {/* Emergency Protocol */}
-                    <SectionCard icon={<Heart size={18} fill="currentColor" />} title="Critical Triage Contact" accent="rose">
-                        <div className="bg-rose-500 rounded-[3rem] p-10 text-white shadow-2xl shadow-rose-500/10 relative overflow-hidden group">
-                            <div className="absolute top-0 right-0 w-80 h-80 bg-white/10 rounded-full blur-3xl -mr-40 -mt-40 transition-transform group-hover:scale-110 duration-700" />
-                            <div className="relative z-10 grid grid-cols-1 md:grid-cols-2 gap-12">
-                                <div className="space-y-3">
-                                    <p className="text-[10px] font-black uppercase tracking-[0.3em] opacity-60">Designated Nominee</p>
-                                    {isEditing ? (
-                                        <input
-                                            className="w-full bg-white/10 backdrop-blur-md border border-white/20 h-14 px-6 rounded-2xl text-base font-black outline-none placeholder:text-white/40 focus:ring-2 focus:ring-white/30 transition-all"
-                                            value={formData.emergencyContactName}
-                                            onChange={(e) => setFormData({ ...formData, emergencyContactName: e.target.value })}
-                                            placeholder="Nominee Name"
-                                        />
-                                    ) : (
-                                        <h3 className="text-2xl font-black italic tracking-tight">{profile?.emergencyContactName || 'Establish protocol'}</h3>
-                                    )}
-                                </div>
-                                <div className="space-y-3">
-                                    <p className="text-[10px] font-black uppercase tracking-[0.3em] opacity-60">Emergency Hotline</p>
-                                    {isEditing ? (
-                                        <input
-                                            className="w-full bg-white/10 backdrop-blur-md border border-white/20 h-14 px-6 rounded-2xl text-base font-black outline-none placeholder:text-white/40 focus:ring-2 focus:ring-white/30 transition-all font-mono"
-                                            value={formData.emergencyContactPhone}
-                                            onChange={(e) => setFormData({ ...formData, emergencyContactPhone: e.target.value })}
-                                            placeholder="Contact Number"
-                                        />
-                                    ) : (
-                                        <div className="flex items-center gap-4">
-                                            <div className="w-12 h-12 bg-white/20 rounded-2xl flex items-center justify-center backdrop-blur-lg">
-                                                <Phone size={20} fill="white" />
-                                            </div>
-                                            <span className="text-2xl font-black tracking-tighter tabular-nums font-mono">{profile?.emergencyContactPhone || '— — —'}</span>
-                                        </div>
-                                    )}
-                                </div>
-                            </div>
-                        </div>
-                    </SectionCard>
                 </div>
 
                 {/* Integrated Care Team: Premium Sidebar Grid */}
@@ -440,20 +462,53 @@ export default function PatientProfilePage() {
                         </div>
                     </SectionCard>
 
-                    {/* Integrated System Status: Glass Section */}
-                    <div className="p-10 bg-emerald-500/5 dark:bg-emerald-500/10 backdrop-blur-3xl rounded-[3rem] border border-emerald-500/10 space-y-6 overflow-hidden relative group hover:bg-emerald-500/10 transition-colors duration-500">
-                        <div className="absolute top-0 right-0 w-40 h-40 bg-emerald-500/20 rounded-full blur-3xl -mr-20 -mt-20 group-hover:scale-110 transition-transform duration-700" />
-                        <div className="flex items-center gap-4 relative z-10">
-                            <div className="w-10 h-10 rounded-xl bg-emerald-500/20 flex items-center justify-center text-emerald-500">
-                                <ShieldCheck size={20} />
+                    {/* Emergency Protocol relocated to Sidebar */}
+                    <SectionCard icon={<Heart size={18} fill="currentColor" />} title="Critical Triage Contact" accent="rose">
+                        <div className="bg-rose-500 rounded-[3rem] p-10 text-white shadow-2xl shadow-rose-500/10 relative overflow-hidden group">
+                            <div className="absolute top-0 right-0 w-80 h-80 bg-white/10 rounded-full blur-3xl -mr-40 -mt-40 transition-transform group-hover:scale-110 duration-700" />
+                            <div className="relative z-10 space-y-8">
+                                <div className="space-y-3">
+                                    <p className="text-[10px] font-black uppercase tracking-[0.3em] opacity-60">Designated Nominee</p>
+                                    {isEditing ? (
+                                        <input
+                                            className="w-full bg-white/10 backdrop-blur-md border border-white/20 h-14 px-6 rounded-2xl text-base font-black outline-none placeholder:text-white/40 focus:ring-2 focus:ring-white/30 transition-all"
+                                            value={formData.emergencyContactName}
+                                            onChange={(e) => setFormData({ ...formData, emergencyContactName: e.target.value })}
+                                            placeholder="Nominee Name"
+                                        />
+                                    ) : (
+                                        <h3 className="text-2xl font-black italic tracking-tight">{profile?.emergencyContactName || 'Establish protocol'}</h3>
+                                    )}
+                                </div>
+                                <div className="space-y-3">
+                                    <p className="text-[10px] font-black uppercase tracking-[0.3em] opacity-60">Emergency Hotline</p>
+                                    {isEditing ? (
+                                        <input
+                                            className="w-full bg-white/10 backdrop-blur-md border border-white/20 h-14 px-6 rounded-2xl text-base font-black outline-none placeholder:text-white/40 focus:ring-2 focus:ring-white/30 transition-all font-mono"
+                                            value={formData.emergencyContactPhone}
+                                            onChange={(e) => {
+                                                const value = e.target.value;
+                                                if (!value.startsWith('+977-')) {
+                                                    setFormData({ ...formData, emergencyContactPhone: '+977-' });
+                                                    return;
+                                                }
+                                                const suffix = value.slice(5).replace(/\D/g, '').slice(0, 10);
+                                                setFormData({ ...formData, emergencyContactPhone: '+977-' + suffix });
+                                            }}
+                                            placeholder="+977-"
+                                        />
+                                    ) : (
+                                        <div className="flex items-center gap-4">
+                                            <div className="w-12 h-12 bg-white/20 rounded-2xl flex items-center justify-center backdrop-blur-lg">
+                                                <Phone size={20} fill="white" />
+                                            </div>
+                                            <span className="text-2xl font-black tracking-tighter tabular-nums font-mono">{profile?.emergencyContactPhone || '— — —'}</span>
+                                        </div>
+                                    )}
+                                </div>
                             </div>
-                            <span className="text-[10px] font-black text-emerald-600 dark:text-emerald-400 uppercase tracking-[0.3em]">Compliance Verified</span>
                         </div>
-                        <p className="text-[10px] font-bold text-slate-500 dark:text-slate-400 leading-relaxed uppercase tracking-widest italic relative z-10 font-sans">
-                            Authorized professional access to this profile is logged and audited in accordance with decentralized medical data standards.
-                        </p>
-                        <div className="h-0.5 w-12 bg-emerald-500/30 rounded-full relative z-10" />
-                    </div>
+                    </SectionCard>
                 </div>
             </div>
             {/* Floating Save/Cancel Bar */}

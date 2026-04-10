@@ -26,10 +26,10 @@ export const Select = React.forwardRef<HTMLSelectElement, SelectProps>(
             focus:outline-none focus:ring-4 appearance-none
             hover:border-slate-400 dark:hover:border-slate-600 active:scale-[0.99]
             ${error
-                                ? 'border-rose-500 focus:ring-rose-500/10 focus:border-rose-500 shadow-sm shadow-rose-100/20 dark:shadow-rose-900/20'
+                                ? 'border-rose-500 focus:ring-rose-500/10 focus:border-rose-500'
                                 : success
-                                    ? 'border-emerald-500 focus:ring-emerald-500/10 focus:border-emerald-500 shadow-sm shadow-emerald-100/20 dark:shadow-emerald-900/20'
-                                    : 'border-slate-200 dark:border-slate-700 shadow-sm shadow-slate-100/50 dark:shadow-none focus:ring-primary/10 focus:border-primary'
+                                    ? 'border-emerald-500 focus:ring-emerald-500/10 focus:border-emerald-500'
+                                    : 'border-slate-200 dark:border-slate-700 dark:shadow-none focus:ring-primary/10 focus:border-primary'
                             }
             ${className}
           `}
