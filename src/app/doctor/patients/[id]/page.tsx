@@ -292,6 +292,7 @@ function ProfileContent() {
                                         <AnalysisDashboard 
                                             patientId={patientId} 
                                             patientFullName={`${patient.firstName} ${patient.lastName}`} 
+                                            overrideTotalVisits={unifiedRecords.length}
                                         />
                                     </div>
                                 ) : isLoading && unifiedRecords.length === 0 ? (

@@ -124,16 +124,18 @@ const getScoreColor = (score: number) => {
 
 const buildNormalizer = (metadata: LabMetadata[]) => {
   return (name: string, value: number): number => {
-    switch (name) {
-      case 'Systolic': return Math.min(100, Math.max(0, 100 - Math.abs(value - 115) * 2));
-      case 'Diastolic': return Math.min(100, Math.max(0, 100 - Math.abs(value - 75) * 2));
-      case 'HeartRate': return Math.min(100, Math.max(0, 100 - Math.abs(value - 70) * 2));
-      case 'SpO2': return Math.min(100, Math.max(0, (value - 90) * 10));
-      case 'Temperature': return Math.min(100, Math.max(0, 100 - Math.abs(value - 98.6) * 20));
-      case 'BMI': return Math.min(100, Math.max(0, 100 - Math.abs(value - 22) * 3));
-    }
+    const n = name.toLowerCase();
+    if (n.includes('systolic')) return Math.min(100, Math.max(0, 100 - Math.abs(value - 117.5) * 2));
+    if (n.includes('diastolic')) return Math.min(100, Math.max(0, 100 - Math.abs(value - 77.5) * 2));
+    if (n.includes('heartrate') || (n.includes('heart') && n.includes('rate'))) return Math.min(100, Math.max(0, 100 - Math.abs(value - 72) * 1.5));
+    if (n.includes('spo2') || n.includes('oxygen')) return Math.min(100, Math.max(0, (value - 92) * 12));
+    if (n.includes('temp')) return Math.min(100, Math.max(0, 100 - Math.abs(value - 98.6) * 15));
+    if (n.includes('bmi')) return Math.min(100, Math.max(0, 100 - Math.abs(value - 22.5) * 4));
 
-    const meta = metadata.find(m => m.name.toLowerCase() === name.toLowerCase());
+    const meta = metadata.find(m => {
+        const mName = m.name.toLowerCase();
+        return mName === n || n.includes(mName) || mName.includes(n);
+    });
     if (!meta) return 50;
 
     if (meta.normalMin !== null && meta.normalMax !== null) {
@@ -153,7 +155,11 @@ const buildNormalizer = (metadata: LabMetadata[]) => {
   };
 };
 
-interface AnalysisDashboardProps { patientId: string; patientFullName: string; }
+interface AnalysisDashboardProps { 
+  patientId: string; 
+  patientFullName: string; 
+  overrideTotalVisits?: number;
+}
 interface HealthAnalysisApi {
   getVitalTrends: (id: string) => Promise<any>;
   getMedicationCorrelations: (id: string) => Promise<any>;
@@ -245,7 +251,7 @@ function AnalysisSkeleton() {
 }
 
 // ─── Main Component ───────────────────────────────────────────────────────────
-export function AnalysisDashboard({ patientId, patientFullName }: AnalysisDashboardProps) {
+export function AnalysisDashboard({ patientId, patientFullName, overrideTotalVisits }: AnalysisDashboardProps) {
   const [activeTab, setActiveTab] = useState<'vitals' | 'labs' | 'treatment' | 'history'>('vitals');
   const [showAllLabs, setShowAllLabs] = useState(false);
   const [isGenerating, setIsGenerating] = useState(false);
@@ -375,7 +381,7 @@ export function AnalysisDashboard({ patientId, patientFullName }: AnalysisDashbo
                   Clinical Intelligence
                 </span>
                 <span className="text-[10px] font-bold text-muted uppercase tracking-widest">
-                  {summary.totalVisits} Recorded Visits
+                  {overrideTotalVisits ?? summary.totalVisits} Clinical Datapoints
                 </span>
               </div>
               <h2 className="text-3xl font-black text-foreground tracking-tight">{patientFullName}</h2>
@@ -509,7 +515,9 @@ function GridVitals({ trends }: { trends: VitalTrend[] }) {
               </ResponsiveContainer>
             ) : (
               <div className="h-full flex flex-col items-center justify-center border-t border-dashed border-border/60">
-                <span className="text-[10px] font-bold text-muted italic">Insufficient points for trend</span>
+                <span className="text-[10px] font-bold text-muted italic">
+                  {t.stabilityWindows?.length === 1 ? 'Single baseline recorded (needs 2+)' : 'No historical data points'}
+                </span>
               </div>
             )}
           </div>
@@ -530,7 +538,23 @@ function RadarVitals({ trends, normalizeVital }: { trends: VitalTrend[], normali
     val: normalizeVital(t.vitalName, t.currentValue!),
   }));
 
-  if (radarData.length < 3) return null;
+  if (radarData.length < 3) {
+    return (
+      <GlassCard className="p-8">
+        <SectionLabel icon={Activity}>Biological Balance Map</SectionLabel>
+        <div className="flex flex-col items-center justify-center py-12 text-center border border-dashed border-border/60 rounded-[2rem] bg-surface-2/30">
+          <Activity size={32} className="text-muted/30 mb-4" />
+          <p className="text-[12px] font-black text-foreground uppercase tracking-widest">Insufficient Distinct Parameters</p>
+          <p className="text-[11px] text-muted max-w-sm mt-2 leading-relaxed">
+            A radial map inherently requires at least 3 different variables (axes) to form a comparable geometry. Currently, only <strong className="text-primary">{radarData.length}</strong> distinct vital signs have consistent baseline data.
+          </p>
+          <p className="text-[10px] font-bold text-muted/60 uppercase tracking-widest mt-6 bg-surface-3/50 px-4 py-2 rounded-full">
+             e.g. Need Heart Rate, SpO2, Temperature, etc.
+          </p>
+        </div>
+      </GlassCard>
+    );
+  }
 
   return (
     <GlassCard className="p-8">
@@ -710,7 +734,9 @@ function LabInsights({ trends }: { trends: VitalTrend[] }) {
                         </ResponsiveContainer>
                       ) : (
                         <div className="h-full flex items-center justify-center border-b border-dashed border-border/50">
-                           <span className="text-[9px] font-black text-muted/30 uppercase tracking-widest">Awaiting Historical Baseline</span>
+                           <span className="text-[9px] font-black text-muted/30 uppercase tracking-widest">
+                             {l.stabilityWindows?.length === 1 ? 'Single Point Baseline' : 'Awaiting Historical Baseline'}
+                           </span>
                         </div>
                       )}
                     </div>
@@ -766,9 +792,14 @@ function TreatmentEffect({ correlations, normalizeVital }: { correlations: Medic
 function MedicationImpactCard({ med, normalizeVital }: { med: MedicationCorrelation, normalizeVital: (name: string, value: number) => number }) {
   const [viewType, setViewType] = useState<'graph' | 'card'>('card');
 
-  const standardDeltas = med.vitalDeltas.filter(d => STANDARD_VITALS.has(d.vitalName));
+  const standardDeltas = med.vitalDeltas.filter(d => {
+    const n = d.vitalName.toLowerCase();
+    return Array.from(STANDARD_VITALS).some(v => 
+        n.includes(v.toLowerCase()) || v.toLowerCase().includes(n)
+    );
+  });
   const labDeltas = med.vitalDeltas
-    .filter(d => !STANDARD_VITALS.has(d.vitalName))
+    .filter(d => !standardDeltas.find(sd => sd.vitalName === d.vitalName))
     .sort((a,b) => Math.abs(b.delta) - Math.abs(a.delta));
 
   const outcomes = med.vitalDeltas.reduce((acc, d) => {
@@ -873,7 +904,7 @@ function MedicationImpactCard({ med, normalizeVital }: { med: MedicationCorrelat
         <div className="space-y-4">
           <p className="text-[10px] font-black text-muted uppercase tracking-widest">Vital Signs: Before vs After</p>
           <div className="h-[280px] w-full">
-            {radarData.length >= 3 ? (
+            {radarData.length >= 1 ? (
               <ResponsiveContainer width="99%" height="100%">
                 <RadarChart data={radarData}>
                   <PolarGrid stroke="var(--border)" strokeOpacity={0.5} />
@@ -887,8 +918,8 @@ function MedicationImpactCard({ med, normalizeVital }: { med: MedicationCorrelat
             ) : (
               <div className="flex flex-col items-center justify-center h-full text-center p-8 bg-surface-2/30 rounded-3xl border border-dashed border-border">
                 <Activity size={24} className="text-muted/40 mb-3" />
-                <p className="text-[10px] font-black text-muted uppercase tracking-widest">Radar Mapping Disabled</p>
-                <p className="text-[9px] text-muted/60 mt-1 max-w-[200px]">Requires at least 3 clinical parameters for structural analysis.</p>
+                <p className="text-[10px] font-black text-muted uppercase tracking-widest">No Post-Medication Vitals</p>
+                <p className="text-[9px] text-muted/60 mt-1 max-w-[200px]">Record a standard vital (e.g. Systolic) from a visit occurring on or after {new Date(med.introducedAt).toLocaleDateString()} to activate structural analysis.</p>
               </div>
             )}
           </div>
