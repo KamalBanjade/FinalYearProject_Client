@@ -36,6 +36,8 @@ export interface MedicationCorrelation {
   introducedAt: string;
   lastSeenAt: string;
   isCurrentlyActive: boolean;
+  drugCategory: string;
+  primaryMarkers: string[];
   vitalDeltas: VitalCorrelationDelta[];
 }
 

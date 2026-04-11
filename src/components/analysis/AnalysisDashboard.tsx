@@ -19,10 +19,20 @@ import {
 } from 'recharts';
 import { doctorApi, patientApi } from '@/lib/api';
 import { useAuthStore } from '@/store/authStore';
+import { Skeleton } from '@/components/ui/Skeleton';
 import {
   AnalysisSummary, VitalTrend, MedicationCorrelation,
   AbnormalityPattern, StabilityTimeline, QuarterlyStability
 } from '@/types/analysis';
+
+export interface LabMetadata {
+  name: string;
+  normalMin: number | null;
+  normalMax: number | null;
+  improvingDirection: string;
+  category: string;
+  unit: string;
+}
 
 // ─── Constants & Icons ────────────────────────────────────────────────────────
 const STANDARD_VITALS = new Set(['Systolic', 'Diastolic', 'HeartRate', 'SpO2', 'Temperature', 'BMI']);
@@ -112,16 +122,35 @@ const getScoreColor = (score: number) => {
   return '#ef4444';
 };
 
-const normalizeVital = (name: string, value: number): number => {
-  switch (name) {
-    case 'Systolic': return Math.min(100, Math.max(0, 100 - Math.abs(value - 115) * 2));
-    case 'Diastolic': return Math.min(100, Math.max(0, 100 - Math.abs(value - 75) * 2));
-    case 'HeartRate': return Math.min(100, Math.max(0, 100 - Math.abs(value - 70) * 2));
-    case 'SpO2': return Math.min(100, Math.max(0, (value - 90) * 10));
-    case 'Temperature': return Math.min(100, Math.max(0, 100 - Math.abs(value - 98.6) * 20));
-    case 'BMI': return Math.min(100, Math.max(0, 100 - Math.abs(value - 22) * 3));
-    default: return 50;
-  }
+const buildNormalizer = (metadata: LabMetadata[]) => {
+  return (name: string, value: number): number => {
+    switch (name) {
+      case 'Systolic': return Math.min(100, Math.max(0, 100 - Math.abs(value - 115) * 2));
+      case 'Diastolic': return Math.min(100, Math.max(0, 100 - Math.abs(value - 75) * 2));
+      case 'HeartRate': return Math.min(100, Math.max(0, 100 - Math.abs(value - 70) * 2));
+      case 'SpO2': return Math.min(100, Math.max(0, (value - 90) * 10));
+      case 'Temperature': return Math.min(100, Math.max(0, 100 - Math.abs(value - 98.6) * 20));
+      case 'BMI': return Math.min(100, Math.max(0, 100 - Math.abs(value - 22) * 3));
+    }
+
+    const meta = metadata.find(m => m.name.toLowerCase() === name.toLowerCase());
+    if (!meta) return 50;
+
+    if (meta.normalMin !== null && meta.normalMax !== null) {
+      const mid = (meta.normalMin + meta.normalMax) / 2;
+      const range = meta.normalMax - meta.normalMin;
+      return Math.max(0, Math.min(100, 100 - (Math.abs(value - mid) / (range || 1)) * 50));
+    }
+
+    if (meta.improvingDirection === 'Lower') {
+      return value < 0 ? 100 : Math.max(0, 100 - value);
+    }
+    if (meta.improvingDirection === 'Higher') {
+      return Math.min(100, value);
+    }
+
+    return 50;
+  };
 };
 
 interface AnalysisDashboardProps { patientId: string; patientFullName: string; }
@@ -133,6 +162,86 @@ interface HealthAnalysisApi {
   getAnalysisSummary: (id: string) => Promise<any>;
   generateAnalysisReport: (id: string, fullName: string) => Promise<any>;
   downloadAnalysisReport: (id: string) => Promise<any>;
+  getLabMetadata: () => Promise<any>;
+}
+
+// ─── Skeletons ───────────────────────────────────────────────────────────────
+
+function AnalysisSkeleton() {
+  return (
+    <motion.div initial="hidden" animate="visible" variants={containerVariants} className="space-y-8 pb-12 w-full">
+      
+      {/* ─── Hero Identity Skeleton ─── */}
+      <div className="p-8 bg-white/70 dark:bg-slate-900/40 border border-slate-200 dark:border-white/5 rounded-3xl">
+        <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-6">
+          <div className="space-y-3">
+            <Skeleton className="h-5 w-40 rounded-full" />
+            <Skeleton className="h-10 w-80" />
+            <Skeleton className="h-4 w-56" />
+          </div>
+          <div className="flex items-center gap-3 w-full md:w-auto">
+            <Skeleton className="h-12 w-32 rounded-2xl" />
+            <Skeleton className="h-12 w-32 rounded-2xl" />
+          </div>
+        </div>
+        
+        <div className="mt-8 pt-8 border-t border-slate-200 dark:border-white/5 grid grid-cols-1 md:grid-cols-4 gap-6">
+          <div className="md:col-span-3 space-y-3">
+            <Skeleton className="h-4 w-full" />
+            <Skeleton className="h-4 w-[90%]" />
+            <Skeleton className="h-4 w-[80%]" />
+          </div>
+          <div className="flex items-end justify-end">
+            <Skeleton className="h-16 w-32 rounded-2xl" />
+          </div>
+        </div>
+      </div>
+
+      {/* ─── Navigation Tabs Skeleton ─── */}
+      <div className="flex flex-wrap gap-3">
+        {[...Array(4)].map((_, i) => (
+          <Skeleton key={i} className="h-12 w-36 rounded-2xl" />
+        ))}
+      </div>
+
+      {/* ─── Primary Content Skeleton ─── */}
+      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+        
+        {/* Main Chart Area */}
+        <div className="lg:col-span-2 space-y-6">
+          <div className="p-6 bg-white/60 dark:bg-slate-900/40 border border-slate-200 dark:border-white/[0.05] rounded-[2.5rem] min-h-[400px]">
+            <Skeleton className="h-6 w-48 mb-2" />
+            <Skeleton className="h-4 w-64 mb-8" />
+            <div className="flex gap-4 mb-8">
+              <Skeleton className="h-20 w-32 rounded-2xl" />
+              <Skeleton className="h-20 w-32 rounded-2xl" />
+              <Skeleton className="h-20 w-32 rounded-2xl" />
+            </div>
+            <Skeleton className="w-full h-[250px] rounded-2xl" />
+          </div>
+        </div>
+
+        {/* Side Panel Area */}
+        <div className="lg:col-span-1 space-y-6">
+          <div className="p-6 bg-white/60 dark:bg-slate-900/40 border border-slate-200 dark:border-white/[0.05] rounded-[2.5rem] min-h-[400px]">
+             <Skeleton className="h-6 w-48 mb-8" />
+             <div className="space-y-4">
+               {[...Array(4)].map((_, i) => (
+                 <div key={i} className="flex gap-4 items-center">
+                    <Skeleton className="h-12 w-12 rounded-xl" />
+                    <div className="space-y-2 flex-1">
+                      <Skeleton className="h-4 w-full" />
+                      <Skeleton className="h-3 w-2/3" />
+                    </div>
+                 </div>
+               ))}
+             </div>
+          </div>
+        </div>
+        
+      </div>
+    </motion.div>
+  );
 }
 
 // ─── Main Component ───────────────────────────────────────────────────────────
@@ -143,35 +252,57 @@ export function AnalysisDashboard({ patientId, patientFullName }: AnalysisDashbo
 
   const { user } = useAuthStore();
   const isPatient = user?.role === 'Patient';
+  const api = (isPatient ? patientApi : doctorApi) as unknown as HealthAnalysisApi;
 
-  const { data: dashboardData, isLoading: loading, error: fetchError } = useQuery({
-    queryKey: ['clinical_dashboard', patientId],
-    queryFn: async () => {
-      const api = (isPatient ? patientApi : doctorApi) as unknown as HealthAnalysisApi;
-      const [s, t, c, p, tl] = await Promise.all([
-        api.getAnalysisSummary(patientId),
-        api.getVitalTrends(patientId),
-        api.getMedicationCorrelations(patientId),
-        api.getAbnormalityPatterns(patientId),
-        api.getStabilityTimeline(patientId),
-      ]);
-      return {
-        summary: s.data as AnalysisSummary,
-        trends: t.data as VitalTrend[],
-        correlations: c.data as MedicationCorrelation[],
-        patterns: p.data as AbnormalityPattern[],
-        timeline: tl.data as StabilityTimeline
-      };
-    },
+  // Split into independent queries for progressive rendering
+  const { data: summaryRes, isLoading: ls } = useQuery({
+    queryKey: ['clinical_summary', patientId],
+    queryFn: () => api.getAnalysisSummary(patientId),
     staleTime: 5 * 60 * 1000,
   });
 
+  const { data: trendsRes, isLoading: lt } = useQuery({
+    queryKey: ['clinical_trends', patientId],
+    queryFn: () => api.getVitalTrends(patientId),
+    staleTime: 5 * 60 * 1000,
+  });
+
+  const { data: corrRes, isLoading: lc } = useQuery({
+    queryKey: ['clinical_correlations', patientId],
+    queryFn: () => api.getMedicationCorrelations(patientId),
+    staleTime: 5 * 60 * 1000,
+  });
+
+  const { data: patternsRes, isLoading: lp } = useQuery({
+    queryKey: ['clinical_patterns', patientId],
+    queryFn: () => api.getAbnormalityPatterns(patientId),
+    staleTime: 5 * 60 * 1000,
+  });
+
+  const { data: timelineRes, isLoading: ltl } = useQuery({
+    queryKey: ['clinical_timeline', patientId],
+    queryFn: () => api.getStabilityTimeline(patientId),
+    staleTime: 5 * 60 * 1000,
+  });
+
+  const { data: metaRes, isLoading: lm } = useQuery({
+    queryKey: ['clinical_metadata'],
+    queryFn: () => api.getLabMetadata(),
+    staleTime: 10 * 60 * 1000, // Metadata changes rarely
+  });
+
+  const loading = ls || lt || lc || lp || ltl || lm;
+  const fetchError = null; // Removed generic throw error for partial success
+
   const error = fetchError ? 'Failed to load clinical intelligence data.' : null;
-  const summary = dashboardData?.summary || null;
-  const trends = dashboardData?.trends || [];
-  const correlations = dashboardData?.correlations || [];
-  const patterns = dashboardData?.patterns || [];
-  const timeline = dashboardData?.timeline || null;
+  const summary = summaryRes?.data as AnalysisSummary || null;
+  const trends = trendsRes?.data as VitalTrend[] || [];
+  const correlations = corrRes?.data as MedicationCorrelation[] || [];
+  const patterns = patternsRes?.data as AbnormalityPattern[] || [];
+  const timeline = timelineRes?.data as StabilityTimeline || null;
+  const metadata = metaRes?.data as LabMetadata[] || [];
+
+  const normalizeVital = useMemo(() => buildNormalizer(metadata), [metadata]);
 
   const vitalTrends = useMemo(() => trends.filter(t => 
     STANDARD_VITALS.has(t.vitalName) || 
@@ -223,13 +354,7 @@ export function AnalysisDashboard({ patientId, patientFullName }: AnalysisDashbo
     finally { setIsGenerating(false); }
   };
 
-  if (loading) return (
-    <div className="space-y-6">
-      {[240, 400, 200].map((h, i) => (
-        <div key={i} className="w-full bg-white/40 dark:bg-slate-900/40 rounded-3xl animate-pulse" style={{ height: h }} />
-      ))}
-    </div>
-  );
+  if (loading) return <AnalysisSkeleton />;
 
   if (error) return (
     <div className="p-6 border border-red-200 bg-red-50/80 dark:bg-red-900/20 rounded-3xl flex items-center gap-4 text-red-600 font-bold">
@@ -304,7 +429,7 @@ export function AnalysisDashboard({ patientId, patientFullName }: AnalysisDashbo
         {activeTab === 'vitals' && (
           <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="space-y-6">
             <GridVitals trends={vitalTrends} />
-            <RadarVitals trends={vitalTrends} />
+            <RadarVitals trends={vitalTrends} normalizeVital={normalizeVital} />
           </motion.div>
         )}
         {activeTab === 'labs' && (
@@ -314,7 +439,7 @@ export function AnalysisDashboard({ patientId, patientFullName }: AnalysisDashbo
         )}
         {activeTab === 'treatment' && (
           <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="space-y-6">
-            <TreatmentEffect correlations={correlations} />
+            <TreatmentEffect correlations={correlations} normalizeVital={normalizeVital} />
           </motion.div>
         )}
         {activeTab === 'history' && (
@@ -399,7 +524,7 @@ function GridVitals({ trends }: { trends: VitalTrend[] }) {
   );
 }
 
-function RadarVitals({ trends }: { trends: VitalTrend[] }) {
+function RadarVitals({ trends, normalizeVital }: { trends: VitalTrend[], normalizeVital: (name: string, value: number) => number }) {
   const radarData = trends.filter(t => t.currentValue !== null).map(t => ({
     vital: t.vitalName,
     val: normalizeVital(t.vitalName, t.currentValue!),
@@ -626,19 +751,19 @@ function LabInsights({ trends }: { trends: VitalTrend[] }) {
   );
 }
 
-function TreatmentEffect({ correlations }: { correlations: MedicationCorrelation[] }) {
+function TreatmentEffect({ correlations, normalizeVital }: { correlations: MedicationCorrelation[], normalizeVital: (name: string, value: number) => number }) {
   if (correlations.length === 0) return <EmptyState icon={Pill} title="Treatments & Outcomes" description="When medications are prescribed, their impact on your vitals will be correlated here." />;
 
   return (
     <div className="space-y-6">
       {correlations.map((med, idx) => (
-        <MedicationImpactCard key={idx} med={med} />
+        <MedicationImpactCard key={idx} med={med} normalizeVital={normalizeVital} />
       ))}
     </div>
   );
 }
 
-function MedicationImpactCard({ med }: { med: MedicationCorrelation }) {
+function MedicationImpactCard({ med, normalizeVital }: { med: MedicationCorrelation, normalizeVital: (name: string, value: number) => number }) {
   const [viewType, setViewType] = useState<'graph' | 'card'>('card');
 
   const standardDeltas = med.vitalDeltas.filter(d => STANDARD_VITALS.has(d.vitalName));
@@ -672,6 +797,11 @@ function MedicationImpactCard({ med }: { med: MedicationCorrelation }) {
           </div>
           <div>
             <h3 className="text-xl font-black text-foreground capitalize">{med.medicationName} Impact Profile</h3>
+            <div className="flex items-center gap-2 mt-2">
+              <span className="px-2.5 py-0.5 rounded-full bg-blue-500/10 border border-blue-500/20 text-[9px] font-black uppercase tracking-widest text-blue-500">
+                {med.drugCategory}
+              </span>
+            </div>
             <p className="text-[11px] font-bold text-muted uppercase tracking-widest mt-1">Introduced {new Date(med.introducedAt).toLocaleDateString()}</p>
           </div>
         </div>
@@ -705,6 +835,38 @@ function MedicationImpactCard({ med }: { med: MedicationCorrelation }) {
            </div>
         </div>
       </div>
+
+      {med.primaryMarkers.length > 0 && (
+        <div className="mb-6 p-4 rounded-2xl bg-indigo-500/5 border border-indigo-500/10">
+          <p className="text-[9px] font-black text-indigo-400 uppercase tracking-widest mb-2">Key Markers to Watch</p>
+          <div className="flex flex-wrap gap-2">
+            {med.primaryMarkers.map(marker => {
+              const delta = med.vitalDeltas.find(
+                d => d.vitalName.toLowerCase() === marker.toLowerCase()
+              );
+              return (
+                <span
+                  key={marker}
+                  className={`px-2.5 py-1 rounded-full text-[9px] font-black uppercase tracking-wider border transition-colors ${
+                    delta?.interpretation === 'Improved'
+                      ? 'bg-emerald-500/10 border-emerald-500/20 text-emerald-600'
+                      : delta?.interpretation === 'Degraded'
+                        ? 'bg-red-500/10 border-red-500/20 text-red-500'
+                        : 'bg-surface-2 border-border text-muted'
+                  }`}
+                >
+                  {marker}
+                  {delta && (
+                    <span className="ml-1 opacity-60">
+                      {delta.delta > 0 ? '↑' : '↓'}{Math.abs(delta.delta).toFixed(1)}
+                    </span>
+                  )}
+                </span>
+              );
+            })}
+          </div>
+        </div>
+      )}
 
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-10">
         {/* Radar Comparison */}

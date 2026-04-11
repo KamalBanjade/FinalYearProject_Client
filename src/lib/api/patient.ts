@@ -206,4 +206,7 @@ export const patientApi = {
         const response = await axiosInstance.get('patient/statistics/dashboard');
         return response.data;
     },
+
+    getLabMetadata: () =>
+        axiosInstance.get(`analysis/lab-metadata`)
 };

@@ -481,7 +481,10 @@ export const doctorApi = {
         axiosInstance.get(`analysis/patient/${patientId}/report/list`),
 
     downloadAnalysisReport: (reportId: string) =>
-        axiosInstance.get(`analysis/report/${reportId}/download`, { responseType: 'blob' })
+        axiosInstance.get(`analysis/report/${reportId}/download`, { responseType: 'blob' }),
+
+    getLabMetadata: () =>
+        axiosInstance.get(`analysis/lab-metadata`)
 };
 
 // ─── Patient API ──────────────────────────────────────────────────────────────
