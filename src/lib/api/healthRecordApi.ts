@@ -26,6 +26,8 @@ export interface CreateHealthRecordRequest {
     diagnosis: string;
     treatmentPlan: string;
     doctorNotes?: string;
+    templateId?: string;  // Links the record to its source template for analysis filtering
+    excludedFields?: string[]; // Field names the doctor explicitly deleted
 }
 
 export interface ProtocolDTO {

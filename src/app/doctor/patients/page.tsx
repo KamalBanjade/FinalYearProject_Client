@@ -104,7 +104,7 @@ function PatientsContent() {
             });
         }
         return result;
-    }, [patients, searchQuery, sortConfig]);    return (
+    }, [patients, searchQuery, sortConfig]); return (
         <PageLayout>
             <Section>
                 {/* Search, Count & Create Row */}
@@ -231,31 +231,19 @@ function PatientsContent() {
                                     <div className="flex items-center justify-end gap-2">
                                         <button
                                             onClick={() => router.push(`/doctor/records/new?patientId=${p.id}&source=directory`)}
-                                            className="h-10 px-3 rounded-2xl bg-primary text-white flex items-center justify-center shadow-lg shadow-primary/20 hover:shadow-primary/40 hover:-translate-y-1 transition-all duration-300 active:scale-90 group/btn"
+                                            className="h-10 px-4 rounded-2xl bg-primary text-white flex items-center justify-center gap-2 shadow-lg shadow-primary/20 hover:shadow-primary/40 hover:-translate-y-0.5 transition-all duration-300 active:scale-95"
+                                            title="New Record"
                                         >
-                                            <FilePlus className="w-4 h-4 shrink-0 group-hover/btn:scale-110 transition-transform" />
-                                            <div className="max-w-0 opacity-0 group-hover/btn:max-w-[100px] group-hover/btn:opacity-100 transition-all duration-300 overflow-hidden whitespace-nowrap">
-                                                <span className="font-bold text-[10px] uppercase tracking-widest pl-2 block mt-px">New Record</span>
-                                            </div>
+                                            <FilePlus className="w-4 h-4" />
+                                            <span className="font-bold text-[10px] uppercase tracking-widest">Record</span>
                                         </button>
                                         <button
                                             onClick={() => router.push(`/doctor/patients/${p.id}`)}
-                                            className="h-10 px-3 rounded-2xl bg-white dark:bg-slate-800 border border-slate-100 dark:border-slate-700 text-slate-400 hover:text-primary hover:border-primary/30 flex items-center justify-center shadow-sm hover:shadow-md hover:-translate-y-1 transition-all duration-300 active:scale-90 group/btn"
+                                            className="h-10 px-4 rounded-2xl bg-white dark:bg-slate-800 border border-slate-100 dark:border-slate-700 text-slate-500 hover:text-primary hover:border-primary/30 flex items-center justify-center gap-2 shadow-sm hover:shadow-md hover:-translate-y-0.5 transition-all duration-300 active:scale-95"
+                                            title="View Profile"
                                         >
-                                            <Eye className="w-4 h-4 shrink-0 group-hover/btn:scale-110 transition-transform" />
-                                            <div className="max-w-0 opacity-0 group-hover/btn:max-w-[100px] group-hover/btn:opacity-100 transition-all duration-300 overflow-hidden whitespace-nowrap">
-                                                <span className="font-bold text-[10px] uppercase tracking-widest pl-2 block mt-px">Profile</span>
-                                            </div>
-                                        </button>
-                                        <button
-                                            onClick={() => handleDeletePatient(p)}
-                                            disabled={isDeleting}
-                                            className="h-10 px-3 rounded-2xl bg-rose-50 dark:bg-rose-900/20 text-rose-500 hover:bg-rose-500 hover:text-white flex items-center justify-center shadow-sm transition-all duration-300 active:scale-90 group/btn disabled:opacity-50"
-                                        >
-                                            <Trash2 className="w-4 h-4 shrink-0 group-hover/btn:scale-110 transition-transform" />
-                                            <div className="max-w-0 opacity-0 group-hover/btn:max-w-[100px] group-hover/btn:opacity-100 transition-all duration-300 overflow-hidden whitespace-nowrap">
-                                                <span className="font-bold text-[10px] uppercase tracking-widest pl-2 block mt-px">Remove</span>
-                                            </div>
+                                            <Eye className="w-4 h-4" />
+                                            <span className="font-bold text-[10px] uppercase tracking-widest">Details</span>
                                         </button>
                                     </div>
                                 )
@@ -302,17 +290,10 @@ function PatientsContent() {
                                     </button>
                                     <button
                                         onClick={() => router.push(`/doctor/patients/${p.id}`)}
-                                        className="w-11 h-11 rounded-xl bg-slate-50 dark:bg-slate-800 border border-slate-100 dark:border-slate-700 flex items-center justify-center text-slate-400 hover:text-primary transition-colors"
+                                        className="flex-1 h-11 rounded-xl bg-slate-50 dark:bg-slate-800 border border-slate-100 dark:border-slate-700 flex items-center justify-center gap-2 text-slate-500 font-black text-[10px] uppercase tracking-widest hover:text-primary transition-colors"
                                     >
                                         <Eye size={17} />
-                                    </button>
-                                    <button
-                                        onClick={() => handleDeletePatient(p)}
-                                        disabled={isDeleting}
-                                        className="w-11 h-11 rounded-xl bg-red-50 dark:bg-red-900/20 text-red-500 flex items-center justify-center transition-colors active:scale-95 disabled:opacity-50"
-                                        title="Delete Patient"
-                                    >
-                                        <Trash2 size={17} />
+                                        Profile
                                     </button>
                                 </div>
                             </div>
@@ -321,7 +302,7 @@ function PatientsContent() {
                 </div>
             </Section>
 
-            <CreatePatientModal 
+            <CreatePatientModal
                 isOpen={isCreateModalOpen}
                 onClose={() => setIsCreateModalOpen(false)}
                 onSuccess={() => {

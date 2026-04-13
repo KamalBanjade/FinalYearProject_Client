@@ -54,10 +54,11 @@ export const templatesApi = {
     },
 
     updateTemplate: async (id: string, data: {
-        templateName: string;
+        templateName?: string;
         description?: string;
-        visibility: VisibilityLevelValue;
+        visibility?: VisibilityLevelValue;
         schema?: { sections: any[] };
+        isActive?: boolean;
     }) => {
         const response = await axiosInstance.put(`templates/${id}`, data);
         return response.data;

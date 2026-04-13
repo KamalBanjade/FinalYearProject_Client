@@ -55,6 +55,11 @@ export const SmartFieldBuilder: React.FC<SmartFieldBuilderProps> = ({
     const handleSelectSuggestion = (unit: LabUnit) => {
         setSelectedUnit(unit);
         setSearch('');
+        
+        // Logical Grouping: Automatically set the target section to the unit's clinical category
+        if (unit.category && unit.category !== 'General') {
+            setTargetSection(unit.category);
+        }
     };
 
     const handleAdd = () => {

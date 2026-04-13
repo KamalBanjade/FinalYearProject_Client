@@ -128,8 +128,13 @@ const buildNormalizer = (metadata: LabMetadata[]) => {
     if (n.includes('systolic')) return Math.min(100, Math.max(0, 100 - Math.abs(value - 117.5) * 2));
     if (n.includes('diastolic')) return Math.min(100, Math.max(0, 100 - Math.abs(value - 77.5) * 2));
     if (n.includes('heartrate') || (n.includes('heart') && n.includes('rate'))) return Math.min(100, Math.max(0, 100 - Math.abs(value - 72) * 1.5));
-    if (n.includes('spo2') || n.includes('oxygen')) return Math.min(100, Math.max(0, (value - 92) * 12));
-    if (n.includes('temp')) return Math.min(100, Math.max(0, 100 - Math.abs(value - 98.6) * 15));
+    if (n.includes('spo2') || n.includes('oxygen')) return Math.min(100, Math.max(0, 100 - Math.abs(value - 98.5) * 3.5));
+    if (n.includes('temp')) {
+      const isCelsius = value < 50;
+      const target = isCelsius ? 37.0 : 98.6;
+      const factor = isCelsius ? 27 : 15; // Adjusted scaling factor for Celsius vs Fahrenheit precision
+      return Math.min(100, Math.max(0, 100 - Math.abs(value - target) * factor));
+    }
     if (n.includes('bmi')) return Math.min(100, Math.max(0, 100 - Math.abs(value - 22.5) * 4));
 
     const meta = metadata.find(m => {
@@ -383,6 +388,11 @@ export function AnalysisDashboard({ patientId, patientFullName, overrideTotalVis
                 <span className="text-[10px] font-bold text-muted uppercase tracking-widest">
                   {overrideTotalVisits ?? summary.totalVisits} Clinical Datapoints
                 </span>
+                {summary.primaryCondition && (
+                  <span className="px-2.5 py-0.5 rounded-full bg-slate-100 dark:bg-white/5 border border-slate-200 dark:border-white/10 text-[9px] font-black uppercase tracking-widest text-muted">
+                    Condition: {summary.primaryCondition}
+                  </span>
+                )}
               </div>
               <h2 className="text-3xl font-black text-foreground tracking-tight">{patientFullName}</h2>
               <p className="text-sm font-semibold text-muted">
@@ -392,8 +402,10 @@ export function AnalysisDashboard({ patientId, patientFullName, overrideTotalVis
 
             <div className="flex items-center gap-5">
               <div className="flex flex-col items-center gap-1.5 p-4 rounded-2xl bg-surface-2 border border-border">
-                <span className="text-sm font-black text-emerald-500">{summary.overallHealthTrend}</span>
-                <span className="text-[9px] font-bold text-muted uppercase tracking-widest">Trend</span>
+                <span className={`text-sm font-black ${summary.overallHealthTrend === 'Improving' ? 'text-emerald-500' : summary.overallHealthTrend === 'Degrading' ? 'text-red-500' : 'text-primary'}`}>
+                  {summary.overallHealthTrend}
+                </span>
+                <span className="text-[9px] font-bold text-muted uppercase tracking-widest">Health Trend</span>
               </div>
               <button
                 onClick={handleExportPdf} disabled={isGenerating}
@@ -605,26 +617,102 @@ function LabInsights({ trends }: { trends: VitalTrend[] }) {
 
   const sections = Array.from(new Set(trends.map(t => (t.sectionName || 'General Results').trim())));
 
+  // Pick top 8 most 'significant' laboratory markers for the summary graph
+  const summaryLabs = useMemo(() => {
+    return [...trends]
+      .sort((a, b) => {
+        // Handle nulls
+        const deltaA = Math.abs(a.percentChangeFromBaseline || 0);
+        const deltaB = Math.abs(b.percentChangeFromBaseline || 0);
+        
+        // Priority: Degrading (Red) trends first, then Improving (Green), then magnitude
+        if (a.direction === 'Degrading' && b.direction !== 'Degrading') return -1;
+        if (a.direction !== 'Degrading' && b.direction === 'Degrading') return 1;
+        
+        return deltaB - deltaA;
+      })
+      .slice(0, 8);
+  }, [trends]);
+
   return (
     <div className="space-y-8">
       {/* Summary Header */}
-      <div className="flex flex-wrap items-center gap-4 px-2">
-         {labStats.improving > 0 && (
-           <span className="flex items-center gap-1 px-3 py-1 rounded-full bg-emerald-500/10 border border-emerald-500/20 text-emerald-600 text-[10px] font-black uppercase">
-             <ArrowUpRight size={10} /> {labStats.improving} Improving
-           </span>
-         )}
-         {labStats.stable > 0 && (
-           <span className="px-3 py-1 rounded-full bg-surface-2 border border-border text-muted text-[10px] font-black uppercase">
-             {labStats.stable} Stable
-           </span>
-         )}
-         {labStats.degrading > 0 && (
-           <span className="px-3 py-1 rounded-full bg-red-500/10 border border-red-500/20 text-red-500 text-[10px] font-black uppercase">
-             {labStats.degrading} Warning
-           </span>
-         )}
+      <div className="flex flex-wrap items-center justify-between gap-4 px-2">
+         <div className="flex flex-wrap items-center gap-4">
+            {labStats.improving > 0 && (
+              <span className="flex items-center gap-1 px-3 py-1 rounded-full bg-emerald-500/10 border border-emerald-500/20 text-emerald-600 text-[10px] font-black uppercase">
+                <ArrowUpRight size={10} /> {labStats.improving} Improving
+              </span>
+            )}
+            {labStats.stable > 0 && (
+              <span className="px-3 py-1 rounded-full bg-surface-2 border border-border text-muted text-[10px] font-black uppercase">
+                {labStats.stable} Stable
+              </span>
+            )}
+            {labStats.degrading > 0 && (
+              <span className="px-3 py-1 rounded-full bg-red-500/10 border border-red-500/20 text-red-500 text-[10px] font-black uppercase">
+                {labStats.degrading} Warning
+              </span>
+            )}
+         </div>
       </div>
+
+      {/* OVERALL ASSESSMENT SUMMARY (Always visible if labs exist) */}
+      <GlassCard className="p-8" glowColor="bg-primary/5">
+        <SectionLabel>Overall Assessment</SectionLabel>
+        <div style={{ height: Math.max(160, summaryLabs.length * 45) }} className="mt-4">
+            <ResponsiveContainer width="99%" height="100%">
+              <BarChart data={summaryLabs.map(t => {
+                let relativeScore = 50;
+                if (t.normalMin !== null && t.normalMax !== null && t.currentValue !== null) {
+                    const range = t.normalMax - t.normalMin;
+                    const center = (t.normalMin + t.normalMax) / 2;
+                    const distance = Math.abs(t.currentValue - center);
+                    relativeScore = (distance / (range || 1)) * 40 + 30;
+                } else if (t.percentChangeFromBaseline !== null) {
+                    relativeScore = Math.max(10, Math.min(100, Math.abs(t.percentChangeFromBaseline) * 2));
+                }
+
+                return {
+                  name: t.vitalName,
+                  mag: Math.min(100, relativeScore),
+                  cur: t.currentValue,
+                  dir: t.direction,
+                  isAbnormal: t.isAbnormal
+                };
+              })} layout="vertical" margin={{ left: 10, right: 60, top: 10, bottom: 10 }}>
+                <XAxis type="number" hide domain={[0, 100]} />
+                <YAxis 
+                  dataKey="name" 
+                  type="category" 
+                  axisLine={false} 
+                  tickLine={false} 
+                  width={150} 
+                  tick={{ fontSize: 9, fill: 'var(--muted)', fontWeight: 800 }} 
+                />
+                <Tooltip 
+                  contentStyle={tooltipStyle} 
+                  cursor={{ fill: 'var(--surface-2)', opacity: 0.4 }} 
+                  isAnimationActive={false}
+                  formatter={(value: any, name: any) => {
+                    if (name === 'mag') return [`${parseFloat(value).toFixed(1)}%`, 'Risk Level'];
+                    if (name === 'cur') return [value, 'Current Value'];
+                    return [value, name];
+                  }}
+                />
+                <Bar dataKey="mag" radius={[0, 6, 6, 0]} barSize={20}>
+                  {summaryLabs.map((t, i) => (
+                    <Cell 
+                        key={i} 
+                        fill={getTrendHexColor(t.direction)} 
+                    />
+                  ))}
+                  <LabelList dataKey="cur" position="right" style={{ fontSize: 11, fontWeight: 900, fill: 'var(--foreground)' }} formatter={(v: any) => v?.toFixed(1)} />
+                </Bar>
+              </BarChart>
+            </ResponsiveContainer>
+        </div>
+      </GlassCard>
 
       {sections.map(section => {
         const sectionLabs = trends.filter(t => (t.sectionName || 'General Results') === section);
@@ -635,44 +723,7 @@ function LabInsights({ trends }: { trends: VitalTrend[] }) {
           <div key={section} className="space-y-6">
             <SectionLabel>{section}</SectionLabel>
 
-            {isGeneralSection && (
-              <GlassCard className="p-6 mb-4" glowColor="bg-primary/5">
-                <div style={{ height: Math.max(120, displayedLabs.length * 40) }}>
-                    <ResponsiveContainer width="99%" height="100%">
-                      <BarChart data={displayedLabs.map(t => ({
-                        name: t.vitalName,
-                        mag: t.percentChangeFromBaseline !== null ? Math.max(2, Math.abs(t.percentChangeFromBaseline)) : Math.max(4, t.volatility),
-                        cur: t.currentValue,
-                        dir: t.direction
-                      }))} layout="vertical" margin={{ left: 10, right: 60, top: 10, bottom: 10 }}>
-                        <XAxis type="number" hide />
-                        <YAxis 
-                          dataKey="name" 
-                          type="category" 
-                          axisLine={false} 
-                          tickLine={false} 
-                          width={150} 
-                          tick={{ fontSize: 9, fill: 'var(--muted)', fontWeight: 800 }} 
-                        />
-                        <Tooltip 
-                          contentStyle={tooltipStyle} 
-                          cursor={{ fill: 'var(--surface-2)', opacity: 0.4 }} 
-                          isAnimationActive={false}
-                          formatter={(value: any, name: any) => {
-                            if (name === 'mag') return [`${parseFloat(value).toFixed(1)}%`, 'Shift Magnitude'];
-                            if (name === 'cur') return [value, 'Current Value'];
-                            return [value, name];
-                          }}
-                        />
-                        <Bar dataKey="mag" radius={[0, 6, 6, 0]} barSize={20}>
-                          {displayedLabs.map((t, i) => <Cell key={i} fill={getTrendHexColor(t.direction)} />)}
-                          <LabelList dataKey="cur" position="right" style={{ fontSize: 11, fontWeight: 900, fill: 'var(--foreground)' }} formatter={(v: any) => v?.toFixed(1)} />
-                        </Bar>
-                      </BarChart>
-                    </ResponsiveContainer>
-                </div>
-              </GlassCard>
-            )}
+<div />
 
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
               {displayedLabs.map(l => {
@@ -765,7 +816,7 @@ function LabInsights({ trends }: { trends: VitalTrend[] }) {
         );
       })}
 
-      {trends.length > 5 && (
+      {trends.length > 5 && sections.some(s => trends.filter(t => (t.sectionName || 'General Results') === s).length > 6) && (
         <button
           onClick={() => setShowAllLabs(!showAllLabs)}
           className="w-full py-3 bg-surface-2 hover:bg-surface-3 border border-border rounded-2xl text-[11px] font-black text-muted transition-all uppercase tracking-widest"
@@ -780,11 +831,113 @@ function LabInsights({ trends }: { trends: VitalTrend[] }) {
 function TreatmentEffect({ correlations, normalizeVital }: { correlations: MedicationCorrelation[], normalizeVital: (name: string, value: number) => number }) {
   if (correlations.length === 0) return <EmptyState icon={Pill} title="Treatments & Outcomes" description="When medications are prescribed, their impact on your vitals will be correlated here." />;
 
+  // TOP PERFORMER RANKING (Clinical Intelligence)
+  const topMed = useMemo(() => {
+    if (correlations.length < 1) return null;
+    
+    const getClincialScore = (m: MedicationCorrelation) => {
+        const cat = m.drugCategory.toLowerCase();
+        // Massively deprioritize supplements/vitamins/placebos for the top featured spot
+        if (cat.includes('supplement') || cat.includes('vitamin') || cat.includes('nutrient')) return -1000;
+
+        const improved = m.vitalDeltas.filter(d => d.interpretation === 'Improved');
+        const degraded = m.vitalDeltas.filter(d => d.interpretation === 'Degraded');
+        const sumImproved = improved.reduce((acc, d) => acc + Math.abs(d.delta), 0);
+        
+        // Ranking Formula: (Breadth of Impact * 10) + (Total Magnitude) - (Risk Penalty)
+        let score = (improved.length * 15) + sumImproved - (degraded.length * 25);
+        
+        // Category Boost for high-impact therapeutic classes
+        if (cat.includes('antidiabetic') || cat.includes('antihypertensive') || cat.includes('statin') || cat.includes('sglt2')) {
+            score += 50;
+        }
+        return score;
+    };
+
+    return [...correlations].sort((a, b) => getClincialScore(b) - getClincialScore(a))[0];
+  }, [correlations]);
+
+  const improvedMarkers = topMed?.vitalDeltas.filter(d => d.interpretation === 'Improved') || [];
+  const totalImpacted = topMed?.vitalDeltas.length || 1;
+  const avgMagnitude = improvedMarkers.reduce((acc, d) => acc + Math.abs(d.delta), 0) / (improvedMarkers.length || 1);
+  
+  // Weighted Score: Rewards 'Breadth' (how many areas helped) twice as much as simple magnitude.
+  // This makes a medicine that helps 24 different markers feel significantly more high-impact.
+  const breadthFactor = (improvedMarkers.length / totalImpacted) * 1.8; 
+  const holisticProgress = Math.min(avgMagnitude * breadthFactor, 100);
+
+  const successRate = (improvedMarkers.length / totalImpacted) * 100;
+
+  const outcomes = topMed?.vitalDeltas.reduce((acc, d) => {
+    acc[d.interpretation] = (acc[d.interpretation] || 0) + 1;
+    return acc;
+  }, {} as Record<string, number>);
+
+  const bestDelta = [...improvedMarkers].sort((a, b) => Math.abs(b.delta) - Math.abs(a.delta))[0];
+
   return (
-    <div className="space-y-6">
-      {correlations.map((med, idx) => (
-        <MedicationImpactCard key={idx} med={med} normalizeVital={normalizeVital} />
-      ))}
+    <div className="space-y-8">
+      {topMed && correlations.length > 1 && (
+        <GlassCard className="p-8 border-emerald-500/20 bg-emerald-500/[0.02]" glowColor="bg-emerald-500/10">
+          <div className="flex flex-col md:flex-row items-start md:items-center justify-between gap-6">
+             <div className="flex items-center gap-6">
+                <div className="w-16 h-16 rounded-[2.2rem] bg-emerald-500/10 border border-emerald-500/20 flex items-center justify-center shadow-lg shadow-emerald-500/5">
+                   <Zap className="text-emerald-500 fill-emerald-500/20" size={32} />
+                </div>
+                <div>
+                  <div className="flex items-center gap-2 mb-1">
+                    <span className="px-2.5 py-0.5 rounded-full bg-emerald-500/10 border border-emerald-500/20 text-[9px] font-black uppercase tracking-widest text-emerald-600">Primary Clinical Driver</span>
+                    <span className="px-2.5 py-0.5 rounded-full bg-emerald-600/10 text-emerald-600 text-[9px] font-black uppercase tracking-widest border border-emerald-500/20 shadow-sm">
+                      {holisticProgress.toFixed(1)}% Weighted Progress
+                    </span>
+                  </div>
+                  <h3 className="text-3xl font-black text-foreground capitalize tracking-tight">{topMed.medicationName}</h3>
+                  <p className="text-[11px] font-bold text-muted uppercase tracking-widest mt-1">
+                    Aggregated therapeutic impact across <span className="text-emerald-500 font-black">{improvedMarkers.length} improved indicators</span>
+                  </p>
+                  
+                  {/* Detailed Stats Pills */}
+                  {outcomes && (
+                    <div className="flex gap-2 mt-3">
+                      {Object.entries(outcomes).map(([label, count]) => (
+                        <span key={label} className={`px-2 py-0.5 rounded-full text-[8px] font-black uppercase tracking-wider border ${
+                          label === 'Improved' ? 'bg-emerald-500/10 border-emerald-500/20 text-emerald-600' : 
+                          label === 'Degraded' ? 'bg-red-500/10 border-red-500/20 text-red-500' : 'bg-surface-3 text-muted border-border'
+                        }`}>
+                          {count} {label}
+                        </span>
+                      ))}
+                    </div>
+                  )}
+                </div>
+             </div>
+             <div className="flex flex-col items-end">
+                <div className="text-right">
+                   <p className="text-[10px] font-black text-muted uppercase tracking-widest mb-1">
+                     Clinical Success Rate
+                   </p>
+                   <p className="text-4xl font-black text-emerald-500 tabular-nums">
+                     {successRate.toFixed(0)}%
+                   </p>
+                   {bestDelta && (
+                     <div className="flex items-center justify-end gap-1.5 mt-2 opacity-60">
+                        <span className="text-[9px] font-bold text-muted uppercase tracking-widest truncate max-w-[120px]">Peak: {bestDelta.vitalName}</span>
+                        <span className="text-[10px] font-black text-emerald-600">
+                          {bestDelta.delta > 0 ? '↑' : '↓'}{Math.abs(bestDelta.delta).toFixed(1)}%
+                        </span>
+                     </div>
+                   )}
+                </div>
+             </div>
+          </div>
+        </GlassCard>
+      )}
+
+      <div className="space-y-6">
+        {correlations.map((med, idx) => (
+          <MedicationImpactCard key={idx} med={med} normalizeVital={normalizeVital} />
+        ))}
+      </div>
     </div>
   );
 }

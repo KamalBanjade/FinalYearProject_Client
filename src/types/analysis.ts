@@ -19,6 +19,7 @@ export interface VitalTrend {
   normalMax: number | null;
   vitalUnit: string | null;
   sectionName: string | null;
+  isAbnormal: boolean;
 }
 
 export interface VitalCorrelationDelta {
@@ -103,4 +104,5 @@ export interface AnalysisSummary {
   baselineReliabilityWarning: boolean;
   nextFollowUpDate: string | null;
   itemsNeedingAttention: AttentionItem[];
+  primaryCondition: string | null;
 }

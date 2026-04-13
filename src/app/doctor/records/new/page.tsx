@@ -1,7 +1,8 @@
 'use client';
 
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import { useRouter, useSearchParams, usePathname } from 'next/navigation';
+import { useQueryClient } from '@tanstack/react-query';
 import { format } from 'date-fns';
 import { formatLocalTime, formatTime } from '@/lib/utils/dateUtils';
 import { doctorApi } from '@/lib/api';
@@ -11,7 +12,7 @@ import {
   Heart, Activity, Thermometer, Weight, Ruler, Droplets,
   Search, ScanLine, FileText, CheckCircle, AlertTriangle, Plus, ClipboardList,
   Layout, BookOpen, Save, ChevronRight, X, Sparkles, Clipboard,
-  Clock, ArrowUpRight, ArrowDownRight, RefreshCw,
+  Clock, ArrowUpRight, ArrowDownRight, RefreshCw, Trash2, Pencil,
   History as HistoryIcon
 } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
@@ -58,6 +59,8 @@ interface TemplateField {
   is_required: boolean;
   dropdown_options?: string[];
   last_value?: string;
+  is_retired?: boolean;
+  rename_history?: string[];
 }
 
 interface BaseVitalsForm {
@@ -135,6 +138,7 @@ export default function StructuredRecordEntry() {
   const router = useRouter();
   const searchParams = useSearchParams();
   const pathname = usePathname();
+  const queryClient = useQueryClient();
 
   // — Modal States
   const [isCustomFieldModalOpen, setIsCustomFieldModalOpen] = useState(false);
@@ -183,6 +187,10 @@ export default function StructuredRecordEntry() {
   const [allRecords, setAllRecords] = useState<any[]>([]);
   const [currentStep, setCurrentStep] = useState<FlowStep>('patient');
 
+  // — Field editing state
+  const [editingFieldKey, setEditingFieldKey] = useState<string | null>(null);
+  const [retiredFields, setRetiredFields] = useState<Array<{ sectionName: string; fieldName: string }>>([]);
+
   // — Follow-Up Flow
   const [isFollowUpModalOpen, setIsFollowUpModalOpen] = useState(false);
   const [isSchedulingFollowUp, setIsSchedulingFollowUp] = useState(false);
@@ -191,6 +199,7 @@ export default function StructuredRecordEntry() {
   // — Visit Context & Redesign
   const [overrideMode, setOverrideMode] = useState(false);
   const [visitOption, setVisitOption] = useState<'continue' | 'new'>('continue');
+  const [isDerivedSession, setIsDerivedSession] = useState(false);
 
   const { data: visitContext } = useVisitContext(patient?.id);
 
@@ -224,15 +233,17 @@ export default function StructuredRecordEntry() {
         const sections: TemplateSection[] = p.sections.map(s => ({
           section_name: s.sectionName,
           display_order: 1,
-          fields: s.fields.map(f => ({
-            field_name: f.fieldName,
-            field_label: f.fieldName.replace(/_/g, ' '),
-            field_type: f.fieldType || 'Text',
-            unit: f.unit,
-            normal_range_min: f.normalRange ? parseFloat(f.normalRange.split('-')[0]) : undefined,
-            normal_range_max: f.normalRange ? parseFloat(f.normalRange.split('-')[1]) : undefined,
-            is_required: false
-          }))
+          fields: s.fields
+            .filter((f: any) => !f.is_retired)  // exclude retired fields on load
+            .map((f: any) => ({
+              field_name: f.fieldName,
+              field_label: f.fieldName.replace(/_/g, ' '),
+              field_type: f.fieldType || 'Text',
+              unit: f.unit,
+              normal_range_min: f.normalRange ? parseFloat(f.normalRange.split('-')[0]) : undefined,
+              normal_range_max: f.normalRange ? parseFloat(f.normalRange.split('-')[1]) : undefined,
+              is_required: false
+            }))
         }));
         setLocalSections(sections);
         setOriginalSchema(sections); // Set original schema for comparison
@@ -407,71 +418,123 @@ export default function StructuredRecordEntry() {
     setTemplateData(prev => ({ ...prev, [`${section}_${field}`]: value }));
 
   const handleUseTemplate = (t: any) => {
+    // Helper to check for empty values
+    const isEmpty = (val: string) => !val || val === "—" || val === "--";
+
+    const rawSections: TemplateSection[] = (t.schema?.sections || t.sections || []).map(
+      (s: any) => ({
+        ...s,
+        // Exclude retired fields and enrich with historical values
+        fields: (s.fields ?? []).filter((f: any) => !f.is_retired).map((f: any) => {
+          let lastKnownValue = "";
+          
+          // Search for the most recent non-empty value in patient history
+          for (const prev of allRecords) {
+            const historicAttr = prev.sections
+              ?.flatMap((ps: any) => ps.attributes)
+              ?.find((pa: any) => pa.fieldName === f.field_name);
+
+            if (historicAttr && !isEmpty(historicAttr.fieldValue)) {
+              lastKnownValue = historicAttr.fieldValue;
+              break; 
+            }
+          }
+
+          return {
+            ...f,
+            last_value: lastKnownValue
+          };
+        })
+      })
+    );
+
     setSelectedTemplateName(t.templateName || t.name);
     setSourceTemplateId(t.id);
-    setLocalSections(t.schema?.sections || t.sections || []);
-    setOriginalSchema(t.schema?.sections || t.sections || []);
+    setLocalSections(rawSections);
+    setOriginalSchema(rawSections);
     setTemplateData({});
     setHasStructureChanges(false);
-    setIsTemplateBrowserOpen(false);
+    setIsDerivedSession(true);
     setOverrideMode(true);
     setCurrentStep('summary');
     toast.success(`Protocol "${t.templateName || t.name}" loaded!`);
     window.scrollTo({ top: 0, behavior: 'smooth' });
   };
 
-  const handleCloneLastRecord = () => {
+  const handleCloneLastRecord = async () => {
     if (!latestRecord) return;
 
-    // Map latestRecord sections to TemplateSection format
-    const clonedSections = latestRecord.sections.map((s: any) => ({
-      section_name: s.sectionName,
-      display_order: s.displayOrder,
-      fields: s.attributes.map((a: any) => {
-        // Parse NormalRange string "min-max" back to min/max if possible
-        let min, max;
-        if (a.normalRange && a.normalRange.includes('-')) {
-          const parts = a.normalRange.split('-').map((p: any) => p.trim());
-          min = parseFloat(parts[0]);
-          max = parseFloat(parts[1]);
-        }
-
-        // Find most recent non-empty value across ALL history
-        let lastKnownValue = a.fieldValue;
-        const isEmpty = (val: string) => !val || val === "—" || val === "--";
-
-        if (isEmpty(lastKnownValue)) {
-          for (const prev of allRecords.slice(1)) {
-            // Flatten sections to find attribute by name
-            const historicAttr = prev.sections
-              ?.flatMap((ps: any) => ps.attributes)
-              ?.find((pa: any) => pa.fieldName === a.fieldName);
-
-            if (historicAttr && !isEmpty(historicAttr.fieldValue)) {
-              lastKnownValue = historicAttr.fieldValue;
-              break;
+    // Fetch current template schema to know which field_names are retired
+    let retiredFieldNames = new Set<string>();
+    if (latestRecord.templateId) {
+      try {
+        const templateRes = await templatesApi.getTemplate(latestRecord.templateId);
+        if (templateRes.success && templateRes.data?.schema?.sections) {
+          for (const section of templateRes.data.schema.sections) {
+            for (const field of section.fields ?? []) {
+              if (field.is_retired) retiredFieldNames.add(field.field_name);
             }
           }
         }
+      } catch {
+        // Non-blocking — if template fetch fails, clone all fields (safe default)
+      }
+    }
 
-        return {
-          field_name: a.fieldName,
-          field_label: a.fieldLabel,
-          field_type: a.fieldType,
-          unit: a.fieldUnit,
-          normal_range_min: min,
-          normal_range_max: max,
-          is_from_standard: a.isFromTemplate,
-          last_value: lastKnownValue
-        };
-      })
+    // Map latestRecord sections to TemplateSection format, skipping retired fields
+    const clonedSections = latestRecord.sections.map((s: any) => ({
+      section_name: s.sectionName,
+      display_order: s.displayOrder,
+      fields: s.attributes
+        .filter((a: any) => !retiredFieldNames.has(a.fieldName)) // skip retired
+        .map((a: any) => {
+          // Parse NormalRange string "min-max" back to min/max if possible
+          let min, max;
+          if (a.normalRange && a.normalRange.includes('-')) {
+            const parts = a.normalRange.split('-').map((p: any) => p.trim());
+            min = parseFloat(parts[0]);
+            max = parseFloat(parts[1]);
+          }
+
+          // Find most recent non-empty value across ALL history
+          let lastKnownValue = a.fieldValue;
+          const isEmpty = (val: string) => !val || val === "—" || val === "--";
+
+          if (isEmpty(lastKnownValue)) {
+            for (const prev of allRecords.slice(1)) {
+              // Flatten sections to find attribute by name
+              const historicAttr = prev.sections
+                ?.flatMap((ps: any) => ps.attributes)
+                ?.find((pa: any) => pa.fieldName === a.fieldName);
+
+              if (historicAttr && !isEmpty(historicAttr.fieldValue)) {
+                lastKnownValue = historicAttr.fieldValue;
+                break;
+              }
+            }
+          }
+
+          return {
+            field_name: a.fieldName,
+            field_label: a.fieldLabel,
+            field_type: a.fieldType,
+            unit: a.fieldUnit,
+            normal_range_min: min,
+            normal_range_max: max,
+            is_from_standard: a.isFromTemplate,
+            last_value: lastKnownValue
+          };
+        })
     }));
 
     setLocalSections(clonedSections);
     setSelectedTemplateName(`Follow-up (from ${new Date(latestRecord.recordDate).toLocaleDateString()})`);
+    // Preserve the source template ID so the atomic retire/rename sync can fire on save
+    setSourceTemplateId(latestRecord.templateId || null);
 
     setTemplateData({}); // Keep current data fresh/empty
     setHasStructureChanges(true);
+    setIsDerivedSession(true);
     setOverrideMode(true);
     setCurrentStep('summary');
     toast.success('Previous record structure cloned for reference!');
@@ -483,6 +546,7 @@ export default function StructuredRecordEntry() {
     setLocalSections([{ section_name: 'General Assessment', display_order: 1, fields: [] }]);
     setTemplateData({});
     setHasStructureChanges(false);
+    setIsDerivedSession(false);
     setOverrideMode(true);
     setCurrentStep('summary');
     window.scrollTo({ top: 0, behavior: 'smooth' });
@@ -506,6 +570,75 @@ export default function StructuredRecordEntry() {
       return [...prev, { section_name: sectionName, display_order: prev.length + 1, fields: [field] }];
     });
   };
+
+  const handleRemoveField = useCallback((
+    sectionName: string,
+    fieldName: string
+  ) => {
+    // 1. Remove from localSections so it disappears from the form
+    setLocalSections(prev =>
+      prev.map(section =>
+        section.section_name !== sectionName
+          ? section
+          : {
+              ...section,
+              fields: section.fields.filter(
+                f => f.field_name !== fieldName
+              )
+            }
+      )
+    );
+
+    // 2. Remove value from templateData so it is not submitted
+    const key = `${sectionName}_${fieldName}`;
+    setTemplateData(prev => {
+      const updated = { ...prev };
+      delete updated[key];
+      return updated;
+    });
+
+    // 3. Track which fields have been retired this session
+    // (used later during atomic template update on record save)
+    setRetiredFields(prev => [...prev, { sectionName, fieldName }]);
+
+    // DO NOT set hasStructureChanges here — retirement is handled
+    // atomically on save, not via the existing modal prompt flow
+  }, []);
+
+  const handleRenameField = useCallback((
+    sectionName: string,
+    fieldName: string,
+    newLabel: string
+  ) => {
+    if (!newLabel.trim()) return;
+
+    setLocalSections(prev =>
+      prev.map(section =>
+        section.section_name !== sectionName
+          ? section
+          : {
+              ...section,
+              fields: section.fields.map(f =>
+                f.field_name !== fieldName
+                  ? f
+                  : {
+                      ...f,
+                      // Store old label in rename_history before updating
+                      rename_history: [
+                        ...(f.rename_history ?? []),
+                        f.field_label
+                      ],
+                      field_label: newLabel.trim()
+                    }
+              )
+            }
+      )
+    );
+
+    // field_name (the key) does NOT change, only field_label changes
+    // so templateData keys are unaffected
+    setHasStructureChanges(true);
+  }, []);
 
   const handleCompleteAndSave = async () => {
     if (!patient) {
@@ -545,13 +678,86 @@ export default function StructuredRecordEntry() {
         sections: formattedSections,
         diagnosis,
         treatmentPlan,
-        doctorNotes
+        doctorNotes,
+        templateId: sourceTemplateId || undefined, // stamps TemplateId on the record so analysis can resolve the active template schema
+        excludedFields: retiredFields.length > 0 ? retiredFields.map(rf => rf.fieldName) : undefined
       });
 
       if (res.success) {
         setLastSavedRecordId(res.data.id);
 
-        // Post-save logic: Always offer follow-up scheduling (requested by user)
+        // ── Step 2: Atomically retire deleted fields in the template schema ──
+        // ONLY for brand-new sessions (not clones or templates).
+        // Deleting a field in a CLONED session is patient-specific — it must NOT
+        // mutate the shared global template (which would affect all other patients).
+        // Patient-scoped exclusion is handled via ExcludedFields in the record payload below.
+        if (retiredFields.length > 0 && sourceTemplateId && !isDerivedSession) {
+          try {
+            const templateRes = await templatesApi.getTemplate(sourceTemplateId);
+            if (templateRes.success && templateRes.data?.schema) {
+              const currentSchema = templateRes.data.schema;
+
+              const updatedSchema = {
+                sections: (currentSchema.sections ?? []).map((section: any) => ({
+                  ...section,
+                  fields: (section.fields ?? []).map((field: any) => {
+                    const isRetired = retiredFields.some(
+                      r =>
+                        r.sectionName === section.section_name &&
+                        r.fieldName === field.field_name
+                    );
+                    return isRetired ? { ...field, is_retired: true } : field;
+                  })
+                }))
+              };
+
+              // Await the retirement PUT fully before proceeding
+              await templatesApi.updateTemplate(sourceTemplateId, {
+                schema: updatedSchema
+              });
+
+              // Propagate any field renames into the schema in the same pass
+              if (hasStructureChanges) {
+                const schemaWithRenames = {
+                  sections: updatedSchema.sections.map((section: any) => ({
+                    ...section,
+                    fields: section.fields.map((field: any) => {
+                      const localField = localSections
+                        .find(s => s.section_name === section.section_name)
+                        ?.fields.find(f => f.field_name === field.field_name);
+                      if (localField?.rename_history?.length) {
+                        return {
+                          ...field,
+                          rename_history: localField.rename_history,
+                          field_label: localField.field_label
+                        };
+                      }
+                      return field;
+                    })
+                  }))
+                };
+                await templatesApi.updateTemplate(sourceTemplateId, { schema: schemaWithRenames });
+              }
+
+              setRetiredFields([]);
+            }
+          } catch (err) {
+            // Non-blocking — record is already saved. Log but don't abort navigation.
+            console.error('Template retirement update failed:', err);
+          }
+        }
+
+        // ── Step 3: Invalidate ALL clinical analysis caches ──────────────
+        // Must happen AFTER the retirement PUT resolves so the backend
+        // serves fresh data that already reflects the schema change.
+        await queryClient.invalidateQueries({ queryKey: ['clinical_summary',      patient.id] });
+        await queryClient.invalidateQueries({ queryKey: ['clinical_trends',       patient.id] });
+        await queryClient.invalidateQueries({ queryKey: ['clinical_correlations', patient.id] });
+        await queryClient.invalidateQueries({ queryKey: ['clinical_patterns',     patient.id] });
+        await queryClient.invalidateQueries({ queryKey: ['clinical_timeline',     patient.id] });
+
+        // ── Step 4: Navigate ─────────────────────────────────────────────
+        // Follow-up modal fires here — all async work above is complete.
         setIsFollowUpModalOpen(true);
         toast.success('Clinical record saved successfully!');
       }
@@ -650,7 +856,7 @@ export default function StructuredRecordEntry() {
         toast.success(`Protocol "${newTemplateName}" saved to your library!`);
         setShowSaveTemplateModal(false);
         setNewTemplateName('');
-        if (lastSavedRecordId) router.push('/doctor/dashboard');
+        router.push(`/doctor/patients/${patient?.id || 'dashboard'}`);
       }
     } catch {
       toast.error('Failed to save protocol');
@@ -685,11 +891,11 @@ export default function StructuredRecordEntry() {
     setIsFollowUpModalOpen(false);
 
     // Logic: Only prompt to save if we actually have changes AND we didn't just come from a blank/scratch unless explicitly requested.
-    // However, if we modified an existing template, we should prompt to UPDATE it.
-    if (hasStructureChanges) {
+    // However, if we modified an existing template (isDerivedSession), we SKIP the prompt to keep the workflow fast.
+    if (hasStructureChanges && !isDerivedSession) {
       setShowSaveTemplateModal(true);
     } else {
-      router.push('/doctor/dashboard');
+      router.push(`/doctor/patients/${patient?.id || 'dashboard'}`);
     }
   };
 
@@ -1098,14 +1304,66 @@ export default function StructuredRecordEntry() {
                           return (
                             <div key={field.field_name} className="group relative overflow-hidden bg-white/40 dark:bg-slate-900/40 backdrop-blur-md rounded-[2rem] border border-white/50 dark:border-slate-800/50 p-6 shadow-sm hover:shadow-xl hover:translate-y-[-2px] transition-all duration-300">
                               <div className="flex items-center justify-between mb-4">
-                                <label className="text-[10px] font-black uppercase tracking-[0.2em] text-slate-400 group-hover:text-blue-500 transition-colors px-1">
-                                  {field.field_label}{field.is_required && <span className="text-rose-500 ml-1">*</span>}
-                                </label>
-                                {isAbnormal && (
-                                  <div className="flex items-center gap-1.5 px-2.5 py-1 bg-rose-500/10 border border-rose-500/20 rounded-full text-[9px] font-black text-rose-500 uppercase tracking-widest animate-pulse">
-                                    <AlertTriangle size={10} /> Abnormal
-                                  </div>
-                                )}
+                                {/* Label — click to rename, or inline input when editing */}
+                                <div className="flex items-center gap-1.5 flex-1 min-w-0">
+                                  {editingFieldKey === `${section.section_name}_${field.field_name}` ? (
+                                    <input
+                                      autoFocus
+                                      defaultValue={field.field_label}
+                                      className="text-[10px] font-black uppercase tracking-[0.2em] bg-transparent border-b-2 border-blue-500 outline-none text-blue-500 px-1 w-full"
+                                      onBlur={e => {
+                                        handleRenameField(section.section_name, field.field_name, e.target.value);
+                                        setEditingFieldKey(null);
+                                      }}
+                                      onKeyDown={e => {
+                                        if (e.key === 'Enter') {
+                                          handleRenameField(section.section_name, field.field_name, e.currentTarget.value);
+                                          setEditingFieldKey(null);
+                                        }
+                                        if (e.key === 'Escape') setEditingFieldKey(null);
+                                      }}
+                                    />
+                                  ) : (
+                                    <label
+                                      className="text-[10px] font-black uppercase tracking-[0.2em] text-slate-400 group-hover:text-blue-500 transition-colors px-1 cursor-pointer truncate"
+                                      onClick={() => setEditingFieldKey(`${section.section_name}_${field.field_name}`)}
+                                      title="Click to rename field"
+                                    >
+                                      {field.field_label}{field.is_required && <span className="text-rose-500 ml-1">*</span>}
+                                    </label>
+                                  )}
+                                  {/* Pencil icon — subtle rename hint */}
+                                  {!field.is_required && editingFieldKey !== `${section.section_name}_${field.field_name}` && (
+                                    <button
+                                      type="button"
+                                      onClick={() => setEditingFieldKey(`${section.section_name}_${field.field_name}`)}
+                                      className="opacity-0 group-hover:opacity-60 transition-opacity p-0.5 rounded text-slate-400 hover:text-blue-500 shrink-0"
+                                      title="Rename field"
+                                    >
+                                      <Pencil size={9} />
+                                    </button>
+                                  )}
+                                </div>
+
+                                {/* Right side: abnormal badge + delete button */}
+                                <div className="flex items-center gap-1.5 shrink-0 ml-2">
+                                  {isAbnormal && (
+                                    <div className="flex items-center gap-1.5 px-2.5 py-1 bg-rose-500/10 border border-rose-500/20 rounded-full text-[9px] font-black text-rose-500 uppercase tracking-widest animate-pulse">
+                                      <AlertTriangle size={10} /> Abnormal
+                                    </div>
+                                  )}
+                                  {/* Delete field button — only for non-required fields */}
+                                  {!field.is_required && (
+                                    <button
+                                      type="button"
+                                      onClick={() => handleRemoveField(section.section_name, field.field_name)}
+                                      className="opacity-0 group-hover:opacity-100 transition-opacity p-1.5 rounded-lg hover:bg-rose-500/10 text-slate-400 hover:text-rose-500"
+                                      title="Remove this field from consultation"
+                                    >
+                                      <Trash2 size={12} />
+                                    </button>
+                                  )}
+                                </div>
                               </div>
 
                               <div className="relative mb-6">

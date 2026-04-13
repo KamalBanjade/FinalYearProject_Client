@@ -9,7 +9,8 @@ import {
     Clock, Activity, Heart, Thermometer, ShieldAlert,
     Phone, Mail, MapPin, Database, Filter, ArrowRight,
     Search, ExternalLink, Download, CheckCircle, Info,
-    Stethoscope, ClipboardList, Droplets, ChevronRight, BarChart2
+    Stethoscope, ClipboardList, Droplets, ChevronRight, BarChart2,
+    Trash2
 } from 'lucide-react';
 import { Button } from '@/components/ui/Button';
 import { Skeleton } from '@/components/ui/Skeleton';
@@ -22,6 +23,8 @@ import { useQuery } from '@tanstack/react-query';
 import { useAuthStore } from '@/store/authStore';
 import { ChatPanel } from '@/components/chat/ChatPanel';
 import { AnalysisDashboard } from '@/components/analysis/AnalysisDashboard';
+import { useConfirm } from '@/context/ConfirmContext';
+import { doctorPatientsApi } from '@/lib/api/doctorPatients';
 
 function ProfileContent() {
     const { user } = useAuthStore();
@@ -37,6 +40,8 @@ function ProfileContent() {
     const [previewUrl, setPreviewUrl] = useState<string | null>(null);
     const [previewRecord, setPreviewRecord] = useState<any | null>(null);
     const [viewLoading, setViewLoading] = useState<string | null>(null); // recordId
+    const [isDeleting, setIsDeleting] = useState(false);
+    const { confirm } = useConfirm();
 
     // Queries
     const { data: patientRes, isLoading: patientLoading } = useQuery({
@@ -113,6 +118,31 @@ function ProfileContent() {
         }
     };
 
+    const handleDeletePatient = async () => {
+        if (!patient) return;
+        
+        const confirmed = await confirm({
+            title: 'Delete Patient Entirely',
+            message: `Are you sure you want to entirely delete ${patient.firstName} ${patient.lastName}? This will permanently remove all their records and user account. This action cannot be undone.`,
+            confirmText: 'Delete Permanently',
+            cancelText: 'Cancel',
+            type: 'danger'
+        });
+
+        if (confirmed) {
+            setIsDeleting(true);
+            try {
+                const res = await doctorPatientsApi.deletePatient(patientId);
+                toast.success(res.message || 'Patient deleted successfully');
+                router.push('/doctor/patients');
+            } catch (err: any) {
+                toast.error(err.response?.data?.message || 'Failed to delete patient');
+            } finally {
+                setIsDeleting(false);
+            }
+        }
+    };
+    
     if (isLoading && !patient) {
         return <PatientProfileSkeleton />;
     }
@@ -160,6 +190,14 @@ function ProfileContent() {
                 </div>
 
                 <div className="flex items-center gap-2 sm:gap-3">
+                    <Button 
+                        onClick={handleDeletePatient}
+                        disabled={isDeleting}
+                        variant="outline"
+                        className="h-11 sm:h-12 px-4 sm:px-5 rounded-2xl bg-rose-500/5 border-rose-500/20 text-rose-500 hover:bg-rose-500 hover:text-white shadow-sm font-black uppercase tracking-widest text-[10px] flex items-center justify-center gap-2 cursor-pointer transition-all disabled:opacity-50"
+                    >
+                        <Trash2 size={16} /> <span className="hidden xs:inline">Remove Patient</span>
+                    </Button>
                     <Button 
                         onClick={() => router.push(`/doctor/patients/${patientId}/data`)}
                         variant="outline"
