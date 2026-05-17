@@ -474,6 +474,9 @@ export const doctorApi = {
     getAnalysisSummary: (patientId: string) =>
         axiosInstance.get(`analysis/patient/${patientId}/summary`),
 
+    getFullAnalysis: (patientId: string) =>
+        axiosInstance.get(`analysis/patient/${patientId}/full`),
+
     generateAnalysisReport: (patientId: string, fullName: string) =>
         axiosInstance.post(`analysis/patient/${patientId}/report/generate?patientFullName=${encodeURIComponent(fullName)}`),
 

@@ -184,6 +184,9 @@ export const patientApi = {
     getAnalysisSummary: (patientId: string) =>
         axiosInstance.get(`analysis/patient/${patientId}/summary`),
 
+    getFullAnalysis: (patientId: string) =>
+        axiosInstance.get(`analysis/patient/${patientId}/full`),
+
     getVitalTrends: (patientId: string) =>
         axiosInstance.get(`analysis/patient/${patientId}/trends`),
 

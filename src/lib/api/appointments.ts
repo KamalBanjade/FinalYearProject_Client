@@ -61,7 +61,7 @@ export interface RescheduleAppointmentDTO {
 }
 
 export interface CompleteAppointmentDTO {
-    consultationNotes: string;
+    consultationNotes?: string;
 }
 
 export interface LinkRecordDTO {
@@ -134,6 +134,11 @@ export const appointmentsApi = {
 
     confirmAppointment: async (id: string) => {
         const response = await axiosInstance.put(`appointments/${id}/confirm`);
+        return response.data;
+    },
+
+    markAsNoShow: async (id: string) => {
+        const response = await axiosInstance.put(`appointments/${id}/noshow`);
         return response.data;
     },
 

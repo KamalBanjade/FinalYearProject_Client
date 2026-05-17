@@ -171,6 +171,7 @@ interface HealthAnalysisApi {
   getAbnormalityPatterns: (id: string) => Promise<any>;
   getStabilityTimeline: (id: string) => Promise<any>;
   getAnalysisSummary: (id: string) => Promise<any>;
+  getFullAnalysis: (id: string) => Promise<any>;
   generateAnalysisReport: (id: string, fullName: string) => Promise<any>;
   downloadAnalysisReport: (id: string) => Promise<any>;
   getLabMetadata: () => Promise<any>;
@@ -265,34 +266,10 @@ export function AnalysisDashboard({ patientId, patientFullName, overrideTotalVis
   const isPatient = user?.role === 'Patient';
   const api = (isPatient ? patientApi : doctorApi) as unknown as HealthAnalysisApi;
 
-  // Split into independent queries for progressive rendering
-  const { data: summaryRes, isLoading: ls } = useQuery({
-    queryKey: ['clinical_summary', patientId],
-    queryFn: () => api.getAnalysisSummary(patientId),
-    staleTime: 5 * 60 * 1000,
-  });
-
-  const { data: trendsRes, isLoading: lt } = useQuery({
-    queryKey: ['clinical_trends', patientId],
-    queryFn: () => api.getVitalTrends(patientId),
-    staleTime: 5 * 60 * 1000,
-  });
-
-  const { data: corrRes, isLoading: lc } = useQuery({
-    queryKey: ['clinical_correlations', patientId],
-    queryFn: () => api.getMedicationCorrelations(patientId),
-    staleTime: 5 * 60 * 1000,
-  });
-
-  const { data: patternsRes, isLoading: lp } = useQuery({
-    queryKey: ['clinical_patterns', patientId],
-    queryFn: () => api.getAbnormalityPatterns(patientId),
-    staleTime: 5 * 60 * 1000,
-  });
-
-  const { data: timelineRes, isLoading: ltl } = useQuery({
-    queryKey: ['clinical_timeline', patientId],
-    queryFn: () => api.getStabilityTimeline(patientId),
+  // Single consolidated query for massive performance boost
+  const { data: fullRes, isLoading: loading, error: fetchError } = useQuery({
+    queryKey: ['clinical_full_analysis', patientId],
+    queryFn: () => api.getFullAnalysis(patientId),
     staleTime: 5 * 60 * 1000,
   });
 
@@ -302,15 +279,16 @@ export function AnalysisDashboard({ patientId, patientFullName, overrideTotalVis
     staleTime: 10 * 60 * 1000, // Metadata changes rarely
   });
 
-  const loading = ls || lt || lc || lp || ltl || lm;
-  const fetchError = null; // Removed generic throw error for partial success
+  const isMetadataLoading = lm;
+  const fullData = fullRes?.data;
 
   const error = fetchError ? 'Failed to load clinical intelligence data.' : null;
-  const summary = summaryRes?.data as AnalysisSummary || null;
-  const trends = trendsRes?.data as VitalTrend[] || [];
-  const correlations = corrRes?.data as MedicationCorrelation[] || [];
-  const patterns = patternsRes?.data as AbnormalityPattern[] || [];
-  const timeline = timelineRes?.data as StabilityTimeline || null;
+  
+  const summary = fullData?.summary as AnalysisSummary || null;
+  const trends = fullData?.trends as VitalTrend[] || [];
+  const correlations = fullData?.correlations as MedicationCorrelation[] || [];
+  const patterns = fullData?.patterns as AbnormalityPattern[] || [];
+  const timeline = fullData?.timeline as StabilityTimeline || null;
   const metadata = metaRes?.data as LabMetadata[] || [];
 
   const normalizeVital = useMemo(() => buildNormalizer(metadata), [metadata]);

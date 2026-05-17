@@ -15,6 +15,14 @@ import { Modal } from '@/components/ui/Modal';
 import Image from 'next/image';
 import { PageLayout } from '@/components/layout/PageLayout';
 
+// Normalize doctor names: always prepend "Dr." if role is Doctor and not already present
+const getDisplayName = (name: string, role: string) => {
+  if (role?.toLowerCase() === 'doctor' && !name.toLowerCase().startsWith('dr.')) {
+    return `Dr. ${name}`;
+  }
+  return name;
+};
+
 export default function PatientMessagesPage() {
   const { user } = useAuthStore();
   const queryClient = useQueryClient();
@@ -76,7 +84,12 @@ export default function PatientMessagesPage() {
 
   const handleSelectContact = (contact: Partial<Conversation>) => {
     // Check if we already have a conversation with this person
-    const existing = conversations.find(c => c.otherUserId === contact.otherUserId);
+    // Matches by ID or by Case-Insensitive name for better reliability
+    const existing = conversations.find(c => 
+      c.otherUserId === contact.otherUserId ||
+      c.otherUserName.toLowerCase() === contact.otherUserName?.toLowerCase()
+    );
+
     if (existing) {
       setSelectedConversation({ ...existing, isNew: false });
       setTempContact(null);
@@ -87,6 +100,27 @@ export default function PatientMessagesPage() {
       setTempContact(newConv);
     }
   };
+
+  // Synchronize tempContact with real conversations list once it arrives from backend
+  React.useEffect(() => {
+    if (tempContact && conversations.length > 0) {
+      const match = conversations.find(c => 
+        c.otherUserId === tempContact.otherUserId || 
+        c.otherUserName.toLowerCase() === tempContact.otherUserName.toLowerCase() ||
+        // Handle "Dr. " prefix mismatch
+        c.otherUserName.toLowerCase().replace(/^dr\.?\s+/i, '') === 
+        tempContact.otherUserName.toLowerCase().replace(/^dr\.?\s+/i, '')
+      );
+      
+      if (match) {
+        setTempContact(null);
+        // If the selected conversation is the temp one, switch to the real one
+        if (selectedConversation?.otherUserId === tempContact.otherUserId) {
+          setSelectedConversation(match);
+        }
+      }
+    }
+  }, [conversations, tempContact, selectedConversation]);
 
   // Global Esc key listener to close chat
   React.useEffect(() => {
@@ -241,7 +275,7 @@ export default function PatientMessagesPage() {
                     <div className="flex-1 min-w-0 flex flex-col justify-center">
                       <div className="flex justify-between items-baseline mb-0">
                         <h3 className="text-sm font-bold text-slate-900 dark:text-white truncate pr-2">
-                          {conv.otherUserName}
+                          {getDisplayName(conv.otherUserName, conv.otherUserRole)}
                         </h3>
                         {conv.lastMessageAt && (
                           <span className="text-[10px] font-black text-slate-400 shrink-0 uppercase tracking-tighter">
@@ -318,7 +352,7 @@ export default function PatientMessagesPage() {
                 key={selectedConversation.otherUserId}
                 currentUserId={user.id}
                 otherUserId={selectedConversation.otherUserId}
-                otherUserName={selectedConversation.otherUserName}
+                otherUserName={getDisplayName(selectedConversation.otherUserName, selectedConversation.otherUserRole)}
                 otherUserRole={selectedConversation.otherUserRole}
                 otherUserProfilePictureUrl={selectedConversation.otherUserProfilePictureUrl}
                 isNew={selectedConversation.isNew}

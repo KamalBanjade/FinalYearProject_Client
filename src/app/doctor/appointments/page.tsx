@@ -19,6 +19,8 @@ import {
     ChevronRight,
     LayoutDashboard,
     Stethoscope,
+    Check,
+    UserX,
 } from 'lucide-react';
 import { format, addDays, getDay, isSameDay, startOfMonth, addMonths, isBefore, startOfDay } from 'date-fns';
 import toast from 'react-hot-toast';
@@ -522,6 +524,72 @@ function DoctorAppointmentCard({
     router: ReturnType<typeof useRouter>;
     isHistory?: boolean;
 }) {
+    const [isCompleting, setIsCompleting] = useState(false);
+    const [isConfirming, setIsConfirming] = useState(false);
+    const [isMarkingNoShow, setIsMarkingNoShow] = useState(false);
+    const queryClient = useQueryClient();
+
+    // ── Appointment time gate ──────────────────────────────────────────────
+    const appointmentTime = new Date(normalizeUTC(appointment.appointmentDate));
+    const now = new Date();
+    const isConsultable = now >= appointmentTime && !isHistory;
+
+    const canComplete = isConsultable && (appointment.status === "Confirmed" || appointment.status === "InProgress" || appointment.status === "Overdue");
+
+    const handleMarkCompleted = async () => {
+        const confirm = window.confirm("Complete this appointment without consultation notes? This cannot be undone.");
+        if (!confirm) return;
+
+        setIsCompleting(true);
+        try {
+            await appointmentsApi.completeAppointment(appointment.id, { consultationNotes: "" });
+            toast.success("Appointment completed successfully.");
+            queryClient.invalidateQueries({ queryKey: ["doctor-appointments"] });
+            queryClient.invalidateQueries({ queryKey: ["doctor-appointment-stats"] });
+            queryClient.invalidateQueries({ queryKey: ["doctor-appointments-all"] });
+        } catch (err: any) {
+            const errMsg = err?.response?.data?.message || err?.message || "Failed to complete appointment.";
+            toast.error(errMsg);
+        } finally {
+            setIsCompleting(false);
+        }
+    };
+
+    const handleConfirmAppointment = async () => {
+        setIsConfirming(true);
+        try {
+            await appointmentsApi.confirmAppointment(appointment.id);
+            toast.success("Appointment approved successfully.");
+            queryClient.invalidateQueries({ queryKey: ["doctor-appointments"] });
+            queryClient.invalidateQueries({ queryKey: ["doctor-appointment-stats"] });
+            queryClient.invalidateQueries({ queryKey: ["doctor-appointments-all"] });
+        } catch (err: any) {
+            const errMsg = err?.response?.data?.message || err?.message || "Failed to approve appointment.";
+            toast.error(errMsg);
+        } finally {
+            setIsConfirming(false);
+        }
+    };
+
+    const handleMarkNoShow = async () => {
+        const confirm = window.confirm("Are you sure you want to mark this patient as a No Show? This will move the appointment out of the active schedule.");
+        if (!confirm) return;
+
+        setIsMarkingNoShow(true);
+        try {
+            await appointmentsApi.markAsNoShow(appointment.id);
+            toast.success("Appointment marked as No Show.");
+            queryClient.invalidateQueries({ queryKey: ["doctor-appointments"] });
+            queryClient.invalidateQueries({ queryKey: ["doctor-appointment-stats"] });
+            queryClient.invalidateQueries({ queryKey: ["doctor-appointments-all"] });
+        } catch (err: any) {
+            const errMsg = err?.response?.data?.message || err?.message || "Failed to mark as No Show.";
+            toast.error(errMsg);
+        } finally {
+            setIsMarkingNoShow(false);
+        }
+    };
+
     const statusStyles: Record<string, string> = {
         Confirmed: 'bg-emerald-50 dark:bg-emerald-400/10 text-emerald-600 dark:text-emerald-400 border-emerald-100 dark:border-emerald-400/20',
         Scheduled: 'bg-primary/10 text-primary border-primary/20',
@@ -541,11 +609,6 @@ function DoctorAppointmentCard({
             ? `${cleanedRelative} ${monthDay}`
             : cleanedRelative
         : '';
-
-    // ── Appointment time gate ──────────────────────────────────────────────
-    const appointmentTime = new Date(appointment.appointmentDate);
-    const now = new Date();
-    const isConsultable = now >= appointmentTime && !isHistory;
 
     return (
         <div className="group bg-white dark:bg-slate-900 rounded-[2.5rem] border border-slate-200/60 dark:border-slate-800 px-8 py-7 flex flex-col md:flex-row items-center gap-8 hover:shadow-xl hover:border-primary/30 transition-all duration-300 relative shadow-premium dark:shadow-none overflow-hidden">
@@ -675,6 +738,99 @@ function DoctorAppointmentCard({
                         </span>
                     </div>
                 </button>
+                {appointment.status === "Scheduled" && !isHistory && (
+                    <button
+                        onClick={handleConfirmAppointment}
+                        disabled={isConfirming}
+                        className="
+                            group/btn relative flex-1 h-14 rounded-xl
+                            bg-primary/10 dark:bg-primary/5
+                            border border-primary/20 dark:border-primary/10
+                            text-primary dark:text-primary/90
+                            hover:bg-primary hover:text-white hover:border-primary
+                            transition-all duration-300
+                            font-black text-[10px] uppercase tracking-[0.2em]
+                            flex items-center justify-center gap-3
+                            active:scale-95
+                            overflow-hidden
+                            cursor-pointer
+                            p-2
+                            disabled:opacity-50 disabled:cursor-not-allowed
+                        "
+                    >
+                        <div className="absolute inset-0 bg-white/10 opacity-0 group-hover/btn:opacity-100 transition-opacity duration-300 pointer-events-none" />
+                        <div className="absolute inset-0 border border-white/10 dark:border-white/5 rounded-xl opacity-0 group-hover/btn:opacity-100 transition-opacity pointer-events-none" />
+                        <div className="absolute inset-0 w-[200%] h-full bg-gradient-to-r from-transparent via-white/5 to-transparent -translate-x-full group-hover/btn:animate-[shimmer_4s_infinite] pointer-events-none" />
+                        <div className="relative flex items-center gap-3 pointer-events-none">
+                            <Check className="w-4 h-4 transition-transform duration-500 group-hover/btn:scale-110" />
+                            <span className="relative">
+                                {isConfirming ? 'Approving...' : 'Approve Appointment'}
+                            </span>
+                        </div>
+                    </button>
+                )}
+                {canComplete && (
+                    <>
+                        <button
+                            onClick={handleMarkCompleted}
+                            disabled={isCompleting}
+                            className="
+                                group/btn relative flex-1 h-14 rounded-xl
+                                bg-emerald-500/10 dark:bg-emerald-500/5
+                                border border-emerald-500/20 dark:border-emerald-500/10
+                                text-emerald-600 dark:text-emerald-400
+                                hover:bg-emerald-600 hover:text-white hover:border-emerald-600
+                                transition-all duration-300
+                                font-black text-[10px] uppercase tracking-[0.2em]
+                                flex items-center justify-center gap-3
+                                active:scale-95
+                                overflow-hidden
+                                cursor-pointer
+                                p-2
+                                disabled:opacity-50 disabled:cursor-not-allowed
+                            "
+                        >
+                            <div className="absolute inset-0 bg-white/10 opacity-0 group-hover/btn:opacity-100 transition-opacity duration-300 pointer-events-none" />
+                            <div className="absolute inset-0 border border-white/10 dark:border-white/5 rounded-xl opacity-0 group-hover/btn:opacity-100 transition-opacity pointer-events-none" />
+                            <div className="absolute inset-0 w-[200%] h-full bg-gradient-to-r from-transparent via-white/5 to-transparent -translate-x-full group-hover/btn:animate-[shimmer_4s_infinite] pointer-events-none" />
+                            <div className="relative flex items-center gap-3 pointer-events-none">
+                                <CheckCircle2 className="w-4 h-4 transition-transform duration-500 group-hover/btn:scale-110" />
+                                <span className="relative">
+                                    {isCompleting ? 'Completing...' : 'Mark Completed'}
+                                </span>
+                            </div>
+                        </button>
+                        <button
+                            onClick={handleMarkNoShow}
+                            disabled={isMarkingNoShow}
+                            className="
+                                group/btn relative flex-1 h-14 rounded-xl
+                                bg-rose-500/10 dark:bg-rose-500/5
+                                border border-rose-500/20 dark:border-rose-500/10
+                                text-rose-600 dark:text-rose-400
+                                hover:bg-rose-600 hover:text-white hover:border-rose-600
+                                transition-all duration-300
+                                font-black text-[10px] uppercase tracking-[0.2em]
+                                flex items-center justify-center gap-3
+                                active:scale-95
+                                overflow-hidden
+                                cursor-pointer
+                                p-2
+                                disabled:opacity-50 disabled:cursor-not-allowed
+                            "
+                        >
+                            <div className="absolute inset-0 bg-white/10 opacity-0 group-hover/btn:opacity-100 transition-opacity duration-300 pointer-events-none" />
+                            <div className="absolute inset-0 border border-white/10 dark:border-white/5 rounded-xl opacity-0 group-hover/btn:opacity-100 transition-opacity pointer-events-none" />
+                            <div className="absolute inset-0 w-[200%] h-full bg-gradient-to-r from-transparent via-white/5 to-transparent -translate-x-full group-hover/btn:animate-[shimmer_4s_infinite] pointer-events-none" />
+                            <div className="relative flex items-center gap-3 pointer-events-none">
+                                <UserX className="w-4 h-4 transition-transform duration-500 group-hover/btn:scale-110" />
+                                <span className="relative">
+                                    {isMarkingNoShow ? 'Processing...' : 'No Show'}
+                                </span>
+                            </div>
+                        </button>
+                    </>
+                )}
             </div>
         </div>
     );
